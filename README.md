@@ -1,4 +1,4 @@
-# Christina's Hair & Care Services
+# Christina's Home Salon
 
 A modern, production-ready website for a women-only mobile hairdressing and companionship services business. Built with Next.js 14+, TypeScript, Tailwind CSS, and shadcn/ui.
 
