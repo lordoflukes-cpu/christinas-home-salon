@@ -14,6 +14,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useBookingStore } from '@/lib/store';
 import { clientDetailsSchema, type ClientDetailsForm } from '@/lib/schema';
+import { getServiceById, getServiceOptionById } from '@/content/services';
+import { getPackageById } from '@/content/packages';
 
 interface Step5DetailsProps {
   onComplete: () => void;
@@ -58,22 +60,144 @@ export function Step5Details({ onComplete }: Step5DetailsProps) {
   const onSubmit = async (data: ClientDetailsForm) => {
     setSubmitting(true);
     
-    // Save to store
-    setClientDetails({
-      clientName: data.clientName,
-      clientEmail: data.clientEmail,
-      clientPhone: data.clientPhone,
-      specialRequests: data.specialRequests || '',
-      consentBoundaries: data.consentBoundaries,
-      consentCancellation: data.consentCancellation,
-      consentWomenOnly: data.consentWomenOnly,
-    });
+    try {
+      // Save to store
+      setClientDetails({
+        clientName: data.clientName,
+        clientEmail: data.clientEmail,
+        clientPhone: data.clientPhone,
+        specialRequests: data.specialRequests || '',
+        consentBoundaries: data.consentBoundaries,
+        consentCancellation: data.consentCancellation,
+        consentWomenOnly: data.consentWomenOnly,
+      });
 
-    // Simulate submission delay
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    
-    setSubmitting(false);
-    onComplete();
+      // Get full booking state from store
+      const {
+        serviceType,
+        selectedOption,
+        selectedAddOns,
+        timeBasedSelection,
+        hairLengthSurcharge,
+        additionalClients,
+        postcode,
+        address,
+        travelFee,
+        selectedDate,
+        selectedTime,
+        isSameDay,
+        isNewClient: isNewClientFromStore,
+        calculatedTotal,
+        calculatedDeposit,
+        depositRequired,
+      } = useBookingStore.getState();
+
+      // Get service details for API
+      const service = serviceType && serviceType !== 'packages' ? getServiceById(serviceType) : null;
+      const option = selectedOption ? getServiceOptionById(selectedOption) : null;
+      const pkg = serviceType === 'packages' && selectedOption ? getPackageById(selectedOption) : null;
+
+      // Determine if colour service (check if option name contains colour-related keywords)
+      const isColourService = 
+        (option?.name?.toLowerCase().includes('colour') || 
+         option?.name?.toLowerCase().includes('color') ||
+         option?.name?.toLowerCase().includes('tint') ||
+         option?.name?.toLowerCase().includes('dye')) ?? false;
+      const serviceName = service?.title || (serviceType === 'packages' ? 'Package' : '');
+
+      // Prepare booking payload
+      const bookingPayload = {
+        website: '', // Honeypot - must be empty
+        
+        // Service info
+        serviceType: serviceType,
+        selectedOption: selectedOption,
+        serviceName: serviceName,
+        optionName: option?.name || pkg?.name || '',
+        
+        // Add-ons and extras
+        addOns: selectedAddOns,
+        hairLengthSurcharge: hairLengthSurcharge,
+        additionalClients: additionalClients,
+        timeBasedSelection: timeBasedSelection,
+        
+        // Location
+        postcode,
+        address,
+        travelFee,
+        
+        // Date/Time
+        selectedDate,
+        selectedTime,
+        isSameDay,
+        
+        // Client details
+        clientName: data.clientName,
+        clientEmail: data.clientEmail,
+        clientPhone: data.clientPhone,
+        specialRequests: data.specialRequests || '',
+        isNewClient: isNewClientFromStore,
+        
+        // Consents
+        consentBoundaries: data.consentBoundaries,
+        consentCancellation: data.consentCancellation,
+        consentWomenOnly: data.consentWomenOnly,
+        
+        // Pricing (client-submitted, will be recalculated server-side)
+        total: calculatedTotal,
+        depositRequired: depositRequired,
+        depositAmount: calculatedDeposit,
+        estimatedDuration: option?.duration || 0,
+        isColourService: isColourService,
+      };
+
+      // Submit to API
+      const response = await fetch('/api/booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bookingPayload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        
+        if (response.status === 429) {
+          throw new Error('Too many requests. Please try again in a few minutes.');
+        }
+        
+        if (response.status === 400) {
+          // Check if out of area
+          if (errorData.enquiryOnly) {
+            // Redirect to enquiry flow
+            window.location.href = `/contact?type=enquiry&postcode=${encodeURIComponent(postcode)}&service=${encodeURIComponent(serviceName)}`;
+            return;
+          }
+          throw new Error(errorData.message || 'Booking validation failed');
+        }
+        
+        throw new Error('Failed to submit booking');
+      }
+
+      const result = await response.json();
+      
+      // Store booking reference and response for confirmation screen
+      useBookingStore.setState({
+        calculatedTotal: result.total,
+        calculatedDeposit: result.depositAmount,
+        depositRequired: result.depositRequired,
+      });
+
+      // Store booking reference temporarily (you may want to add this to store)
+      sessionStorage.setItem('bookingReference', result.bookingReference);
+      
+      setSubmitting(false);
+      onComplete();
+    } catch (error) {
+      console.error('Booking submission error:', error);
+      // You would typically show a toast here
+      alert(error instanceof Error ? error.message : 'Failed to submit booking. Please try again.');
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -115,6 +239,7 @@ export function Step5Details({ onComplete }: Step5DetailsProps) {
                 id="clientName"
                 placeholder="Your full name"
                 {...register('clientName')}
+                data-testid="client-name"
               />
               {errors.clientName && (
                 <p className="text-sm text-destructive">
@@ -135,6 +260,7 @@ export function Step5Details({ onComplete }: Step5DetailsProps) {
                 type="email"
                 placeholder="your.email@example.com"
                 {...register('clientEmail')}
+                data-testid="client-email"
               />
               {errors.clientEmail && (
                 <p className="text-sm text-destructive">
@@ -155,6 +281,7 @@ export function Step5Details({ onComplete }: Step5DetailsProps) {
                 type="tel"
                 placeholder="07XXX XXXXXX"
                 {...register('clientPhone')}
+                data-testid="client-phone"
               />
               {errors.clientPhone && (
                 <p className="text-sm text-destructive">
@@ -185,6 +312,19 @@ export function Step5Details({ onComplete }: Step5DetailsProps) {
           </CardContent>
         </Card>
 
+        {/* Honeypot field - hidden from users but visible to bots */}
+        <div className="hidden" aria-hidden="true">
+          <label htmlFor="website">Website (leave blank)</label>
+          <Input
+            id="website"
+            name="website"
+            type="text"
+            tabIndex={-1}
+            autoComplete="off"
+            data-testid="honeypot-website"
+          />
+        </div>
+
         {/* Consent Checkboxes */}
         <Card>
           <CardHeader>
@@ -199,6 +339,7 @@ export function Step5Details({ onComplete }: Step5DetailsProps) {
                 onCheckedChange={(checked) =>
                   setValue('consentWomenOnly', checked as boolean, { shouldValidate: true })
                 }
+                data-testid="consent-contact"
               />
               <div className="grid gap-1.5 leading-none">
                 <label
@@ -226,6 +367,7 @@ export function Step5Details({ onComplete }: Step5DetailsProps) {
                 onCheckedChange={(checked) =>
                   setValue('consentBoundaries', checked as boolean, { shouldValidate: true })
                 }
+                data-testid="consent-boundaries"
               />
               <div className="grid gap-1.5 leading-none">
                 <label
@@ -256,6 +398,7 @@ export function Step5Details({ onComplete }: Step5DetailsProps) {
                 onCheckedChange={(checked) =>
                   setValue('consentCancellation', checked as boolean, { shouldValidate: true })
                 }
+                data-testid="consent-cancellation"
               />
               <div className="grid gap-1.5 leading-none">
                 <label
@@ -286,6 +429,7 @@ export function Step5Details({ onComplete }: Step5DetailsProps) {
             disabled={submitting}
             size="lg"
             className="min-w-[200px]"
+            data-testid="wizard-submit"
           >
             {submitting ? (
               <>

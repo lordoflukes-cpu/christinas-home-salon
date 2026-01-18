@@ -4,12 +4,10 @@ import { getEmailProvider } from '@/lib/notify/email';
 import { generateBookingConfirmationEmail, generateBusinessNotificationEmail, type BookingEmailData } from '@/lib/notify/email/templates';
 import { calculateFullPriceBreakdown, type BookingPriceInput } from '@/lib/pricing/calculator';
 import { getTravelTier, isServiceable } from '@/lib/location';
+import { checkRateLimit } from '@/lib/rate-limit';
+import { getServiceOptionById } from '@/content/services';
+import { getPackageById } from '@/content/packages';
 import { BUSINESS_INFO } from '@/content/business';
-
-// Anti-spam: Simple in-memory rate limiting
-const recentBookings = new Map<string, number>();
-const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
-const MAX_BOOKINGS_PER_WINDOW = 3;
 
 // Booking request schema with anti-spam honeypot
 const bookingRequestSchema = z.object({
@@ -92,28 +90,6 @@ function generateBookingReference(): string {
   const datePart = now.toISOString().slice(0, 10).replace(/-/g, '');
   const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
   return `CHS-${datePart}-${randomPart}`;
-}
-
-/**
- * Check rate limit for IP
- */
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now();
-  const recentCount = recentBookings.get(ip) || 0;
-  
-  // Clean up old entries
-  for (const [key, timestamp] of Array.from(recentBookings.entries())) {
-    if (now - timestamp > RATE_LIMIT_WINDOW_MS) {
-      recentBookings.delete(key);
-    }
-  }
-  
-  if (recentCount >= MAX_BOOKINGS_PER_WINDOW) {
-    return false;
-  }
-  
-  recentBookings.set(ip, recentCount + 1);
-  return true;
 }
 
 /**
@@ -204,9 +180,24 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // Get actual service price from catalog (don't trust client!)
+    let actualServicePrice = 0;
+    if (booking.serviceType === 'packages') {
+      const pkg = getPackageById(booking.selectedOption);
+      actualServicePrice = pkg?.price || 0;
+    } else {
+      const option = getServiceOptionById(booking.selectedOption);
+      actualServicePrice = option?.price || 0;
+      
+      // Handle time-based services - calculate price from hourly rate
+      if (booking.timeBasedSelection && option?.isTimeBased && option.hourlyRate) {
+        actualServicePrice = option.hourlyRate * booking.timeBasedSelection.hours;
+      }
+    }
+    
     // Server-side price recalculation (never trust client totals!)
     const priceInput: BookingPriceInput = {
-      servicePrice: booking.total - booking.travelFee, // Approximate base price
+      servicePrice: actualServicePrice, // Use server-determined price
       serviceName: booking.optionName,
       serviceDuration: booking.estimatedDuration,
       travelFee: tier.fee, // Use server-calculated travel fee

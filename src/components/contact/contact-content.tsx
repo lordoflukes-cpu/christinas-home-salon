@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion } from 'framer-motion';
@@ -13,6 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { contactFormSchema, type ContactForm } from '@/lib/schema/booking-schema';
 import { BUSINESS_INFO } from '@/content/business';
 import { WOMEN_ONLY_STATEMENT } from '@/content/boundaries';
+import { EnquiryForm } from './enquiry-form';
 
 const contactMethods = [
   {
@@ -48,6 +50,9 @@ const enquiryTypes = [
 ];
 
 export function ContactContent() {
+  const searchParams = useSearchParams();
+  const isEnquiryForm = searchParams.get('type') === 'enquiry';
+
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -82,6 +87,17 @@ export function ContactContent() {
     setIsSubmitting(false);
     setIsSubmitted(true);
   };
+
+  // Show enquiry form if type=enquiry in query params
+  if (isEnquiryForm) {
+    return (
+      <section className="py-12 md:py-16">
+        <div className="container mx-auto px-4">
+          <EnquiryForm />
+        </div>
+      </section>
+    );
+  }
 
   return (
     <>

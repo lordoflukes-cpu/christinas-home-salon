@@ -1,0 +1,30 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ICS Calendar Generation > Integration tests > snapshot: complete ICS output 1`] = `
+"BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Christina's Home Salon//Booking System//EN
+CALSCALE:GREGORIAN
+METHOD:REQUEST
+BEGIN:VEVENT
+UID:UNIQUE_ID
+DTSTAMP:TIMESTAMP
+DTSTART:20260125T143000Z
+DTEND:20260125T160000Z
+SUMMARY:Hair Appointment: Cut & Blow Dry
+DESCRIPTION:Booking Reference: CHS-20260118-TEST\\nService: Cut & Blow Dry\\n
+ \\nLocation: 123 Test Street\\, SM1 1AA\\n\\nPlease ensure someone is home to 
+ let me in.\\nI look forward to seeing you!\\n\\n- Christina's Home Salon
+LOCATION:123 Test Street\\, SM1 1AA
+STATUS:CONFIRMED
+ORGANIZER;CN=Christina's Home Salon:mailto:info@christinashomesalon.co.uk
+ATTENDEE;CN=Jane Smith;RSVP=TRUE:mailto:jane@example.com
+BEGIN:VALARM
+TRIGGER:-PT24H
+ACTION:DISPLAY
+DESCRIPTION:Reminder: Hair appointment tomorrow
+END:VALARM
+END:VEVENT
+END:VCALENDAR
+"
+`;

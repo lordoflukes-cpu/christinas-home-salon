@@ -238,7 +238,7 @@ export function Step2Options() {
                 }}
                 className="group text-left"
                 data-selected={isSelected}
-                data-testid="service-option"
+                data-testid={`option-${option.id}`}
               >
                 <Card
                   className={cn(
@@ -523,7 +523,7 @@ export function Step2Options() {
       )}
 
       <div className="flex justify-end">
-        <Button onClick={nextStep} disabled={!canContinue} size="lg">
+        <Button onClick={nextStep} disabled={!canContinue} size="lg" data-testid="next-button">
           Continue
         </Button>
       </div>

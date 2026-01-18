@@ -1,0 +1,4 @@
+cd "c:\Users\lukea\Desktop\Christina's business"
+git add .
+git commit -m "test: harden test suite - fix ICS tests, TypeScript errors, and JSX syntax"
+git push

@@ -85,6 +85,7 @@ export function Step1ServiceType() {
               onClick={() => handleSelect(service.id)}
               className="group text-left"
               data-selected={isSelected}
+              data-testid={`service-${service.id}`}
             >
               <Card
                 className={cn(

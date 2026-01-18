@@ -116,8 +116,8 @@ export function generateICS(event: ICSEventData): string {
     'END:VCALENDAR'
   );
   
-  // Fold lines and join with CRLF
-  return lines.map(foldLine).join('\r\n');
+  // Fold lines and join with CRLF, ensure trailing CRLF
+  return lines.map(foldLine).join('\r\n') + '\r\n';
 }
 
 /**

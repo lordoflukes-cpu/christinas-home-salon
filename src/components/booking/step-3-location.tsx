@@ -117,6 +117,7 @@ export function Step3Location() {
                     placeholder="Enter your postcode (e.g., SM1 1AA)"
                     className="uppercase"
                     {...register('postcode')}
+                    data-testid="postcode-input"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
@@ -149,6 +150,7 @@ export function Step3Location() {
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
+                  data-testid="postcode-status"
                   className={`rounded-lg p-4 ${
                     areaResult.isInArea
                       ? 'bg-green-50 text-green-900 dark:bg-green-950 dark:text-green-100'
@@ -200,6 +202,7 @@ export function Step3Location() {
                     placeholder="Enter your full address including house number and street"
                     rows={3}
                     {...register('address')}
+                    data-testid="address-input"
                   />
                   {errors.address && (
                     <p className="text-sm text-destructive">
@@ -286,6 +289,7 @@ export function Step3Location() {
             type="submit"
             disabled={!areaResult?.isInArea}
             size="lg"
+            data-testid="wizard-next"
           >
             Continue
           </Button>

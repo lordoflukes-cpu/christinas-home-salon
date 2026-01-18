@@ -3,12 +3,8 @@ import { z } from 'zod';
 import { getEmailProvider } from '@/lib/notify/email';
 import { generateEnquiryEmail, type EnquiryEmailData } from '@/lib/notify/email/templates';
 import { getTravelTier } from '@/lib/location';
+import { checkRateLimit } from '@/lib/rate-limit';
 import { BUSINESS_INFO } from '@/content/business';
-
-// Anti-spam: Simple in-memory rate limiting
-const recentEnquiries = new Map<string, number>();
-const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
-const MAX_ENQUIRIES_PER_WINDOW = 2;
 
 const enquiryRequestSchema = z.object({
   // Honeypot field - must be empty
@@ -49,35 +45,13 @@ function generateEnquiryReference(): string {
   return `ENQ-${datePart}-${randomPart}`;
 }
 
-/**
- * Check rate limit for IP
- */
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now();
-  const recentCount = recentEnquiries.get(ip) || 0;
-  
-  // Clean up old entries
-  for (const [key, timestamp] of Array.from(recentEnquiries.entries())) {
-    if (now - timestamp > RATE_LIMIT_WINDOW_MS) {
-      recentEnquiries.delete(key);
-    }
-  }
-  
-  if (recentCount >= MAX_ENQUIRIES_PER_WINDOW) {
-    return false;
-  }
-  
-  recentEnquiries.set(ip, recentCount + 1);
-  return true;
-}
-
 export async function POST(request: NextRequest) {
   try {
     // Get client IP for rate limiting
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
     
-    // Check rate limit
-    if (!checkRateLimit(ip)) {
+    // Check rate limit (2 enquiries per minute)
+    if (!checkRateLimit(ip, 2)) {
       return NextResponse.json(
         { error: 'Too many enquiry attempts. Please try again in a few minutes.' },
         { status: 429 }
@@ -98,8 +72,8 @@ export async function POST(request: NextRequest) {
     const enquiry = validationResult.data;
     
     // Anti-spam: Check honeypot
-    if (enquiry.website && enquiry.website.length > 0) {
-      console.log('🚫 Spam detected: honeypot field filled');
+    if (enquiry.website && enquiry.website.trim().length > 0) {
+      console.warn('Spam detected: honeypot field filled');
       // Return success to avoid revealing anti-spam measures
       return NextResponse.json({ success: true, enquiryReference: 'SPAM-BLOCKED' });
     }

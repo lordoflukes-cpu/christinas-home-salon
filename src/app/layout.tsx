@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
 import { Inter, Playfair_Display } from 'next/font/google';
-import { Header, Footer } from '@/components/layout';
+import { Header, Footer, StickyMobileWhatsAppCTA } from '@/components/layout';
 import { Toaster } from '@/components/ui/toaster';
 import { BUSINESS_INFO } from '@/content/business';
 import { generateLocalBusinessSchema, generateWebsiteSchema } from '@/lib/seo';
@@ -122,6 +122,7 @@ export default function RootLayout({
           <main className="flex-1 pt-16 md:pt-20">{children}</main>
           <Footer />
         </div>
+        <StickyMobileWhatsAppCTA />
         <Toaster />
       </body>
     </html>

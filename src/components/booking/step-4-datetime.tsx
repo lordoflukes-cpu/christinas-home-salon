@@ -8,42 +8,40 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useBookingStore } from '@/lib/store';
+import { now, addDays, formatISODate, isSunday } from '@/lib/time/clock';
 
 // Generate mock available dates (next 14 days, excluding Sundays)
 function generateAvailableDates(): { date: string; dayName: string; dayNum: string; month: string; available: boolean }[] {
   const dates = [];
-  const today = new Date();
+  const today = now();
   
   for (let i = 1; i <= 14; i++) {
-    const date = new Date(today);
-    date.setDate(today.getDate() + i);
-    
-    const isSunday = date.getDay() === 0;
+    const date = addDays(today, i);
     
     dates.push({
-      date: date.toISOString().split('T')[0],
+      date: formatISODate(date),
       dayName: date.toLocaleDateString('en-GB', { weekday: 'short' }),
       dayNum: date.getDate().toString(),
       month: date.toLocaleDateString('en-GB', { month: 'short' }),
-      available: !isSunday, // Sundays not available
+      available: !isSunday(date), // Sundays not available
     });
   }
   
   return dates;
 }
 
-// Generate mock time slots
+// Generate mock time slots (deterministic for testing)
 function generateTimeSlots(): { time: string; label: string; available: boolean }[] {
   const slots = [
     { time: '09:00', label: '9:00 AM', available: true },
     { time: '10:00', label: '10:00 AM', available: true },
-    { time: '11:00', label: '11:00 AM', available: Math.random() > 0.3 },
-    { time: '12:00', label: '12:00 PM', available: Math.random() > 0.3 },
+    { time: '11:00', label: '11:00 AM', available: true },
+    { time: '12:00', label: '12:00 PM', available: true },
     { time: '13:00', label: '1:00 PM', available: true },
-    { time: '14:00', label: '2:00 PM', available: Math.random() > 0.3 },
+    { time: '14:00', label: '2:00 PM', available: true },
     { time: '15:00', label: '3:00 PM', available: true },
-    { time: '16:00', label: '4:00 PM', available: Math.random() > 0.5 },
-    { time: '17:00', label: '5:00 PM', available: Math.random() > 0.5 },
+    { time: '16:00', label: '4:00 PM', available: true },
+    { time: '17:00', label: '5:00 PM', available: true },
   ];
   
   return slots;
@@ -111,7 +109,7 @@ export function Step4DateTime() {
             <span className="font-medium">Select a Date</span>
           </div>
 
-          <div className="flex gap-2 overflow-x-auto pb-2">
+          <div className="flex gap-2 overflow-x-auto pb-2" data-testid="date-picker">
             {dates.map((dateObj) => (
               <button
                 key={dateObj.date}
@@ -154,12 +152,14 @@ export function Step4DateTime() {
                 </span>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-5" data-testid="time-slots">
                 {times.map((slot) => (
                   <button
                     key={slot.time}
                     onClick={() => slot.available && setLocalTime(slot.time)}
                     disabled={!slot.available}
+                    data-testid="time-slot"
+                    data-time={slot.time}
                     className={cn(
                       'rounded-lg border-2 px-3 py-2 text-sm font-medium transition-all',
                       localTime === slot.time
@@ -199,11 +199,16 @@ export function Step4DateTime() {
         </motion.div>
       )}
 
-      <div className="flex justify-end">
+      <div className="flex justify-between">
+        <Button variant="ghost" onClick={prevStep} data-testid="wizard-back">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back
+        </Button>
         <Button
           onClick={handleContinue}
           disabled={!localDate || !localTime}
           size="lg"
+          data-testid="wizard-next"
         >
           Continue
         </Button>

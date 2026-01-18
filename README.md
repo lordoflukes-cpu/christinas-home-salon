@@ -440,6 +440,62 @@ export const BUSINESS_INFO = {
 };
 ```
 
+## 🧪 Testing
+
+This project includes comprehensive test coverage using Vitest for unit tests and Playwright for end-to-end tests.
+
+### Running Tests
+
+**Unit Tests (Vitest)**
+```bash
+# Run tests in watch mode
+npm run test
+
+# Run tests once
+npm run test -- --run
+
+# Run with coverage
+npm run test:coverage
+
+# Open Vitest UI
+npm run test:ui
+```
+
+**E2E Tests (Playwright)**
+```bash
+# Run E2E tests
+npm run test:e2e
+
+# Run with Playwright UI
+npm run test:e2e:ui
+
+# Run all tests (unit + E2E)
+npm run test:all
+```
+
+### Test Coverage
+
+**Unit Tests** (`tests/unit/`):
+- ✅ Location service (postcode tiers, travel fees, normalization)
+- ✅ Deposit calculation (new client, colour service, minimum charge)
+- ✅ Booking reference generation (CHS-YYYYMMDD-XXXX format)
+- ✅ ICS calendar file generation (RFC 5545 compliance)
+- ✅ API routes (booking & enquiry validation, honeypot, rate limiting)
+
+**E2E Tests** (`tests/e2e/`):
+- ✅ Booking flow (postcode check → wizard → confirmation → ICS download)
+- ✅ Enquiry flow (out-of-area detection → enquiry form → submission)
+- ✅ Anti-spam (honeypot rejection, rate limiting)
+- ✅ Sticky mobile CTA (scroll trigger, WhatsApp integration)
+
+### CI/CD
+
+Tests run automatically on push/PR via GitHub Actions:
+- Lint & type checking
+- Unit tests with coverage
+- E2E tests on Chrome & WebKit
+- Reports uploaded on failure
+
 ### Postcode Distances
 
 Edit `src/lib/pricing/config.ts` to add/modify postcode districts:
