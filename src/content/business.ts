@@ -12,6 +12,9 @@ export interface TrustSignal {
   description: string;
 }
 
+export type DepositTrigger = 'NEW_CLIENT_OR_COLOUR' | 'NEW_CLIENT' | 'COLOUR' | 'ALL';
+export type DepositType = 'FIXED' | 'PERCENT';
+
 export const BUSINESS_INFO = {
   name: "Christina's Home Salon",
   tagline: 'Mobile Hairdressing & Companionship Services',
@@ -22,13 +25,17 @@ export const BUSINESS_INFO = {
     phone: '07XXX XXXXXX', // TODO: Replace with dedicated business number
     email: 'hello@christinashomesalon.co.uk',
     whatsapp: '07XXX XXXXXX', // TODO: Same as phone or separate WhatsApp Business number
+    instagramHandle: '@christinashomesalon', // TODO: Update if different
+    facebookUrl: 'https://facebook.com/christinashomesalon', // TODO: Update with real URL
   },
   
   // Location - Based in Sutton, Surrey
   basePostcode: 'SM1',
   baseTown: 'Sutton',
+  baseArea: 'Sutton, Surrey',
   county: 'Surrey',
   country: 'United Kingdom',
+  coreRadiusMiles: 6,
   
   // Business hours - Part-time, appointment-based
   hours: {
@@ -37,6 +44,29 @@ export const BUSINESS_INFO = {
     sunday: { status: 'Closed' },
     note: 'Part-time hours – appointments by booking only',
   },
+  
+  // Response time for WhatsApp/contact
+  responseHours: 24,
+  
+  // Minimum appointment charge
+  minAppointmentCharge: 30,
+  
+  // Deposit policy
+  depositPolicy: {
+    enabled: true,
+    trigger: 'NEW_CLIENT_OR_COLOUR' as DepositTrigger,
+    depositType: 'FIXED' as DepositType,
+    amount: 20, // £20 if FIXED, or 20% if PERCENT
+    description: 'A deposit is required for new clients and all colour services to secure your appointment.',
+  },
+  
+  // Travel tiers (must match PRICING_CONFIG.travelTiers)
+  travelTiers: [
+    { id: 'core', label: 'Core area (0-6 miles)', minMiles: 0, maxMiles: 6, fee: 0, enquiryOnly: false },
+    { id: 'extended', label: 'Extended (6-10 miles)', minMiles: 6, maxMiles: 10, fee: 5, enquiryOnly: false },
+    { id: 'distant', label: 'Distant (10-15 miles)', minMiles: 10, maxMiles: 15, fee: 12, enquiryOnly: false },
+    { id: 'beyond', label: 'Beyond 15 miles', minMiles: 15, maxMiles: Infinity, fee: 0, enquiryOnly: true },
+  ],
   
   // Service area configuration
   serviceArea: {

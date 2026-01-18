@@ -248,6 +248,211 @@ Clear messaging throughout about what's included and excluded:
 - Errands and shopping assistance
 - Accompanied outings
 
+## 🔧 Environment Variables
+
+Create a `.env.local` file in the root directory with the following variables:
+
+```bash
+# ============================================
+# EMAIL CONFIGURATION (Required for production)
+# ============================================
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+EMAIL_FROM=noreply@christinashomesalon.co.uk
+EMAIL_TO=hello@christinashomesalon.co.uk
+CUSTOMER_EMAIL_ENABLED=true
+
+# ============================================
+# SITE CONFIGURATION
+# ============================================
+NEXT_PUBLIC_SITE_URL=https://christinashomesalon.co.uk
+```
+
+### Email Setup (Resend)
+
+1. Sign up at [resend.com](https://resend.com)
+2. Verify your domain (christinashomesalon.co.uk)
+3. Add DNS records in Vercel:
+   - DKIM, SPF, MX, DMARC records from Resend
+4. Generate API key and add to `RESEND_API_KEY`
+
+### Email Provider Fallback
+
+If `RESEND_API_KEY` is not set, the system falls back to `ConsoleProvider` which logs emails to the console (useful for development).
+
+### Email Notifications
+
+- **Business notifications**: Sent to `EMAIL_TO` for all bookings and enquiries
+- **Customer confirmations**: Sent to client email if `CUSTOMER_EMAIL_ENABLED=true`
+- **From address**: Uses `EMAIL_FROM` for all outgoing emails
+
+## 🎯 Phase 2/3 Launch Hardening Features
+
+The site is production-ready with the following hardening features:
+
+### ✅ Real Booking & Enquiry Submission
+
+- **Booking API** (`/api/booking`): Full booking processing with email notifications
+- **Enquiry API** (`/api/enquiry`): Out-of-area and general enquiry handling
+- **Email notifications**: Business + customer emails via Resend
+- **Booking references**: Format `CHS-YYYYMMDD-XXXX`
+- **Enquiry references**: Format `ENQ-YYYYMMDD-XXXX`
+
+### 🛡️ Anti-Spam Protection
+
+- **Honeypot field**: `website` field must be empty
+- **Rate limiting**: In-memory rate limiter (3 bookings/min, 2 enquiries/min per IP)
+- **Server-side pricing**: Never trust client-submitted prices
+- **Validation**: Zod schema validation on all inputs
+
+### 📍 Service Area Enforcement
+
+- **Travel tiers**: 
+  - 0-6 miles: FREE (Sutton, Cheam, Belmont, Carshalton)
+  - 6-10 miles: £5 (Morden, Kingston, New Malden)
+  - 10-15 miles: £12 (Wimbledon, Croydon centre)
+  - 15+ miles: Enquiry only (special arrangement)
+- **Postcode validation**: Real-time postcode district lookup
+- **Distance calculation**: ~80 postcodes mapped to approximate distances
+
+### 💰 Deposit Logic
+
+- **Policy**: £20 fixed deposit for new clients OR colour services
+- **Server-side calculation**: Deposit amount calculated on backend
+- **Configurable**: Edit via `BUSINESS_INFO.depositPolicy` in `src/content/business.ts`
+
+### 📧 Email System Architecture
+
+- **Provider interface**: `EmailProvider` abstraction
+- **Resend provider**: Production email sending
+- **Console provider**: Development fallback (no API key needed)
+- **Email templates**: HTML + plain text for all notifications
+- **Template types**: Booking confirmation, business notification, enquiry
+
+### 🗓️ Calendar Integration
+
+- **ICS generation**: RFC 5545 compliant calendar files
+- **Client-side download**: Automatic .ics download for bookings
+- **Calendar details**: Service, location, time, duration, reminders
+
+### 🔧 Configuration Management
+
+- **Single source of truth**: `src/content/business.ts` for all business config
+- **Service area config**: `src/lib/pricing/config.ts` for postcode distances
+- **Type-safe**: Full TypeScript types for all config
+
+## 🏗️ Architecture
+
+### Location Service (`src/lib/location/`)
+
+```typescript
+import { getTravelTier, isServiceable, getServiceAreaMessage } from '@/lib/location';
+
+// Get travel tier for postcode
+const tier = getTravelTier('SM1 1AA');
+// Returns: { tierId, label, fee, withinCoreRadius, enquiryOnly, distanceMiles }
+
+// Check if serviceable
+const canBook = isServiceable('SW19 1AA');
+
+// Get friendly message
+const message = getServiceAreaMessage('KT4 7AA');
+```
+
+### Email Service (`src/lib/notify/email/`)
+
+```typescript
+import { getEmailProvider } from '@/lib/notify/email';
+import { generateBookingConfirmationEmail } from '@/lib/notify/email/templates';
+
+const emailProvider = getEmailProvider(); // Auto-selects Resend or Console
+
+await emailProvider.send({
+  from: { email: 'noreply@domain.com', name: 'Business' },
+  to: { email: 'customer@example.com', name: 'Customer' },
+  subject: 'Booking Confirmed',
+  html: '<p>Your booking is confirmed!</p>',
+  text: 'Your booking is confirmed!',
+});
+```
+
+### Calendar Service (`src/lib/calendar/`)
+
+```typescript
+import { createBookingICS, downloadICS } from '@/lib/calendar/ics';
+
+const icsContent = createBookingICS({
+  bookingReference: 'CHS-20241215-ABCD',
+  serviceName: 'Cut & Blow Dry',
+  clientName: 'Jane Smith',
+  clientEmail: 'jane@example.com',
+  date: '2024-12-20',
+  time: '14:00',
+  duration: 90,
+  address: '123 High Street',
+  postcode: 'SM1 1AA',
+  businessName: "Christina's Home Salon",
+  businessEmail: 'hello@christinashomesalon.co.uk',
+});
+
+// Download in browser
+downloadICS(icsContent, 'booking.ics');
+```
+
+## 🎨 Editing Content
+
+### Business Information
+
+Edit `src/content/business.ts`:
+
+```typescript
+export const BUSINESS_INFO = {
+  name: "Christina's Home Salon",
+  tagline: "Women-Only Mobile Hairdressing in Sutton & Surrey",
+  
+  // Deposit policy
+  depositPolicy: {
+    enabled: true,
+    trigger: 'NEW_CLIENT_OR_COLOUR', // 'ALL' | 'NEW_CLIENT' | 'COLOUR' | 'NEW_CLIENT_OR_COLOUR'
+    depositType: 'FIXED', // 'FIXED' | 'PERCENTAGE'
+    amount: 20, // £20 or 20%
+  },
+  
+  // Travel tiers
+  travelTiers: [
+    { id: 'core', label: 'Core Area', minMiles: 0, maxMiles: 6, fee: 0 },
+    { id: 'extended', label: 'Extended Area', minMiles: 6, maxMiles: 10, fee: 5 },
+    { id: 'distant', label: 'Distant Area', minMiles: 10, maxMiles: 15, fee: 12 },
+  ],
+  
+  // Business rules
+  coreRadiusMiles: 6,
+  minAppointmentCharge: 30,
+  responseHours: 24,
+  
+  // Contact
+  contact: {
+    email: 'hello@christinashomesalon.co.uk',
+    phone: '07XXX XXXXXX',
+    whatsapp: '447XXXXXXXXX',
+    instagramHandle: '@christinashomesalon',
+    facebookUrl: 'https://facebook.com/christinashomesalon',
+  },
+};
+```
+
+### Postcode Distances
+
+Edit `src/lib/pricing/config.ts` to add/modify postcode districts:
+
+```typescript
+export const POSTCODE_DISTANCES: Record<string, number> = {
+  'SM1': 0,  // Sutton (base)
+  'SM2': 2,  // Belmont
+  'KT4': 4,  // Worcester Park
+  // Add more postcodes...
+};
+```
+
 **Not Included:**
 - Medical or nursing care
 - Personal care (washing, dressing)
