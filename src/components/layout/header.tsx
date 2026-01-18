@@ -179,7 +179,7 @@ export function Header() {
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.2 }}
-              className="overflow-hidden border-t lg:hidden"
+              className="overflow-hidden border-t bg-background lg:hidden"
             >
               <div className="space-y-1 py-4">
                 {navLinks.map((link) =>
