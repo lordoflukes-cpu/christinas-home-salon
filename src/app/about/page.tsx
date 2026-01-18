@@ -98,16 +98,15 @@ export default function AboutPage() {
               </div>
             </div>
             <div className="relative mx-auto aspect-square w-full max-w-md">
-              {/* Placeholder for Christina's photo */}
-              <div className="relative h-full w-full overflow-hidden rounded-2xl bg-gradient-to-br from-rose-100 to-sage-100 shadow-xl">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="text-8xl">👩‍🦰</div>
-                    <p className="mt-4 text-sm text-muted-foreground">
-                      [Christina's Photo]
-                    </p>
-                  </div>
-                </div>
+              {/* Christina's photo */}
+              <div className="relative h-full w-full overflow-hidden rounded-2xl shadow-xl">
+                <Image
+                  src="/christina-photo.jpg"
+                  alt="Christina - Mobile Hairdresser"
+                  fill
+                  className="object-cover"
+                  priority
+                />
                 {/* Decorative elements */}
                 <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-rose-200/50" />
                 <div className="absolute -bottom-4 -left-4 h-32 w-32 rounded-full bg-sage-200/50" />
