@@ -1,0 +1,21 @@
+{
+  "name": "Christina's Hair & Care",
+  "short_name": "Christina's Care",
+  "description": "Women-only mobile hairdressing, companionship, and errand services",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fefdfb",
+  "theme_color": "#be185d",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

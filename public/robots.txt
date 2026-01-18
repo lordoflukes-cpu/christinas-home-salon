@@ -1,0 +1,9 @@
+# Allow all crawlers
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://christinas-hair-and-care.co.uk/sitemap.xml
+
+# Block admin/api paths (if any)
+Disallow: /api/
