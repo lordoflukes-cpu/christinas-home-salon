@@ -497,6 +497,57 @@ export async function getAllPhotos(): Promise<PhotoEntry[]> {
 }
 
 // ---------------------------------------------------------------------------
+// Raw writes (for cloud sync — apply remote rows verbatim, no re-stamping)
+// ---------------------------------------------------------------------------
+
+/** Stores whose rows are plain JSON and sync 1:1 (everything except photos). */
+export type PlainStore =
+  | 'profile'
+  | 'feeds'
+  | 'diapers'
+  | 'sleeps'
+  | 'growth'
+  | 'medical'
+  | 'milestones'
+  | 'journal';
+
+/** Write an entry exactly as given, preserving its id/updatedAt (no stamping). */
+export async function putRaw(store: PlainStore, value: unknown): Promise<void> {
+  const db = await getDB();
+  // idb's typed `put` can't express a runtime-chosen store; cast at the boundary.
+  await (
+    db as unknown as { put: (s: string, v: unknown) => Promise<unknown> }
+  ).put(store, value);
+}
+
+/** Delete by id from any store (used when a remote tombstone arrives). */
+export async function deleteRaw(
+  store: PlainStore | 'photos',
+  id: string,
+): Promise<void> {
+  const db = await getDB();
+  await (
+    db as unknown as { delete: (s: string, k: string) => Promise<void> }
+  ).delete(store, id);
+}
+
+/** Write a fully-formed photo entry (bytes already decoded) verbatim. */
+export async function putPhotoRaw(entry: PhotoEntry): Promise<void> {
+  const db = await getDB();
+  await db.put('photos', entry);
+}
+
+/** Every row in a store (for the two-way sync reconcile). */
+export async function getAllRaw<T = unknown>(
+  store: PlainStore | 'photos',
+): Promise<T[]> {
+  const db = await getDB();
+  return (await (
+    db as unknown as { getAll: (s: string) => Promise<T[]> }
+  ).getAll(store)) as T[];
+}
+
+// ---------------------------------------------------------------------------
 // Blob <-> base64 helpers (for photo backup)
 // ---------------------------------------------------------------------------
 

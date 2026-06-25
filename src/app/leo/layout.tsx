@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { LeoProvider, LeoShell } from '@/components/leo';
 import { NightMeadow } from '@/components/leo/decor/night-meadow';
+import { AuthGate } from '@/components/leo/cloud/auth-gate';
 
 export const metadata: Metadata = {
   title: { absolute: 'Leo' },
@@ -30,7 +31,9 @@ export default function LeoLayout({ children }: { children: React.ReactNode }) {
   return (
     <LeoProvider>
       <NightMeadow />
-      <LeoShell>{children}</LeoShell>
+      <AuthGate>
+        <LeoShell>{children}</LeoShell>
+      </AuthGate>
     </LeoProvider>
   );
 }

@@ -5,6 +5,7 @@ import {
   SectionBanner,
 } from '@/components/leo';
 import { BackdropsPanel } from '@/components/leo/backdrops-panel';
+import { SyncPanel } from '@/components/leo/cloud/sync-panel';
 import { HeritageThread } from '@/components/leo/decor/heritage-thread';
 
 export default function LeoSettingsPage() {
@@ -17,6 +18,7 @@ export default function LeoSettingsPage() {
       />
       <InstallPrompt />
       <ProfileEditor />
+      <SyncPanel />
       <BackdropsPanel />
       <BackupPanel />
 
