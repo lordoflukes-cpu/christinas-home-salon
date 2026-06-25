@@ -108,10 +108,13 @@ const growthSchema = z.object({
 const medicalSchema = z.object({
   id: z.string(),
   at: millis,
-  kind: z.enum(['appointment', 'vaccination', 'medication']),
+  kind: z.enum(['appointment', 'vaccination', 'medication', 'note']),
   title: z.string(),
   scheduleId: z.string().optional(),
+  category: z.string().optional(),
   location: z.string().optional(),
+  batch: z.string().optional(),
+  reaction: z.string().optional(),
   note: z.string().optional(),
   done: z.boolean().optional(),
   createdAt: millis,
@@ -150,6 +153,18 @@ const photoBackupSchema = z.object({
   updatedAt: millis,
 });
 
+const documentBackupSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  category: z.string().optional(),
+  name: z.string().optional(),
+  dataUrl: z.string(),
+  at: millis,
+  note: z.string().optional(),
+  createdAt: millis,
+  updatedAt: millis,
+});
+
 export const leoBackupSchema = z.object({
   schemaVersion: z.number().int().positive(),
   exportedAt: millis,
@@ -163,6 +178,7 @@ export const leoBackupSchema = z.object({
   journal: z.array(journalSchema).optional(),
   events: z.array(eventSchema).optional(),
   photos: z.array(photoBackupSchema).optional(),
+  documents: z.array(documentBackupSchema).optional(),
 });
 
 export type ParsedBackup = z.infer<typeof leoBackupSchema>;

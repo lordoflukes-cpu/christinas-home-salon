@@ -155,7 +155,7 @@ export interface GrowthEntry {
   updatedAt: Millis;
 }
 
-export type MedicalKind = 'appointment' | 'vaccination' | 'medication';
+export type MedicalKind = 'appointment' | 'vaccination' | 'medication' | 'note';
 
 export interface MedicalEntry {
   id: string;
@@ -165,7 +165,13 @@ export interface MedicalEntry {
   title: string;
   /** For vaccinations from the routine schedule: a stable slug, e.g. '8w-6in1'. */
   scheduleId?: string;
+  /** Appointment type: midwife / health visitor / GP / hospital. */
+  category?: string;
   location?: string;
+  /** Vaccination batch number. */
+  batch?: string;
+  /** Any reaction to a vaccination. */
+  reaction?: string;
   note?: string;
   /** Whether it has been completed/given. */
   done?: boolean;
@@ -235,6 +241,40 @@ export interface PhotoBackup {
   updatedAt: Millis;
 }
 
+/**
+ * A stored document — a letter, prescription, report, etc. Like a photo, the
+ * file bytes are kept as an ArrayBuffer (+ mime `type`); PDFs and images both
+ * work.
+ */
+export interface DocumentEntry {
+  id: string;
+  title: string;
+  /** e.g. 'letter', 'prescription', 'report', 'other'. */
+  category?: string;
+  /** Original filename, if known. */
+  name?: string;
+  bytes: ArrayBuffer;
+  type: string;
+  /** Date on the document (indexed). */
+  at: Millis;
+  note?: string;
+  createdAt: Millis;
+  updatedAt: Millis;
+}
+
+/** Document as serialised in a JSON backup (bytes → base64 data URL). */
+export interface DocumentBackup {
+  id: string;
+  title: string;
+  category?: string;
+  name?: string;
+  dataUrl: string;
+  at: Millis;
+  note?: string;
+  createdAt: Millis;
+  updatedAt: Millis;
+}
+
 /** Input shapes for creating entries (repository fills id + timestamps). */
 export type NewFeed = Omit<FeedEntry, 'id' | 'createdAt' | 'updatedAt'>;
 export type NewDiaper = Omit<DiaperEntry, 'id' | 'createdAt' | 'updatedAt'>;
@@ -249,6 +289,10 @@ export type NewJournal = Omit<JournalEntry, 'id' | 'createdAt' | 'updatedAt'>;
 export type NewEvent = Omit<LeoEvent, 'id' | 'createdAt' | 'updatedAt'>;
 export type NewPhotoMeta = Omit<
   PhotoEntry,
+  'id' | 'bytes' | 'type' | 'createdAt' | 'updatedAt'
+>;
+export type NewDocumentMeta = Omit<
+  DocumentEntry,
   'id' | 'bytes' | 'type' | 'createdAt' | 'updatedAt'
 >;
 
@@ -268,6 +312,7 @@ export interface LeoBackup {
   journal?: JournalEntry[];
   events?: LeoEvent[];
   photos?: PhotoBackup[];
+  documents?: DocumentBackup[];
 }
 
 export type ImportMode = 'replace' | 'merge';

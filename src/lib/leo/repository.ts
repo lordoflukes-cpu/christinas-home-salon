@@ -10,6 +10,7 @@ import type {
   BabyProfile,
   BreastSide,
   DiaperEntry,
+  DocumentEntry,
   FeedEntry,
   GrowthEntry,
   ImportMode,
@@ -19,6 +20,7 @@ import type {
   MedicalEntry,
   MilestoneEntry,
   NewDiaper,
+  NewDocumentMeta,
   NewEvent,
   NewFeed,
   NewGrowth,
@@ -578,6 +580,65 @@ export async function getAllPhotos(): Promise<PhotoEntry[]> {
 }
 
 // ---------------------------------------------------------------------------
+// Documents (letters, prescriptions, reports — images or PDFs)
+// ---------------------------------------------------------------------------
+
+export async function addDocument(
+  blob: Blob,
+  meta: NewDocumentMeta,
+): Promise<DocumentEntry> {
+  const db = await getDB();
+  const time = ts();
+  const entry: DocumentEntry = {
+    ...meta,
+    bytes: await blobToArrayBuffer(blob),
+    type: blob.type || 'application/octet-stream',
+    id: newId(),
+    createdAt: time,
+    updatedAt: time,
+  };
+  await db.put('documents', entry);
+  return entry;
+}
+
+export async function updateDocument(
+  id: string,
+  patch: Partial<DocumentEntry>,
+): Promise<DocumentEntry> {
+  const db = await getDB();
+  const existing = await db.get('documents', id);
+  if (!existing) throw new Error(`Document ${id} not found`);
+  const updated: DocumentEntry = { ...existing, ...patch, id, updatedAt: ts() };
+  await db.put('documents', updated);
+  return updated;
+}
+
+export async function deleteDocument(id: string): Promise<void> {
+  const db = await getDB();
+  await db.delete('documents', id);
+}
+
+export async function getDocument(id: string): Promise<DocumentEntry | null> {
+  const db = await getDB();
+  return (await db.get('documents', id)) ?? null;
+}
+
+/** All documents, newest → oldest by date. */
+export async function getAllDocuments(): Promise<DocumentEntry[]> {
+  const db = await getDB();
+  const results: DocumentEntry[] = [];
+  let cursor = await db
+    .transaction('documents')
+    .store.index('by-at')
+    .openCursor(null, 'prev');
+  while (cursor) {
+    results.push(cursor.value);
+    cursor = await cursor.continue();
+  }
+  return results;
+}
+
+// ---------------------------------------------------------------------------
 // Raw writes (for cloud sync — apply remote rows verbatim, no re-stamping)
 // ---------------------------------------------------------------------------
 
@@ -602,9 +663,12 @@ export async function putRaw(store: PlainStore, value: unknown): Promise<void> {
   ).put(store, value);
 }
 
+/** Stores holding binary blobs (synced as base64), handled specially. */
+export type BinaryStore = 'photos' | 'documents';
+
 /** Delete by id from any store (used when a remote tombstone arrives). */
 export async function deleteRaw(
-  store: PlainStore | 'photos',
+  store: PlainStore | BinaryStore,
   id: string,
 ): Promise<void> {
   const db = await getDB();
@@ -619,9 +683,15 @@ export async function putPhotoRaw(entry: PhotoEntry): Promise<void> {
   await db.put('photos', entry);
 }
 
+/** Write a fully-formed document entry (bytes already decoded) verbatim. */
+export async function putDocumentRaw(entry: DocumentEntry): Promise<void> {
+  const db = await getDB();
+  await db.put('documents', entry);
+}
+
 /** Every row in a store (for the two-way sync reconcile). */
 export async function getAllRaw<T = unknown>(
-  store: PlainStore | 'photos',
+  store: PlainStore | BinaryStore,
 ): Promise<T[]> {
   const db = await getDB();
   return (await (
@@ -673,6 +743,7 @@ const ALL_STORES = [
   'journal',
   'events',
   'photos',
+  'documents',
 ] as const;
 
 export async function exportAll(): Promise<LeoBackup> {
@@ -688,6 +759,7 @@ export async function exportAll(): Promise<LeoBackup> {
     journal,
     events,
     photos,
+    documents,
   ] = await Promise.all([
     db.get('profile', PROFILE_KEY),
     db.getAll('feeds'),
@@ -699,9 +771,16 @@ export async function exportAll(): Promise<LeoBackup> {
     db.getAll('journal'),
     db.getAll('events'),
     db.getAll('photos'),
+    db.getAll('documents'),
   ]);
   const photoBackups = await Promise.all(
     photos.map(async ({ bytes, type, ...meta }) => ({
+      ...meta,
+      dataUrl: await blobToDataUrl(new Blob([bytes], { type })),
+    })),
+  );
+  const documentBackups = await Promise.all(
+    documents.map(async ({ bytes, type, ...meta }) => ({
       ...meta,
       dataUrl: await blobToDataUrl(new Blob([bytes], { type })),
     })),
@@ -719,6 +798,7 @@ export async function exportAll(): Promise<LeoBackup> {
     journal,
     events,
     photos: photoBackups,
+    documents: documentBackups,
   };
 }
 
@@ -736,7 +816,7 @@ export async function importAll(
   if (mode === 'replace') {
     await clearAll();
   }
-  // Decode photos (async) before opening the write transaction.
+  // Decode binary stores (async) before opening the write transaction.
   const photoEntries: PhotoEntry[] = await Promise.all(
     (backup.photos ?? []).map(async ({ dataUrl, ...meta }) => {
       const blob = await dataUrlToBlob(dataUrl);
@@ -744,6 +824,16 @@ export async function importAll(
         ...meta,
         bytes: await blobToArrayBuffer(blob),
         type: blob.type || 'image/jpeg',
+      };
+    }),
+  );
+  const documentEntries: DocumentEntry[] = await Promise.all(
+    (backup.documents ?? []).map(async ({ dataUrl, ...meta }) => {
+      const blob = await dataUrlToBlob(dataUrl);
+      return {
+        ...meta,
+        bytes: await blobToArrayBuffer(blob),
+        type: blob.type || 'application/octet-stream',
       };
     }),
   );
@@ -764,5 +854,6 @@ export async function importAll(
   for (const j of backup.journal ?? []) await tx.objectStore('journal').put(j);
   for (const e of backup.events ?? []) await tx.objectStore('events').put(e);
   for (const p of photoEntries) await tx.objectStore('photos').put(p);
+  for (const d of documentEntries) await tx.objectStore('documents').put(d);
   await tx.done;
 }
