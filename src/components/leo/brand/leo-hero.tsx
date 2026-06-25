@@ -4,22 +4,27 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useLeoStore, useNow, formatAge, ageInDays } from '@/lib/leo';
 import { Starfield } from '../decor/starfield';
+import { PhotoImage } from '../photos/photo-image';
 import { LionCrest } from './lion-crest';
 
 /**
- * Dashboard hero. Shows a warm illustrated lion-cub scene by default; if a
- * photo is dropped in at /public/leo/leo-hero.jpg it is used instead (and
- * cached offline by the service worker). Overlays Leo's name + age.
+ * Dashboard hero. Priority: a chosen cover photo → a dropped-in
+ * /public/leo/leo-hero.jpg → a warm illustrated lion-cub scene. Overlays
+ * Leo's name + age. Everything works offline.
  */
 export function LeoHero() {
   const profile = useLeoStore((s) => s.profile);
+  const photos = useLeoStore((s) => s.photos);
   const now = useNow(60_000);
-  const [hasPhoto, setHasPhoto] = useState(true);
+  const [fileFailed, setFileFailed] = useState(false);
 
   if (!profile) return null;
 
   const age = formatAge(profile.birth, now);
   const days = ageInDays(profile.birth, now);
+  const coverPhoto = profile.heroPhotoId
+    ? photos.find((p) => p.id === profile.heroPhotoId)
+    : null;
 
   return (
     <motion.div
@@ -28,7 +33,6 @@ export function LeoHero() {
       transition={{ duration: 0.5 }}
       className="relative overflow-hidden rounded-3xl border border-gold-200 shadow-sm"
     >
-      {/* Illustrated scene (default / fallback) */}
       <div className="relative aspect-[5/4] w-full bg-gradient-to-b from-aegean-200 via-gold-100 to-cream-100">
         <Starfield className="opacity-70" />
         <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-cream-200/80 to-transparent" />
@@ -48,18 +52,27 @@ export function LeoHero() {
           </motion.div>
         </div>
 
-        {/* Optional real photo on top */}
-        {hasPhoto && (
+        {/* Chosen cover photo */}
+        {coverPhoto && (
+          <PhotoImage
+            bytes={coverPhoto.bytes}
+            type={coverPhoto.type}
+            alt={profile.name}
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        )}
+
+        {/* Optional dropped-in file (only if no cover photo) */}
+        {!coverPhoto && !fileFailed && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src="/leo/leo-hero.jpg"
             alt={`${profile.name} the little lion`}
             className="absolute inset-0 h-full w-full object-cover"
-            onError={() => setHasPhoto(false)}
+            onError={() => setFileFailed(true)}
           />
         )}
 
-        {/* Name + age scrim */}
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-night-900/70 via-night-900/25 to-transparent px-5 pb-4 pt-12">
           <div className="flex items-end justify-between gap-3">
             <div>

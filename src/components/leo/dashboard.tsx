@@ -1,15 +1,27 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
+import type { Route } from 'next';
 import { motion } from 'framer-motion';
-import { Droplets, Milk } from 'lucide-react';
+import { Droplets, Images, Milk } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useLeoStore, formatDuration } from '@/lib/leo';
+import {
+  useLeoStore,
+  useNow,
+  formatDuration,
+  ageBadges,
+  ageCelebration,
+} from '@/lib/leo';
 import { LeoHero } from './brand/leo-hero';
 import { LionCrest } from './brand/lion-crest';
 import { SinceLastCard } from './cards/since-last-card';
 import { SleepStatusCard } from './cards/sleep-status-card';
+import { TodayGlance } from './home/today-glance';
+import { NextUp } from './home/next-up';
+import { PhotoImage } from './photos/photo-image';
 import { QuickAddSheet, type QuickAddState } from './quick-add-sheet';
 
 const fadeUp = {
@@ -22,6 +34,8 @@ export function Dashboard() {
   const profile = useLeoStore((s) => s.profile);
   const feeds = useLeoStore((s) => s.feeds);
   const diapers = useLeoStore((s) => s.diapers);
+  const photos = useLeoStore((s) => s.photos);
+  const now = useNow(60_000);
   const [quickAdd, setQuickAdd] = useState<QuickAddState | null>(null);
 
   if (!hydrated) {
@@ -40,6 +54,8 @@ export function Dashboard() {
 
   const lastFeed = feeds[0] ?? null;
   const lastDiaper = diapers[0] ?? null;
+  const celebration = ageCelebration(profile.birth, now);
+  const badges = ageBadges(profile.birth, now);
 
   const feedDetail = lastFeed
     ? lastFeed.type === 'breast'
@@ -50,6 +66,30 @@ export function Dashboard() {
   return (
     <div className="space-y-4">
       <LeoHero />
+
+      {celebration && (
+        <motion.div
+          {...fadeUp}
+          transition={{ duration: 0.4 }}
+          className="rounded-2xl border border-gold-300 bg-gold-50 px-4 py-3 text-center font-display text-lg font-semibold text-gold-800"
+        >
+          {celebration}
+        </motion.div>
+      )}
+
+      <div className="flex flex-wrap justify-center gap-2">
+        {badges.map((b) => (
+          <span
+            key={b}
+            className="rounded-full bg-cream-100 px-3 py-1 text-xs font-medium text-sage-600"
+          >
+            {b}
+          </span>
+        ))}
+      </div>
+
+      <NextUp />
+      <TodayGlance />
 
       <div className="grid grid-cols-2 gap-3">
         <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.05 }}>
@@ -97,6 +137,31 @@ export function Dashboard() {
           <Droplets className="mr-2 h-5 w-5" /> Nappy
         </Button>
       </motion.div>
+
+      {photos.length > 0 && (
+        <Link href={'/leo/memories' as Route}>
+          <Card className="flex items-center gap-3 border-cream-200 p-3 transition-colors hover:bg-cream-50">
+            <div className="flex -space-x-2">
+              {photos.slice(0, 3).map((p) => (
+                <PhotoImage
+                  key={p.id}
+                  bytes={p.bytes}
+                  type={p.type}
+                  className="h-12 w-12 rounded-xl border-2 border-white object-cover"
+                />
+              ))}
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-night-900">Memories</p>
+              <p className="text-xs text-sage-500">
+                {photos.length} photo{photos.length > 1 ? 's' : ''} · tap to
+                view
+              </p>
+            </div>
+            <Images className="h-5 w-5 text-gold-500" />
+          </Card>
+        </Link>
+      )}
 
       <QuickAddSheet state={quickAdd} onClose={() => setQuickAdd(null)} />
     </div>

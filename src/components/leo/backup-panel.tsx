@@ -84,8 +84,9 @@ export function BackupPanel() {
       </h2>
       <p className="mb-4 flex items-start gap-2 text-sm text-sage-600">
         <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-sage-500" />
-        Your data lives only on this phone. Export a backup regularly so you
-        never lose it.
+        Everything — entries, growth, milestones, letters and photos — lives
+        only on this phone. Export a backup regularly so you never lose it
+        (photos are included, so the file can be large).
       </p>
 
       <div className="space-y-3">

@@ -118,3 +118,65 @@ export function formatISODateSafe(ts: number): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
+
+/** Whole weeks old. */
+export function ageInWeeks(
+  birth: number,
+  ref: number = now().getTime(),
+): number {
+  return Math.floor(ageInDays(birth, ref) / 7);
+}
+
+/** Whole calendar months old. */
+export function ageInMonthsCalendar(
+  birth: number,
+  ref: number = now().getTime(),
+): number {
+  const b = new Date(birth);
+  const r = new Date(ref);
+  let months =
+    (r.getFullYear() - b.getFullYear()) * 12 + (r.getMonth() - b.getMonth());
+  if (r.getDate() < b.getDate()) months--;
+  return Math.max(0, months);
+}
+
+/** Friendly age chips, e.g. ["6 days", "—"] → ["6 days"], or ["8 weeks", "2 months"]. */
+export function ageBadges(
+  birth: number,
+  ref: number = now().getTime(),
+): string[] {
+  const days = ageInDays(birth, ref);
+  const weeks = ageInWeeks(birth, ref);
+  const months = ageInMonthsCalendar(birth, ref);
+  const badges: string[] = [days === 1 ? '1 day' : `${days} days`];
+  if (weeks >= 1) badges.push(weeks === 1 ? '1 week' : `${weeks} weeks`);
+  if (months >= 1) badges.push(months === 1 ? '1 month' : `${months} months`);
+  return badges;
+}
+
+function ordinal(n: number): string {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] ?? s[v] ?? s[0]);
+}
+
+/**
+ * A celebration message when today is a monthiversary or birthday, else null.
+ * e.g. "1 month old today 🎂" / "Happy 1st birthday 🎂🦁".
+ */
+export function ageCelebration(
+  birth: number,
+  ref: number = now().getTime(),
+): string | null {
+  const b = new Date(birth);
+  const r = new Date(ref);
+  const sameDayOfMonth = r.getDate() === b.getDate();
+  if (!sameDayOfMonth) return null;
+  const months = ageInMonthsCalendar(birth, ref);
+  if (months >= 12 && months % 12 === 0) {
+    return `Happy ${ordinal(months / 12)} birthday 🎂🦁`;
+  }
+  if (months >= 1)
+    return `${months} month${months > 1 ? 's' : ''} old today 🎂`;
+  return null;
+}

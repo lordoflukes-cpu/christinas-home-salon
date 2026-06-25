@@ -9,16 +9,22 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
-import { useLeoStore, toDatetimeLocal, fromDatetimeLocal } from '@/lib/leo';
+import {
+  useLeoStore,
+  toDatetimeLocal,
+  fromDatetimeLocal,
+  gramsToLbOz,
+} from '@/lib/leo';
 
-/** Leo's birthday: 24 June 2026, 10:50pm (editable). */
-const DEFAULT_BIRTH = new Date(2026, 5, 24, 22, 50).getTime();
+/** Leo's birthday: 25 June 2026, 10:50pm (editable). */
+const DEFAULT_BIRTH = new Date(2026, 5, 25, 22, 50).getTime();
 
 const schema = z.object({
   name: z.string().min(1, 'Name is required').max(40),
   birthLocal: z.string().min(1, 'Date of birth is required'),
   birthWeightGrams: z.coerce.number().min(0).max(8000).optional(),
   birthLengthCm: z.coerce.number().min(0).max(80).optional(),
+  birthHeadCircCm: z.coerce.number().min(0).max(60).optional(),
 });
 type FormValues = z.infer<typeof schema>;
 
@@ -31,6 +37,7 @@ export function ProfileEditor() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -39,17 +46,23 @@ export function ProfileEditor() {
       birthLocal: toDatetimeLocal(profile?.birth ?? DEFAULT_BIRTH),
       birthWeightGrams: profile?.birthWeightGrams,
       birthLengthCm: profile?.birthLengthCm,
+      birthHeadCircCm: profile?.birthHeadCircCm,
     },
   });
+
+  const birthWeight = watch('birthWeightGrams');
 
   async function onSubmit(values: FormValues) {
     setBusy(true);
     try {
       await editProfile({
+        // preserve fields not in this form (e.g. chosen cover photo)
+        heroPhotoId: profile?.heroPhotoId,
         name: values.name.trim(),
         birth: fromDatetimeLocal(values.birthLocal),
         birthWeightGrams: values.birthWeightGrams || undefined,
         birthLengthCm: values.birthLengthCm || undefined,
+        birthHeadCircCm: values.birthHeadCircCm || undefined,
       });
       toast({
         title: 'Saved',
@@ -88,25 +101,43 @@ export function ProfileEditor() {
           )}
         </div>
 
+        <div className="space-y-1.5">
+          <Label htmlFor="birthWeightGrams">Birth weight (g)</Label>
+          <Input
+            id="birthWeightGrams"
+            type="number"
+            inputMode="numeric"
+            placeholder="e.g. 3400"
+            {...register('birthWeightGrams')}
+          />
+          {birthWeight ? (
+            <p className="text-xs text-sage-500">
+              = {gramsToLbOz(Number(birthWeight))}
+            </p>
+          ) : null}
+        </div>
+
         <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <Label htmlFor="birthWeightGrams">Birth weight (g)</Label>
-            <Input
-              id="birthWeightGrams"
-              type="number"
-              inputMode="numeric"
-              placeholder="e.g. 3400"
-              {...register('birthWeightGrams')}
-            />
-          </div>
           <div className="space-y-1.5">
             <Label htmlFor="birthLengthCm">Length (cm)</Label>
             <Input
               id="birthLengthCm"
               type="number"
-              inputMode="numeric"
+              inputMode="decimal"
+              step="0.1"
               placeholder="e.g. 51"
               {...register('birthLengthCm')}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="birthHeadCircCm">Head (cm)</Label>
+            <Input
+              id="birthHeadCircCm"
+              type="number"
+              inputMode="decimal"
+              step="0.1"
+              placeholder="e.g. 35"
+              {...register('birthHeadCircCm')}
             />
           </div>
         </div>
