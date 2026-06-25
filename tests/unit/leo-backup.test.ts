@@ -22,6 +22,7 @@ describe('backup round-trip', () => {
     await repo.endSleep(sleep.id, 9000);
     await repo.addEvent({ kind: 'mood', at: 5000, mood: 'content' });
     await repo.addMedical({ kind: 'note', title: 'Red book note', at: 6000 });
+    await repo.addSize({ kind: 'nappy', size: 'Size 2', startedAt: 6500 });
     await repo.addDocument(
       new Blob([new Uint8Array([5, 6, 7])], { type: 'application/pdf' }),
       { title: 'GP letter', at: 7000 },
@@ -33,6 +34,7 @@ describe('backup round-trip', () => {
     expect(backup.diapers).toHaveLength(1);
     expect(backup.sleeps).toHaveLength(1);
     expect(backup.events).toHaveLength(1);
+    expect(backup.sizes).toHaveLength(1);
     expect(backup.documents).toHaveLength(1);
 
     await repo.clearAll();

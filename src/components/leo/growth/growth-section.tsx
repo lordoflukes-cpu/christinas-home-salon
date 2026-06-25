@@ -24,6 +24,8 @@ import {
   ageInMonths,
   metricValue,
   percentileForMeasurement,
+  percentileTrend,
+  weightGainPerWeek,
   formatWeight,
   formatLength,
   formatDateTime,
@@ -35,6 +37,9 @@ import { Segmented } from '../forms/feed-form';
 import { GreekKey } from '../decor/greek-key';
 import { GrowthChart } from './growth-chart';
 import { GrowthForm } from './growth-form';
+import { CurrentSizesCard } from './current-sizes-card';
+import { SizesHistory } from './sizes-history';
+import { SizeGuide } from './size-guide';
 
 const METRICS: WhoMetric[] = ['weight', 'length', 'head'];
 
@@ -96,8 +101,14 @@ export function GrowthSection() {
     setSheetOpen(true);
   }
 
+  const trend = percentileTrend(metric, birth, growth);
+  const gain = weightGainPerWeek(growth);
+
   return (
     <div className="space-y-4">
+      {/* What is Leo wearing? */}
+      <CurrentSizesCard />
+
       {/* latest stats */}
       <div className="grid grid-cols-3 gap-2">
         {chips.map(({ m, text, pct }) => (
@@ -136,6 +147,22 @@ export function GrowthSection() {
         <p className="mt-2 text-center text-[10px] text-ink-400">
           Shaded bands = WHO boys 3rd–97th percentiles
         </p>
+
+        {(trend || (metric === 'weight' && gain)) && (
+          <div className="mt-3 space-y-1 rounded-xl bg-parchment-100/70 p-3">
+            {trend && (
+              <p className="text-sm text-ink-800">
+                <span className="font-semibold">
+                  {METRIC_LABELS[metric].label}:
+                </span>{' '}
+                {trend.text}
+              </p>
+            )}
+            {metric === 'weight' && gain && (
+              <p className="text-sm text-ink-800">{gain.text}</p>
+            )}
+          </div>
+        )}
       </Card>
 
       <Button
@@ -194,6 +221,10 @@ export function GrowthSection() {
           </div>
         </Card>
       )}
+
+      {/* sizes history + guide */}
+      <SizesHistory />
+      <SizeGuide />
 
       {/* add/edit sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>

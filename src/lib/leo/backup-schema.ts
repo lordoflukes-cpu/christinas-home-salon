@@ -180,6 +180,16 @@ const documentBackupSchema = z.object({
   updatedAt: millis,
 });
 
+const sizeSchema = z.object({
+  id: z.string(),
+  kind: z.enum(['clothing', 'nappy', 'shoe']),
+  size: z.string(),
+  startedAt: millis,
+  note: z.string().optional(),
+  createdAt: millis,
+  updatedAt: millis,
+});
+
 export const leoBackupSchema = z.object({
   schemaVersion: z.number().int().positive(),
   exportedAt: millis,
@@ -192,6 +202,7 @@ export const leoBackupSchema = z.object({
   milestones: z.array(milestoneSchema).optional(),
   journal: z.array(journalSchema).optional(),
   events: z.array(eventSchema).optional(),
+  sizes: z.array(sizeSchema).optional(),
   photos: z.array(photoBackupSchema).optional(),
   documents: z.array(documentBackupSchema).optional(),
 });

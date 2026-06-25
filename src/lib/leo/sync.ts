@@ -42,6 +42,7 @@ const PLAIN_STORES = [
   'milestones',
   'journal',
   'events',
+  'sizes',
 ] as const;
 type PlainStore = (typeof PLAIN_STORES)[number];
 /** Stores holding binary blobs — serialised to base64 data URLs for sync. */
