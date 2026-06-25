@@ -130,6 +130,21 @@ describe('documents', () => {
   });
 });
 
+describe('journal', () => {
+  it('stores author and category', async () => {
+    const j = await repo.addJournal({
+      writtenAt: 1000,
+      body: 'Fell asleep on my chest.',
+      author: 'Daddy',
+      category: 'sweet',
+    });
+    const all = await repo.getAllJournal();
+    const saved = all.find((x) => x.id === j.id);
+    expect(saved?.author).toBe('Daddy');
+    expect(saved?.category).toBe('sweet');
+  });
+});
+
 describe('milestones', () => {
   it('stores category, emotion, dual notes and who/where', async () => {
     const m = await repo.addMilestone({

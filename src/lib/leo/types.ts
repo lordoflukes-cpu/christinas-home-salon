@@ -213,12 +213,24 @@ export interface MilestoneEntry {
   updatedAt: Millis;
 }
 
+export type JournalCategory =
+  | 'funny'
+  | 'sweet'
+  | 'hard'
+  | 'grateful'
+  | 'learned'
+  | 'message';
+
 export interface JournalEntry {
   id: string;
   /** When the note was written / dated (indexed). */
   writtenAt: Millis;
   title?: string;
   body: string;
+  /** Who wrote it, e.g. 'Daddy' / 'Mummy'. */
+  author?: string;
+  /** Which prompt this answers. */
+  category?: JournalCategory;
   photoId?: string;
   createdAt: Millis;
   updatedAt: Millis;

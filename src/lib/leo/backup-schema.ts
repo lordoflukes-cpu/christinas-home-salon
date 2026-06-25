@@ -145,6 +145,10 @@ const journalSchema = z.object({
   writtenAt: millis,
   title: z.string().optional(),
   body: z.string(),
+  author: z.string().optional(),
+  category: z
+    .enum(['funny', 'sweet', 'hard', 'grateful', 'learned', 'message'])
+    .optional(),
   photoId: z.string().optional(),
   createdAt: millis,
   updatedAt: millis,
