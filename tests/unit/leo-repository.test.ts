@@ -130,6 +130,31 @@ describe('documents', () => {
   });
 });
 
+describe('sizes', () => {
+  it('adds sizes newest-started-first, updates and deletes', async () => {
+    await repo.addSize({ kind: 'nappy', size: 'Size 1', startedAt: 1000 });
+    const two = await repo.addSize({
+      kind: 'nappy',
+      size: 'Size 2',
+      startedAt: 5000,
+    });
+    await repo.addSize({
+      kind: 'clothing',
+      size: '0–3 months',
+      startedAt: 3000,
+    });
+    const all = await repo.getAllSizes();
+    expect(all[0].startedAt).toBe(5000);
+
+    await repo.updateSize(two.id, { note: 'roomy' });
+    expect((await repo.getAllSizes()).find((s) => s.id === two.id)?.note).toBe(
+      'roomy',
+    );
+    await repo.deleteSize(two.id);
+    expect(await repo.getAllSizes()).toHaveLength(2);
+  });
+});
+
 describe('journal', () => {
   it('stores author and category', async () => {
     const j = await repo.addJournal({

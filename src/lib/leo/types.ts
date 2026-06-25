@@ -155,6 +155,24 @@ export interface GrowthEntry {
   updatedAt: Millis;
 }
 
+// ---------------------------------------------------------------------------
+// Sizes — clothing / nappy / shoe over time
+// ---------------------------------------------------------------------------
+
+export type SizeKind = 'clothing' | 'nappy' | 'shoe';
+
+export interface SizeEntry {
+  id: string;
+  kind: SizeKind;
+  /** Free-text size label, e.g. '0-3 months', 'Size 2', 'EU 16'. */
+  size: string;
+  /** When Leo started wearing this size (indexed). */
+  startedAt: Millis;
+  note?: string;
+  createdAt: Millis;
+  updatedAt: Millis;
+}
+
 export type MedicalKind = 'appointment' | 'vaccination' | 'medication' | 'note';
 
 export interface MedicalEntry {
@@ -324,6 +342,7 @@ export type NewMilestone = Omit<
 >;
 export type NewJournal = Omit<JournalEntry, 'id' | 'createdAt' | 'updatedAt'>;
 export type NewEvent = Omit<LeoEvent, 'id' | 'createdAt' | 'updatedAt'>;
+export type NewSize = Omit<SizeEntry, 'id' | 'createdAt' | 'updatedAt'>;
 export type NewPhotoMeta = Omit<
   PhotoEntry,
   'id' | 'bytes' | 'type' | 'createdAt' | 'updatedAt'
@@ -348,6 +367,7 @@ export interface LeoBackup {
   milestones?: MilestoneEntry[];
   journal?: JournalEntry[];
   events?: LeoEvent[];
+  sizes?: SizeEntry[];
   photos?: PhotoBackup[];
   documents?: DocumentBackup[];
 }

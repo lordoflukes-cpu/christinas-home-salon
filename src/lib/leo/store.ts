@@ -25,8 +25,10 @@ import type {
   NewMedical,
   NewMilestone,
   NewPhotoMeta,
+  NewSize,
   PhotoEntry,
   ProfileInput,
+  SizeEntry,
   SleepEntry,
 } from './types';
 
@@ -45,6 +47,7 @@ interface LeoState {
   milestones: MilestoneEntry[];
   journal: JournalEntry[];
   events: LeoEvent[];
+  sizes: SizeEntry[];
   photos: PhotoEntry[];
   documents: DocumentEntry[];
 
@@ -83,6 +86,10 @@ interface LeoState {
   editJournal: (id: string, patch: Partial<JournalEntry>) => Promise<void>;
   removeJournal: (id: string) => Promise<void>;
 
+  createSize: (input: NewSize) => Promise<void>;
+  editSize: (id: string, patch: Partial<SizeEntry>) => Promise<void>;
+  removeSize: (id: string) => Promise<void>;
+
   createEvent: (input: NewEvent) => Promise<void>;
   editEvent: (id: string, patch: Partial<LeoEvent>) => Promise<void>;
   removeEvent: (id: string) => Promise<void>;
@@ -112,6 +119,7 @@ async function refresh() {
     milestones,
     journal,
     events,
+    sizes,
     photos,
     documents,
   ] = await Promise.all([
@@ -126,6 +134,7 @@ async function refresh() {
     repo.getAllMilestones(),
     repo.getAllJournal(),
     repo.getRecentEvents(RECENT_LIMIT),
+    repo.getAllSizes(),
     repo.getAllPhotos(),
     repo.getAllDocuments(),
   ]);
@@ -141,6 +150,7 @@ async function refresh() {
     milestones,
     journal,
     events,
+    sizes,
     photos,
     documents,
   };
@@ -178,6 +188,7 @@ export const useLeoStore = create<LeoState>((set, get) => ({
   milestones: [],
   journal: [],
   events: [],
+  sizes: [],
   photos: [],
   documents: [],
 
@@ -343,6 +354,22 @@ export const useLeoStore = create<LeoState>((set, get) => ({
     await repo.deleteJournal(id);
     set({ journal: await repo.getAllJournal() });
     sync.pushDelete('journal', id);
+  },
+
+  createSize: async (input) => {
+    const entry = await repo.addSize(input);
+    set({ sizes: await repo.getAllSizes() });
+    sync.pushEntry('sizes', entry);
+  },
+  editSize: async (id, patch) => {
+    const entry = await repo.updateSize(id, patch);
+    set({ sizes: await repo.getAllSizes() });
+    sync.pushEntry('sizes', entry);
+  },
+  removeSize: async (id) => {
+    await repo.deleteSize(id);
+    set({ sizes: await repo.getAllSizes() });
+    sync.pushDelete('sizes', id);
   },
 
   createEvent: async (input) => {
