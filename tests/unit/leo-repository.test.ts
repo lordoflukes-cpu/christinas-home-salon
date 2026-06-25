@@ -155,6 +155,39 @@ describe('sizes', () => {
   });
 });
 
+describe('routines', () => {
+  it('adds routines ordered by position, updates rating and deletes', async () => {
+    const a = await repo.addRoutine({
+      category: 'morning',
+      text: 'Wake',
+      position: 0,
+    });
+    const b = await repo.addRoutine({
+      category: 'morning',
+      text: 'Feed',
+      position: 1,
+    });
+    await repo.addRoutine({
+      category: 'settling',
+      text: 'Rocking',
+      position: 0,
+    });
+
+    const all = await repo.getAllRoutines();
+    expect(all).toHaveLength(3);
+    // by-position index sorts ascending across the store
+    expect(all[0].position).toBeLessThanOrEqual(all[1].position);
+
+    await repo.updateRoutine(a.id, { rating: 'works' });
+    expect(
+      (await repo.getAllRoutines()).find((r) => r.id === a.id)?.rating,
+    ).toBe('works');
+
+    await repo.deleteRoutine(b.id);
+    expect(await repo.getAllRoutines()).toHaveLength(2);
+  });
+});
+
 describe('journal', () => {
   it('stores author and category', async () => {
     const j = await repo.addJournal({

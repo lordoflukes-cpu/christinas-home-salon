@@ -16,12 +16,13 @@ import type {
   MedicalEntry,
   MilestoneEntry,
   PhotoEntry,
+  RoutineItem,
   SizeEntry,
   SleepEntry,
 } from './types';
 
 export const DB_NAME = 'leo-tracker';
-export const DB_VERSION = 5;
+export const DB_VERSION = 6;
 
 export interface LeoDB extends DBSchema {
   profile: { key: string; value: BabyProfile };
@@ -79,6 +80,11 @@ export interface LeoDB extends DBSchema {
     key: string;
     value: SizeEntry;
     indexes: { 'by-startedAt': number };
+  };
+  routines: {
+    key: string;
+    value: RoutineItem;
+    indexes: { 'by-position': number };
   };
 }
 
@@ -152,6 +158,11 @@ export function getDB(): Promise<IDBPDatabase<LeoDB>> {
         if (!db.objectStoreNames.contains('sizes')) {
           const sizes = db.createObjectStore('sizes', { keyPath: 'id' });
           sizes.createIndex('by-startedAt', 'startedAt');
+        }
+        // v6 store (additive)
+        if (!db.objectStoreNames.contains('routines')) {
+          const routines = db.createObjectStore('routines', { keyPath: 'id' });
+          routines.createIndex('by-position', 'position');
         }
       },
     });

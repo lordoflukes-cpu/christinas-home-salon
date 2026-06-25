@@ -25,9 +25,11 @@ import type {
   NewMedical,
   NewMilestone,
   NewPhotoMeta,
+  NewRoutine,
   NewSize,
   PhotoEntry,
   ProfileInput,
+  RoutineItem,
   SizeEntry,
   SleepEntry,
 } from './types';
@@ -48,6 +50,7 @@ interface LeoState {
   journal: JournalEntry[];
   events: LeoEvent[];
   sizes: SizeEntry[];
+  routines: RoutineItem[];
   photos: PhotoEntry[];
   documents: DocumentEntry[];
 
@@ -90,6 +93,10 @@ interface LeoState {
   editSize: (id: string, patch: Partial<SizeEntry>) => Promise<void>;
   removeSize: (id: string) => Promise<void>;
 
+  createRoutine: (input: NewRoutine) => Promise<void>;
+  editRoutine: (id: string, patch: Partial<RoutineItem>) => Promise<void>;
+  removeRoutine: (id: string) => Promise<void>;
+
   createEvent: (input: NewEvent) => Promise<void>;
   editEvent: (id: string, patch: Partial<LeoEvent>) => Promise<void>;
   removeEvent: (id: string) => Promise<void>;
@@ -120,6 +127,7 @@ async function refresh() {
     journal,
     events,
     sizes,
+    routines,
     photos,
     documents,
   ] = await Promise.all([
@@ -135,6 +143,7 @@ async function refresh() {
     repo.getAllJournal(),
     repo.getRecentEvents(RECENT_LIMIT),
     repo.getAllSizes(),
+    repo.getAllRoutines(),
     repo.getAllPhotos(),
     repo.getAllDocuments(),
   ]);
@@ -151,6 +160,7 @@ async function refresh() {
     journal,
     events,
     sizes,
+    routines,
     photos,
     documents,
   };
@@ -189,6 +199,7 @@ export const useLeoStore = create<LeoState>((set, get) => ({
   journal: [],
   events: [],
   sizes: [],
+  routines: [],
   photos: [],
   documents: [],
 
@@ -370,6 +381,22 @@ export const useLeoStore = create<LeoState>((set, get) => ({
     await repo.deleteSize(id);
     set({ sizes: await repo.getAllSizes() });
     sync.pushDelete('sizes', id);
+  },
+
+  createRoutine: async (input) => {
+    const entry = await repo.addRoutine(input);
+    set({ routines: await repo.getAllRoutines() });
+    sync.pushEntry('routines', entry);
+  },
+  editRoutine: async (id, patch) => {
+    const entry = await repo.updateRoutine(id, patch);
+    set({ routines: await repo.getAllRoutines() });
+    sync.pushEntry('routines', entry);
+  },
+  removeRoutine: async (id) => {
+    await repo.deleteRoutine(id);
+    set({ routines: await repo.getAllRoutines() });
+    sync.pushDelete('routines', id);
   },
 
   createEvent: async (input) => {

@@ -8,6 +8,7 @@ export * from './doctor-summary';
 export * from './journal-prompts';
 export * from './photo-albums';
 export * from './sizes';
+export * from './routine-config';
 export * from './growth-insights';
 export * from './units';
 export * from './growth';

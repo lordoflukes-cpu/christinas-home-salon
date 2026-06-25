@@ -156,6 +156,33 @@ export interface GrowthEntry {
 }
 
 // ---------------------------------------------------------------------------
+// Routine builder — routines, cues, and what works / doesn't
+// ---------------------------------------------------------------------------
+
+export type RoutineCategory =
+  | 'morning'
+  | 'bedtime'
+  | 'settling'
+  | 'sleepCues'
+  | 'hungerCues'
+  | 'worked'
+  | 'didntWork';
+
+/** For settling methods: how well it works for Leo. */
+export type RoutineRating = 'works' | 'sometimes' | 'no';
+
+export interface RoutineItem {
+  id: string;
+  category: RoutineCategory;
+  text: string;
+  /** Sort order within its category (lower first). */
+  position: number;
+  rating?: RoutineRating;
+  createdAt: Millis;
+  updatedAt: Millis;
+}
+
+// ---------------------------------------------------------------------------
 // Sizes — clothing / nappy / shoe over time
 // ---------------------------------------------------------------------------
 
@@ -343,6 +370,7 @@ export type NewMilestone = Omit<
 export type NewJournal = Omit<JournalEntry, 'id' | 'createdAt' | 'updatedAt'>;
 export type NewEvent = Omit<LeoEvent, 'id' | 'createdAt' | 'updatedAt'>;
 export type NewSize = Omit<SizeEntry, 'id' | 'createdAt' | 'updatedAt'>;
+export type NewRoutine = Omit<RoutineItem, 'id' | 'createdAt' | 'updatedAt'>;
 export type NewPhotoMeta = Omit<
   PhotoEntry,
   'id' | 'bytes' | 'type' | 'createdAt' | 'updatedAt'
@@ -368,6 +396,7 @@ export interface LeoBackup {
   journal?: JournalEntry[];
   events?: LeoEvent[];
   sizes?: SizeEntry[];
+  routines?: RoutineItem[];
   photos?: PhotoBackup[];
   documents?: DocumentBackup[];
 }

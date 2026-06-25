@@ -3,7 +3,14 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { Route } from 'next';
-import { Activity, BookHeart, Home, Images, Settings } from 'lucide-react';
+import {
+  Activity,
+  BookHeart,
+  Home,
+  Images,
+  ListChecks,
+  Settings,
+} from 'lucide-react';
 import { useLeoStore, useNow, formatAge } from '@/lib/leo';
 import { cn } from '@/lib/utils';
 import { PawMark } from './brand/paw-mark';
@@ -12,6 +19,7 @@ const NAV: { href: Route; label: string; icon: typeof Home }[] = [
   { href: '/leo' as Route, label: 'Home', icon: Home },
   { href: '/leo/log' as Route, label: 'Log', icon: BookHeart },
   { href: '/leo/health' as Route, label: 'Health', icon: Activity },
+  { href: '/leo/routine' as Route, label: 'Routine', icon: ListChecks },
   { href: '/leo/memories' as Route, label: 'Memories', icon: Images },
   { href: '/leo/settings' as Route, label: 'Settings', icon: Settings },
 ];
