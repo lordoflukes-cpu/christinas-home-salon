@@ -7,8 +7,9 @@ import { Segmented } from '@/components/leo/forms/feed-form';
 import { PhotoGallery } from '@/components/leo/photos/photo-gallery';
 import { MilestoneList } from '@/components/leo/milestones/milestone-list';
 import { JournalList } from '@/components/leo/journal/journal-list';
+import { VoiceList } from '@/components/leo/voice/voice-list';
 
-type Tab = 'photos' | 'milestones' | 'journal';
+type Tab = 'photos' | 'milestones' | 'journal' | 'voice';
 
 export default function LeoMemoriesPage() {
   const [tab, setTab] = useState<Tab>('photos');
@@ -26,6 +27,7 @@ export default function LeoMemoriesPage() {
           { value: 'photos', label: 'Photos' },
           { value: 'milestones', label: 'Firsts' },
           { value: 'journal', label: 'Letters' },
+          { value: 'voice', label: 'Voice' },
         ]}
       />
       <AnimatePresence mode="wait">
@@ -39,6 +41,7 @@ export default function LeoMemoriesPage() {
           {tab === 'photos' && <PhotoGallery />}
           {tab === 'milestones' && <MilestoneList />}
           {tab === 'journal' && <JournalList />}
+          {tab === 'voice' && <VoiceList />}
         </motion.div>
       </AnimatePresence>
     </div>

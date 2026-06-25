@@ -25,6 +25,8 @@ import type {
   DocumentEntry,
   PhotoBackup,
   PhotoEntry,
+  VoiceBackup,
+  VoiceEntry,
 } from './types';
 
 export { isSyncConfigured } from './supabase';
@@ -47,12 +49,12 @@ const PLAIN_STORES = [
 ] as const;
 type PlainStore = (typeof PLAIN_STORES)[number];
 /** Stores holding binary blobs — serialised to base64 data URLs for sync. */
-const BINARY_STORES = ['photos', 'documents'] as const;
+const BINARY_STORES = ['photos', 'documents', 'voices'] as const;
 type BinaryStore = (typeof BINARY_STORES)[number];
 export type SyncStore = PlainStore | BinaryStore;
 
 function isBinary(store: SyncStore): store is BinaryStore {
-  return store === 'photos' || store === 'documents';
+  return store === 'photos' || store === 'documents' || store === 'voices';
 }
 
 /** Shape of a row in the `leo_rows` table. */
@@ -136,8 +138,8 @@ export function onAuthChange(
 // Local <-> row conversion
 // ---------------------------------------------------------------------------
 
-type BinaryEntry = PhotoEntry | DocumentEntry;
-type BinaryBackup = PhotoBackup | DocumentBackup;
+type BinaryEntry = PhotoEntry | DocumentEntry | VoiceEntry;
+type BinaryBackup = PhotoBackup | DocumentBackup | VoiceBackup;
 
 /** Serialise a binary (photo/document) entry's bytes to a base64 data URL. */
 function binaryEntryToBackup(entry: BinaryEntry): BinaryBackup {
@@ -156,7 +158,11 @@ async function binaryBackupToEntry(
   const blob = await repo.dataUrlToBlob(backup.dataUrl);
   const { dataUrl, ...meta } = backup as BinaryBackup & { dataUrl: string };
   const fallback =
-    store === 'photos' ? 'image/jpeg' : 'application/octet-stream';
+    store === 'photos'
+      ? 'image/jpeg'
+      : store === 'voices'
+        ? 'audio/webm'
+        : 'application/octet-stream';
   return {
     ...(meta as object),
     bytes: await repo.blobToArrayBuffer(blob),
@@ -196,6 +202,8 @@ async function applyRemoteRow(row: SyncRow): Promise<boolean> {
       row.data as unknown as BinaryBackup,
     );
     if (row.store === 'photos') await repo.putPhotoRaw(entry as PhotoEntry);
+    else if (row.store === 'voices')
+      await repo.putVoiceRaw(entry as VoiceEntry);
     else await repo.putDocumentRaw(entry as DocumentEntry);
   } else {
     await repo.putRaw(row.store, row.data);
@@ -210,6 +218,7 @@ async function readLocal(
   if (store === 'photos') return (await repo.getPhoto(id)) as AnyEntry | null;
   if (store === 'documents')
     return (await repo.getDocument(id)) as AnyEntry | null;
+  if (store === 'voices') return (await repo.getVoice(id)) as AnyEntry | null;
   const all = (await repo.getAllRaw<AnyEntry>(store)) ?? [];
   return all.find((e) => e.id === id) ?? null;
 }

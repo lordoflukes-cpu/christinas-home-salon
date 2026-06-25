@@ -19,10 +19,11 @@ import type {
   RoutineItem,
   SizeEntry,
   SleepEntry,
+  VoiceEntry,
 } from './types';
 
 export const DB_NAME = 'leo-tracker';
-export const DB_VERSION = 6;
+export const DB_VERSION = 7;
 
 export interface LeoDB extends DBSchema {
   profile: { key: string; value: BabyProfile };
@@ -85,6 +86,11 @@ export interface LeoDB extends DBSchema {
     key: string;
     value: RoutineItem;
     indexes: { 'by-position': number };
+  };
+  voices: {
+    key: string;
+    value: VoiceEntry;
+    indexes: { 'by-recordedAt': number };
   };
 }
 
@@ -163,6 +169,11 @@ export function getDB(): Promise<IDBPDatabase<LeoDB>> {
         if (!db.objectStoreNames.contains('routines')) {
           const routines = db.createObjectStore('routines', { keyPath: 'id' });
           routines.createIndex('by-position', 'position');
+        }
+        // v7 store (additive)
+        if (!db.objectStoreNames.contains('voices')) {
+          const voices = db.createObjectStore('voices', { keyPath: 'id' });
+          voices.createIndex('by-recordedAt', 'recordedAt');
         }
       },
     });

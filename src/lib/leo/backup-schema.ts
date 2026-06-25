@@ -168,6 +168,22 @@ const photoBackupSchema = z.object({
   updatedAt: millis,
 });
 
+const voiceBackupSchema = z.object({
+  id: z.string(),
+  recordedAt: millis,
+  dataUrl: z.string(),
+  durationMs: z.number().nonnegative().optional(),
+  title: z.string().optional(),
+  transcript: z.string().optional(),
+  category: z
+    .enum(['funny', 'proud', 'emotional', 'message', 'firstSound'])
+    .optional(),
+  author: z.string().optional(),
+  favourite: z.boolean().optional(),
+  createdAt: millis,
+  updatedAt: millis,
+});
+
 const documentBackupSchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -222,6 +238,7 @@ export const leoBackupSchema = z.object({
   events: z.array(eventSchema).optional(),
   sizes: z.array(sizeSchema).optional(),
   routines: z.array(routineSchema).optional(),
+  voices: z.array(voiceBackupSchema).optional(),
   photos: z.array(photoBackupSchema).optional(),
   documents: z.array(documentBackupSchema).optional(),
 });

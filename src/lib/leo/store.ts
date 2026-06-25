@@ -27,11 +27,13 @@ import type {
   NewPhotoMeta,
   NewRoutine,
   NewSize,
+  NewVoiceMeta,
   PhotoEntry,
   ProfileInput,
   RoutineItem,
   SizeEntry,
   SleepEntry,
+  VoiceEntry,
 } from './types';
 
 const RECENT_LIMIT = 50;
@@ -51,6 +53,7 @@ interface LeoState {
   events: LeoEvent[];
   sizes: SizeEntry[];
   routines: RoutineItem[];
+  voices: VoiceEntry[];
   photos: PhotoEntry[];
   documents: DocumentEntry[];
 
@@ -101,6 +104,10 @@ interface LeoState {
   editEvent: (id: string, patch: Partial<LeoEvent>) => Promise<void>;
   removeEvent: (id: string) => Promise<void>;
 
+  addVoice: (blob: Blob, meta: NewVoiceMeta) => Promise<VoiceEntry>;
+  editVoice: (id: string, patch: Partial<VoiceEntry>) => Promise<void>;
+  removeVoice: (id: string) => Promise<void>;
+
   addPhoto: (blob: Blob, meta: NewPhotoMeta) => Promise<PhotoEntry>;
   editPhoto: (id: string, patch: Partial<PhotoEntry>) => Promise<void>;
   removePhoto: (id: string) => Promise<void>;
@@ -128,6 +135,7 @@ async function refresh() {
     events,
     sizes,
     routines,
+    voices,
     photos,
     documents,
   ] = await Promise.all([
@@ -144,6 +152,7 @@ async function refresh() {
     repo.getRecentEvents(RECENT_LIMIT),
     repo.getAllSizes(),
     repo.getAllRoutines(),
+    repo.getAllVoices(),
     repo.getAllPhotos(),
     repo.getAllDocuments(),
   ]);
@@ -161,6 +170,7 @@ async function refresh() {
     events,
     sizes,
     routines,
+    voices,
     photos,
     documents,
   };
@@ -200,6 +210,7 @@ export const useLeoStore = create<LeoState>((set, get) => ({
   events: [],
   sizes: [],
   routines: [],
+  voices: [],
   photos: [],
   documents: [],
 
@@ -413,6 +424,23 @@ export const useLeoStore = create<LeoState>((set, get) => ({
     await repo.deleteEvent(id);
     set({ events: await repo.getRecentEvents(RECENT_LIMIT) });
     sync.pushDelete('events', id);
+  },
+
+  addVoice: async (blob, meta) => {
+    const entry = await repo.addVoice(blob, meta);
+    set({ voices: await repo.getAllVoices() });
+    sync.pushEntry('voices', entry);
+    return entry;
+  },
+  editVoice: async (id, patch) => {
+    const entry = await repo.updateVoice(id, patch);
+    set({ voices: await repo.getAllVoices() });
+    sync.pushEntry('voices', entry);
+  },
+  removeVoice: async (id) => {
+    await repo.deleteVoice(id);
+    set({ voices: await repo.getAllVoices() });
+    sync.pushDelete('voices', id);
   },
 
   addPhoto: async (blob, meta) => {

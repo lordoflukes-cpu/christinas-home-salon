@@ -33,6 +33,7 @@ import { SleepStatusCard } from './cards/sleep-status-card';
 import { TodayGlance } from './home/today-glance';
 import { NextUp } from './home/next-up';
 import { PhotoImage } from './photos/photo-image';
+import { VoiceRecordButton } from './voice/voice-record-button';
 import { QuickAddSheet, type QuickAddState } from './quick-add-sheet';
 
 const fadeUp = {
@@ -197,6 +198,10 @@ export function Dashboard() {
             ))}
           </div>
         </Card>
+      </motion.div>
+
+      <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.3 }}>
+        <VoiceRecordButton />
       </motion.div>
 
       {photos.length > 0 && (
