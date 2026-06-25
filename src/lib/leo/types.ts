@@ -21,9 +21,25 @@ export interface BabyProfile {
   name: string;
   /** Date/time of birth, epoch ms. */
   birth: Millis;
+  /** Where Leo was born, e.g. "Lewisham Hospital, London". */
+  birthPlace?: string;
   birthWeightGrams?: number;
   birthLengthCm?: number;
   birthHeadCircCm?: number;
+  // Hospital / care team
+  hospital?: string;
+  midwife?: string;
+  doctor?: string;
+  /** Parents, e.g. "Luke & Christina". */
+  parents?: string;
+  // Emergency & health
+  nhsNumber?: string;
+  /** GP practice / doctor. */
+  gp?: string;
+  healthVisitor?: string;
+  allergies?: string;
+  /** Free-text birth story — the day Leo arrived. */
+  birthStory?: string;
   /** PhotoEntry id chosen as the hero image, if any. */
   heroPhotoId?: string;
   /** Notification/reminder preferences (shared across phones). */
