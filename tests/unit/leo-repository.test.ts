@@ -130,6 +130,27 @@ describe('documents', () => {
   });
 });
 
+describe('milestones', () => {
+  it('stores category, emotion, dual notes and who/where', async () => {
+    const m = await repo.addMilestone({
+      title: 'First smile',
+      achievedAt: 1000,
+      category: 'physical',
+      emotion: 'beautiful',
+      note: 'melted my heart',
+      noteFromChristina: 'mine too',
+      whoThere: 'Mummy & Daddy',
+      location: 'home',
+    });
+    const all = await repo.getAllMilestones();
+    const saved = all.find((x) => x.id === m.id);
+    expect(saved?.category).toBe('physical');
+    expect(saved?.emotion).toBe('beautiful');
+    expect(saved?.noteFromChristina).toBe('mine too');
+    expect(saved?.whoThere).toBe('Mummy & Daddy');
+  });
+});
+
 describe('medical', () => {
   it('stores vaccination batch + reaction', async () => {
     const v = await repo.addMedical({

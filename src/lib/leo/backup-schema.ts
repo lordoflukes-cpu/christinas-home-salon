@@ -125,7 +125,16 @@ const milestoneSchema = z.object({
   id: z.string(),
   achievedAt: millis,
   title: z.string(),
+  category: z
+    .enum(['physical', 'sounds', 'feeding', 'sleep', 'social', 'funny', 'big'])
+    .optional(),
   note: z.string().optional(),
+  noteFromChristina: z.string().optional(),
+  whoThere: z.string().optional(),
+  location: z.string().optional(),
+  emotion: z
+    .enum(['proud', 'funny', 'scary', 'beautiful', 'chaotic'])
+    .optional(),
   photoId: z.string().optional(),
   createdAt: millis,
   updatedAt: millis,
