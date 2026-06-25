@@ -20,7 +20,12 @@ import type {
 } from '@supabase/supabase-js';
 import { getSupabase, isSyncConfigured } from './supabase';
 import * as repo from './repository';
-import type { PhotoBackup, PhotoEntry } from './types';
+import type {
+  DocumentBackup,
+  DocumentEntry,
+  PhotoBackup,
+  PhotoEntry,
+} from './types';
 
 export { isSyncConfigured } from './supabase';
 
@@ -39,7 +44,14 @@ const PLAIN_STORES = [
   'events',
 ] as const;
 type PlainStore = (typeof PLAIN_STORES)[number];
-export type SyncStore = PlainStore | 'photos';
+/** Stores holding binary blobs — serialised to base64 data URLs for sync. */
+const BINARY_STORES = ['photos', 'documents'] as const;
+type BinaryStore = (typeof BINARY_STORES)[number];
+export type SyncStore = PlainStore | BinaryStore;
+
+function isBinary(store: SyncStore): store is BinaryStore {
+  return store === 'photos' || store === 'documents';
+}
 
 /** Shape of a row in the `leo_rows` table. */
 interface SyncRow {
@@ -122,33 +134,41 @@ export function onAuthChange(
 // Local <-> row conversion
 // ---------------------------------------------------------------------------
 
-function photoEntryToBackup(entry: PhotoEntry): PhotoBackup {
+type BinaryEntry = PhotoEntry | DocumentEntry;
+type BinaryBackup = PhotoBackup | DocumentBackup;
+
+/** Serialise a binary (photo/document) entry's bytes to a base64 data URL. */
+function binaryEntryToBackup(entry: BinaryEntry): BinaryBackup {
   const { bytes, type, ...meta } = entry;
   let binary = '';
   const view = new Uint8Array(bytes);
   for (let i = 0; i < view.length; i++) binary += String.fromCharCode(view[i]);
   const base64 = typeof btoa === 'function' ? btoa(binary) : '';
-  return { ...meta, dataUrl: `data:${type};base64,${base64}` };
+  return { ...meta, dataUrl: `data:${type};base64,${base64}` } as BinaryBackup;
 }
 
-async function photoBackupToEntry(backup: PhotoBackup): Promise<PhotoEntry> {
+async function binaryBackupToEntry(
+  store: BinaryStore,
+  backup: BinaryBackup,
+): Promise<BinaryEntry> {
   const blob = await repo.dataUrlToBlob(backup.dataUrl);
-  const { dataUrl, ...meta } = backup;
+  const { dataUrl, ...meta } = backup as BinaryBackup & { dataUrl: string };
+  const fallback =
+    store === 'photos' ? 'image/jpeg' : 'application/octet-stream';
   return {
-    ...meta,
+    ...(meta as object),
     bytes: await repo.blobToArrayBuffer(blob),
-    type: blob.type || 'image/jpeg',
-  };
+    type: blob.type || fallback,
+  } as BinaryEntry;
 }
 
-/** Build a table row from a local entry (photos serialise to a data URL). */
+/** Build a table row from a local entry (binary stores serialise to a data URL). */
 function toRow(store: SyncStore, entry: AnyEntry, owner: string): SyncRow {
-  const data =
-    store === 'photos'
-      ? (photoEntryToBackup(
-          entry as unknown as PhotoEntry,
-        ) as unknown as Record<string, unknown>)
-      : (entry as unknown as Record<string, unknown>);
+  const data = isBinary(store)
+    ? (binaryEntryToBackup(
+        entry as unknown as BinaryEntry,
+      ) as unknown as Record<string, unknown>)
+    : (entry as unknown as Record<string, unknown>);
   return {
     owner,
     store,
@@ -168,10 +188,13 @@ async function applyRemoteRow(row: SyncRow): Promise<boolean> {
     await repo.deleteRaw(row.store, row.id);
     return true;
   }
-  if (row.store === 'photos') {
-    await repo.putPhotoRaw(
-      await photoBackupToEntry(row.data as unknown as PhotoBackup),
+  if (isBinary(row.store)) {
+    const entry = await binaryBackupToEntry(
+      row.store,
+      row.data as unknown as BinaryBackup,
     );
+    if (row.store === 'photos') await repo.putPhotoRaw(entry as PhotoEntry);
+    else await repo.putDocumentRaw(entry as DocumentEntry);
   } else {
     await repo.putRaw(row.store, row.data);
   }
@@ -183,6 +206,8 @@ async function readLocal(
   id: string,
 ): Promise<AnyEntry | null> {
   if (store === 'photos') return (await repo.getPhoto(id)) as AnyEntry | null;
+  if (store === 'documents')
+    return (await repo.getDocument(id)) as AnyEntry | null;
   const all = (await repo.getAllRaw<AnyEntry>(store)) ?? [];
   return all.find((e) => e.id === id) ?? null;
 }
@@ -266,7 +291,7 @@ async function reconcile(sb: SupabaseClient): Promise<void> {
   }
 
   // Push local entries the cloud is missing or has an older copy of.
-  for (const store of [...PLAIN_STORES, 'photos'] as SyncStore[]) {
+  for (const store of [...PLAIN_STORES, ...BINARY_STORES] as SyncStore[]) {
     const locals = await readAllLocal(store);
     for (const entry of locals) {
       const remote = remoteIndex.get(`${store}:${entry.id}`);

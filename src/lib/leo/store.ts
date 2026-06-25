@@ -7,6 +7,7 @@ import type {
   BabyProfile,
   BreastSide,
   DiaperEntry,
+  DocumentEntry,
   FeedEntry,
   GrowthEntry,
   ImportMode,
@@ -16,6 +17,7 @@ import type {
   MedicalEntry,
   MilestoneEntry,
   NewDiaper,
+  NewDocumentMeta,
   NewEvent,
   NewFeed,
   NewGrowth,
@@ -44,6 +46,7 @@ interface LeoState {
   journal: JournalEntry[];
   events: LeoEvent[];
   photos: PhotoEntry[];
+  documents: DocumentEntry[];
 
   hydrate: () => Promise<void>;
 
@@ -88,6 +91,9 @@ interface LeoState {
   editPhoto: (id: string, patch: Partial<PhotoEntry>) => Promise<void>;
   removePhoto: (id: string) => Promise<void>;
 
+  addDocument: (blob: Blob, meta: NewDocumentMeta) => Promise<DocumentEntry>;
+  removeDocument: (id: string) => Promise<void>;
+
   importBackup: (backup: LeoBackup, mode: ImportMode) => Promise<void>;
   clearAll: () => Promise<void>;
 }
@@ -107,6 +113,7 @@ async function refresh() {
     journal,
     events,
     photos,
+    documents,
   ] = await Promise.all([
     repo.getProfile(),
     repo.getRecentFeeds(RECENT_LIMIT),
@@ -120,6 +127,7 @@ async function refresh() {
     repo.getAllJournal(),
     repo.getRecentEvents(RECENT_LIMIT),
     repo.getAllPhotos(),
+    repo.getAllDocuments(),
   ]);
   return {
     profile,
@@ -134,6 +142,7 @@ async function refresh() {
     journal,
     events,
     photos,
+    documents,
   };
 }
 
@@ -170,6 +179,7 @@ export const useLeoStore = create<LeoState>((set, get) => ({
   journal: [],
   events: [],
   photos: [],
+  documents: [],
 
   hydrate: async () => {
     if (get().hydrated) return;
@@ -366,6 +376,18 @@ export const useLeoStore = create<LeoState>((set, get) => ({
     await repo.deletePhoto(id);
     set({ photos: await repo.getAllPhotos() });
     sync.pushDelete('photos', id);
+  },
+
+  addDocument: async (blob, meta) => {
+    const entry = await repo.addDocument(blob, meta);
+    set({ documents: await repo.getAllDocuments() });
+    sync.pushEntry('documents', entry);
+    return entry;
+  },
+  removeDocument: async (id) => {
+    await repo.deleteDocument(id);
+    set({ documents: await repo.getAllDocuments() });
+    sync.pushDelete('documents', id);
   },
 
   importBackup: async (backup, mode) => {

@@ -8,6 +8,7 @@ import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import type {
   BabyProfile,
   DiaperEntry,
+  DocumentEntry,
   FeedEntry,
   GrowthEntry,
   JournalEntry,
@@ -19,7 +20,7 @@ import type {
 } from './types';
 
 export const DB_NAME = 'leo-tracker';
-export const DB_VERSION = 3;
+export const DB_VERSION = 4;
 
 export interface LeoDB extends DBSchema {
   profile: { key: string; value: BabyProfile };
@@ -66,6 +67,11 @@ export interface LeoDB extends DBSchema {
   events: {
     key: string;
     value: LeoEvent;
+    indexes: { 'by-at': number };
+  };
+  documents: {
+    key: string;
+    value: DocumentEntry;
     indexes: { 'by-at': number };
   };
 }
@@ -128,6 +134,13 @@ export function getDB(): Promise<IDBPDatabase<LeoDB>> {
         if (!db.objectStoreNames.contains('events')) {
           const events = db.createObjectStore('events', { keyPath: 'id' });
           events.createIndex('by-at', 'at');
+        }
+        // v4 store (additive)
+        if (!db.objectStoreNames.contains('documents')) {
+          const documents = db.createObjectStore('documents', {
+            keyPath: 'id',
+          });
+          documents.createIndex('by-at', 'at');
         }
       },
     });

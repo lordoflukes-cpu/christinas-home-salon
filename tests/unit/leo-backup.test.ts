@@ -21,6 +21,11 @@ describe('backup round-trip', () => {
     const sleep = await repo.startSleep(4000);
     await repo.endSleep(sleep.id, 9000);
     await repo.addEvent({ kind: 'mood', at: 5000, mood: 'content' });
+    await repo.addMedical({ kind: 'note', title: 'Red book note', at: 6000 });
+    await repo.addDocument(
+      new Blob([new Uint8Array([5, 6, 7])], { type: 'application/pdf' }),
+      { title: 'GP letter', at: 7000 },
+    );
 
     const backup = await repo.exportAll();
     expect(backup.schemaVersion).toBe(DB_VERSION);
@@ -28,6 +33,7 @@ describe('backup round-trip', () => {
     expect(backup.diapers).toHaveLength(1);
     expect(backup.sleeps).toHaveLength(1);
     expect(backup.events).toHaveLength(1);
+    expect(backup.documents).toHaveLength(1);
 
     await repo.clearAll();
     expect(await repo.getRecentFeeds()).toHaveLength(0);
@@ -39,6 +45,8 @@ describe('backup round-trip', () => {
     expect(await repo.getRecentFeeds()).toHaveLength(1);
     expect((await repo.getLastSleep())?.endedAt).toBe(9000);
     expect(await repo.getRecentEvents()).toHaveLength(1);
+    expect(await repo.getAllDocuments()).toHaveLength(1);
+    expect((await repo.getAllDocuments())[0].bytes.byteLength).toBe(3);
   });
 
   it('merge keeps existing entries and adds new ones', async () => {

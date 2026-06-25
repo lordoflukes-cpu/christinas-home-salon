@@ -108,6 +108,44 @@ describe('events', () => {
   });
 });
 
+describe('documents', () => {
+  it('adds, reads bytes, and deletes a document', async () => {
+    const blob = new Blob([new Uint8Array([1, 2, 3, 4])], {
+      type: 'application/pdf',
+    });
+    const doc = await repo.addDocument(blob, {
+      title: 'Discharge letter',
+      category: 'letter',
+      at: 1000,
+    });
+    expect(doc.type).toBe('application/pdf');
+    expect(doc.bytes.byteLength).toBe(4);
+
+    const all = await repo.getAllDocuments();
+    expect(all).toHaveLength(1);
+    expect(all[0].title).toBe('Discharge letter');
+
+    await repo.deleteDocument(doc.id);
+    expect(await repo.getAllDocuments()).toHaveLength(0);
+  });
+});
+
+describe('medical', () => {
+  it('stores vaccination batch + reaction', async () => {
+    const v = await repo.addMedical({
+      kind: 'vaccination',
+      title: '8 week jabs',
+      at: 2000,
+      batch: 'AB123',
+      reaction: 'slight fever',
+      done: true,
+    });
+    expect(v.batch).toBe('AB123');
+    const all = await repo.getAllMedical();
+    expect(all.find((m) => m.id === v.id)?.reaction).toBe('slight fever');
+  });
+});
+
 describe('profile', () => {
   it('saves and reads the singleton profile', async () => {
     expect(await repo.getProfile()).toBeNull();
