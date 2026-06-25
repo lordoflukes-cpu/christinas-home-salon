@@ -250,6 +250,10 @@ export interface PhotoEntry {
   bytes: ArrayBuffer;
   type: string;
   caption?: string;
+  /** Marked a favourite — the best ones. */
+  favourite?: boolean;
+  /** Free tags, e.g. ['smile', 'family', 'bath']. */
+  tags?: string[];
   /** 'backdrop' photos are used behind section banners; default is gallery. */
   role?: PhotoRole;
   /** Pixel dimensions after downscaling, for layout. */
@@ -265,6 +269,8 @@ export interface PhotoBackup {
   takenAt: Millis;
   dataUrl: string;
   caption?: string;
+  favourite?: boolean;
+  tags?: string[];
   role?: PhotoRole;
   w?: number;
   h?: number;

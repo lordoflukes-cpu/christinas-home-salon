@@ -1,12 +1,20 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, Star, Trash2, X } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Heart,
+  Star,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
-import { useLeoStore, formatDateTime } from '@/lib/leo';
+import { useLeoStore, formatDateTime, PHOTO_TAGS } from '@/lib/leo';
 import { PhotoImage } from './photo-image';
+import { cn } from '@/lib/utils';
 
 export function PhotoViewer({
   photoId,
@@ -52,6 +60,23 @@ export function PhotoViewer({
     toast({ title: isHero ? 'Removed as cover' : 'Set as cover 🦁' });
   }
 
+  async function toggleFavourite() {
+    if (!photo) return;
+    await editPhoto(photo.id, { favourite: !photo.favourite });
+  }
+
+  async function toggleTag(tag: string) {
+    if (!photo) return;
+    const tags = photo.tags ?? [];
+    const next = tags.includes(tag)
+      ? tags.filter((t) => t !== tag)
+      : [...tags, tag];
+    await editPhoto(photo.id, { tags: next.length ? next : undefined });
+  }
+
+  const photoTags = photo.tags ?? [];
+  const allTags = Array.from(new Set([...PHOTO_TAGS, ...photoTags]));
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-night-950/95 backdrop-blur">
       <div className="flex items-center justify-between p-3">
@@ -64,16 +89,28 @@ export function PhotoViewer({
           <X className="h-6 w-6 text-white" />
         </Button>
         <p className="text-xs text-gold-200">{formatDateTime(photo.takenAt)}</p>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={setHero}
-          aria-label="Set as cover"
-        >
-          <Star
-            className={`h-6 w-6 ${isHero ? 'fill-gold-400 text-gold-400' : 'text-white'}`}
-          />
-        </Button>
+        <div className="flex">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleFavourite}
+            aria-label="Favourite"
+          >
+            <Heart
+              className={`h-6 w-6 ${photo.favourite ? 'fill-rose-400 text-rose-400' : 'text-white'}`}
+            />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={setHero}
+            aria-label="Set as cover"
+          >
+            <Star
+              className={`h-6 w-6 ${isHero ? 'fill-gold-400 text-gold-400' : 'text-white'}`}
+            />
+          </Button>
+        </div>
       </div>
 
       <div className="relative flex flex-1 items-center justify-center overflow-hidden px-2">
@@ -105,6 +142,26 @@ export function PhotoViewer({
       </div>
 
       <div className="space-y-2 p-3">
+        <div className="flex flex-wrap gap-1.5">
+          {allTags.map((t) => {
+            const on = photoTags.includes(t);
+            return (
+              <button
+                key={t}
+                type="button"
+                onClick={() => toggleTag(t)}
+                className={cn(
+                  'rounded-full border px-2.5 py-1 text-xs font-medium capitalize transition-colors',
+                  on
+                    ? 'border-gold-400 bg-gold-400 text-ink-900'
+                    : 'border-night-700 text-night-200 hover:bg-night-800',
+                )}
+              >
+                #{t}
+              </button>
+            );
+          })}
+        </div>
         <Input
           value={caption}
           onChange={(e) => setCaption(e.target.value)}
