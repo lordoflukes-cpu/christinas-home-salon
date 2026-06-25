@@ -11,6 +11,7 @@ import type {
   FeedEntry,
   GrowthEntry,
   JournalEntry,
+  LeoEvent,
   MedicalEntry,
   MilestoneEntry,
   PhotoEntry,
@@ -18,7 +19,7 @@ import type {
 } from './types';
 
 export const DB_NAME = 'leo-tracker';
-export const DB_VERSION = 2;
+export const DB_VERSION = 3;
 
 export interface LeoDB extends DBSchema {
   profile: { key: string; value: BabyProfile };
@@ -61,6 +62,11 @@ export interface LeoDB extends DBSchema {
     key: string;
     value: PhotoEntry;
     indexes: { 'by-takenAt': number };
+  };
+  events: {
+    key: string;
+    value: LeoEvent;
+    indexes: { 'by-at': number };
   };
 }
 
@@ -117,6 +123,11 @@ export function getDB(): Promise<IDBPDatabase<LeoDB>> {
         if (!db.objectStoreNames.contains('photos')) {
           const photos = db.createObjectStore('photos', { keyPath: 'id' });
           photos.createIndex('by-takenAt', 'takenAt');
+        }
+        // v3 store (additive — existing data is preserved)
+        if (!db.objectStoreNames.contains('events')) {
+          const events = db.createObjectStore('events', { keyPath: 'id' });
+          events.createIndex('by-at', 'at');
         }
       },
     });

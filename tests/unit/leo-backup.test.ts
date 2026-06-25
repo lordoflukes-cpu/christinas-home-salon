@@ -20,21 +20,25 @@ describe('backup round-trip', () => {
     await repo.addDiaper({ type: 'both', changedAt: 3000 });
     const sleep = await repo.startSleep(4000);
     await repo.endSleep(sleep.id, 9000);
+    await repo.addEvent({ kind: 'mood', at: 5000, mood: 'content' });
 
     const backup = await repo.exportAll();
     expect(backup.schemaVersion).toBe(DB_VERSION);
     expect(backup.feeds).toHaveLength(1);
     expect(backup.diapers).toHaveLength(1);
     expect(backup.sleeps).toHaveLength(1);
+    expect(backup.events).toHaveLength(1);
 
     await repo.clearAll();
     expect(await repo.getRecentFeeds()).toHaveLength(0);
+    expect(await repo.getRecentEvents()).toHaveLength(0);
     expect(await repo.getProfile()).toBeNull();
 
     await repo.importAll(backup, 'replace');
     expect(await repo.getProfile()).not.toBeNull();
     expect(await repo.getRecentFeeds()).toHaveLength(1);
     expect((await repo.getLastSleep())?.endedAt).toBe(9000);
+    expect(await repo.getRecentEvents()).toHaveLength(1);
   });
 
   it('merge keeps existing entries and adds new ones', async () => {

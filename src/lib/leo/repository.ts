@@ -15,9 +15,11 @@ import type {
   ImportMode,
   JournalEntry,
   LeoBackup,
+  LeoEvent,
   MedicalEntry,
   MilestoneEntry,
   NewDiaper,
+  NewEvent,
   NewFeed,
   NewGrowth,
   NewJournal,
@@ -468,6 +470,55 @@ export async function getAllJournal(): Promise<JournalEntry[]> {
 }
 
 // ---------------------------------------------------------------------------
+// Events (crying, temperature, medication, symptom, mood)
+// ---------------------------------------------------------------------------
+
+export async function addEvent(input: NewEvent): Promise<LeoEvent> {
+  const db = await getDB();
+  const time = ts();
+  const entry: LeoEvent = {
+    ...input,
+    id: newId(),
+    createdAt: time,
+    updatedAt: time,
+  };
+  await db.put('events', entry);
+  return entry;
+}
+
+export async function updateEvent(
+  id: string,
+  patch: Partial<LeoEvent>,
+): Promise<LeoEvent> {
+  const db = await getDB();
+  const existing = await db.get('events', id);
+  if (!existing) throw new Error(`Event ${id} not found`);
+  const updated: LeoEvent = { ...existing, ...patch, id, updatedAt: ts() };
+  await db.put('events', updated);
+  return updated;
+}
+
+export async function deleteEvent(id: string): Promise<void> {
+  const db = await getDB();
+  await db.delete('events', id);
+}
+
+/** Recent events, newest → oldest. */
+export async function getRecentEvents(limit = 100): Promise<LeoEvent[]> {
+  const db = await getDB();
+  const results: LeoEvent[] = [];
+  let cursor = await db
+    .transaction('events')
+    .store.index('by-at')
+    .openCursor(null, 'prev');
+  while (cursor && results.length < limit) {
+    results.push(cursor.value);
+    cursor = await cursor.continue();
+  }
+  return results;
+}
+
+// ---------------------------------------------------------------------------
 // Photos
 // ---------------------------------------------------------------------------
 
@@ -539,7 +590,8 @@ export type PlainStore =
   | 'growth'
   | 'medical'
   | 'milestones'
-  | 'journal';
+  | 'journal'
+  | 'events';
 
 /** Write an entry exactly as given, preserving its id/updatedAt (no stamping). */
 export async function putRaw(store: PlainStore, value: unknown): Promise<void> {
@@ -619,6 +671,7 @@ const ALL_STORES = [
   'medical',
   'milestones',
   'journal',
+  'events',
   'photos',
 ] as const;
 
@@ -633,6 +686,7 @@ export async function exportAll(): Promise<LeoBackup> {
     medical,
     milestones,
     journal,
+    events,
     photos,
   ] = await Promise.all([
     db.get('profile', PROFILE_KEY),
@@ -643,6 +697,7 @@ export async function exportAll(): Promise<LeoBackup> {
     db.getAll('medical'),
     db.getAll('milestones'),
     db.getAll('journal'),
+    db.getAll('events'),
     db.getAll('photos'),
   ]);
   const photoBackups = await Promise.all(
@@ -662,6 +717,7 @@ export async function exportAll(): Promise<LeoBackup> {
     medical,
     milestones,
     journal,
+    events,
     photos: photoBackups,
   };
 }
@@ -706,6 +762,7 @@ export async function importAll(
   for (const m of backup.milestones ?? [])
     await tx.objectStore('milestones').put(m);
   for (const j of backup.journal ?? []) await tx.objectStore('journal').put(j);
+  for (const e of backup.events ?? []) await tx.objectStore('events').put(e);
   for (const p of photoEntries) await tx.objectStore('photos').put(p);
   await tx.done;
 }

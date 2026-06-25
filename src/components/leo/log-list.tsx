@@ -5,13 +5,14 @@ import { Star } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useLeoStore } from '@/lib/leo';
 import { Segmented } from './forms/feed-form';
-import { LogItem } from './log-item';
+import { LogItem, type LogKind } from './log-item';
 import { QuickAddSheet, type QuickAddState } from './quick-add-sheet';
 
-type Filter = 'all' | 'feed' | 'diaper' | 'sleep';
+type Filter = 'all' | 'feed' | 'diaper' | 'sleep' | 'event';
 
 interface Row {
-  kind: 'feed' | 'diaper' | 'sleep';
+  kind: LogKind;
+  group: Exclude<Filter, 'all'>;
   at: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   entry: any;
@@ -22,9 +23,11 @@ export function LogList() {
   const feeds = useLeoStore((s) => s.feeds);
   const diapers = useLeoStore((s) => s.diapers);
   const sleeps = useLeoStore((s) => s.sleeps);
+  const events = useLeoStore((s) => s.events);
   const removeFeed = useLeoStore((s) => s.removeFeed);
   const removeDiaper = useLeoStore((s) => s.removeDiaper);
   const removeSleep = useLeoStore((s) => s.removeSleep);
+  const removeEvent = useLeoStore((s) => s.removeEvent);
 
   const [filter, setFilter] = useState<Filter>('all');
   const [quickAdd, setQuickAdd] = useState<QuickAddState | null>(null);
@@ -33,31 +36,41 @@ export function LogList() {
     const all: Row[] = [
       ...feeds.map((e) => ({
         kind: 'feed' as const,
+        group: 'feed' as const,
         at: e.startedAt,
         entry: e,
       })),
       ...diapers.map((e) => ({
         kind: 'diaper' as const,
+        group: 'diaper' as const,
         at: e.changedAt,
         entry: e,
       })),
       ...sleeps.map((e) => ({
         kind: 'sleep' as const,
+        group: 'sleep' as const,
         at: e.startedAt,
+        entry: e,
+      })),
+      ...events.map((e) => ({
+        kind: e.kind as LogKind,
+        group: 'event' as const,
+        at: e.at,
         entry: e,
       })),
     ];
     const filtered =
-      filter === 'all' ? all : all.filter((r) => r.kind === filter);
+      filter === 'all' ? all : all.filter((r) => r.group === filter);
     return filtered.sort((a, b) => b.at - a.at);
-  }, [feeds, diapers, sleeps, filter]);
+  }, [feeds, diapers, sleeps, events, filter]);
 
   const grouped = useMemo(() => groupByDay(rows), [rows]);
 
   async function onDelete(row: Row) {
-    if (row.kind === 'feed') await removeFeed(row.entry.id);
-    else if (row.kind === 'diaper') await removeDiaper(row.entry.id);
-    else await removeSleep(row.entry.id);
+    if (row.group === 'feed') await removeFeed(row.entry.id);
+    else if (row.group === 'diaper') await removeDiaper(row.entry.id);
+    else if (row.group === 'sleep') await removeSleep(row.entry.id);
+    else await removeEvent(row.entry.id);
   }
 
   if (!hydrated) {
@@ -80,6 +93,7 @@ export function LogList() {
           { value: 'feed', label: 'Feeds' },
           { value: 'diaper', label: 'Nappies' },
           { value: 'sleep', label: 'Sleep' },
+          { value: 'event', label: 'More' },
         ]}
       />
 
@@ -99,7 +113,7 @@ export function LogList() {
                 {items.map((row) => (
                   <LogItem
                     key={row.entry.id}
-                    item={{ kind: row.kind, entry: row.entry } as never}
+                    item={{ kind: row.kind, entry: row.entry }}
                     onEdit={() =>
                       setQuickAdd({ kind: row.kind, entry: row.entry })
                     }

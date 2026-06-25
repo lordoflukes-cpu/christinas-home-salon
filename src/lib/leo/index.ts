@@ -3,6 +3,7 @@ export * as leoRepo from './repository';
 export { useLeoStore } from './store';
 export { useNow } from './use-now';
 export * from './age';
+export * from './summary';
 export * from './units';
 export * from './growth';
 export { WHO_BOYS, WHO_MAX_MONTH, lmsAt, type WhoMetric } from './who-data';
