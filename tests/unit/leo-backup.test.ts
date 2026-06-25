@@ -29,6 +29,10 @@ describe('backup round-trip', () => {
       position: 0,
       rating: 'works',
     });
+    await repo.addVoice(
+      new Blob([new Uint8Array([9, 8, 7, 6])], { type: 'audio/webm' }),
+      { recordedAt: 6800, title: 'First coo', category: 'firstSound' },
+    );
     await repo.addDocument(
       new Blob([new Uint8Array([5, 6, 7])], { type: 'application/pdf' }),
       { title: 'GP letter', at: 7000 },
@@ -42,6 +46,7 @@ describe('backup round-trip', () => {
     expect(backup.events).toHaveLength(1);
     expect(backup.sizes).toHaveLength(1);
     expect(backup.routines).toHaveLength(1);
+    expect(backup.voices).toHaveLength(1);
     expect(backup.documents).toHaveLength(1);
 
     await repo.clearAll();
@@ -56,6 +61,9 @@ describe('backup round-trip', () => {
     expect(await repo.getRecentEvents()).toHaveLength(1);
     expect(await repo.getAllRoutines()).toHaveLength(1);
     expect((await repo.getAllRoutines())[0].rating).toBe('works');
+    expect(await repo.getAllVoices()).toHaveLength(1);
+    expect((await repo.getAllVoices())[0].bytes.byteLength).toBe(4);
+    expect((await repo.getAllVoices())[0].category).toBe('firstSound');
     expect(await repo.getAllDocuments()).toHaveLength(1);
     expect((await repo.getAllDocuments())[0].bytes.byteLength).toBe(3);
   });

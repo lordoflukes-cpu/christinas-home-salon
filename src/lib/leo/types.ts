@@ -344,6 +344,56 @@ export interface DocumentEntry {
   updatedAt: Millis;
 }
 
+// ---------------------------------------------------------------------------
+// Voice notes — the audio time capsule (coos, laughs, first words, messages)
+// ---------------------------------------------------------------------------
+
+export type VoiceCategory =
+  | 'funny'
+  | 'proud'
+  | 'emotional'
+  | 'message'
+  | 'firstSound';
+
+/**
+ * A recorded audio moment. Like photos/documents, the audio bytes are kept as
+ * an ArrayBuffer (+ mime `type`) for reliable structured-cloning in IndexedDB.
+ */
+export interface VoiceEntry {
+  id: string;
+  /** When it was recorded (indexed). */
+  recordedAt: Millis;
+  bytes: ArrayBuffer;
+  type: string;
+  /** Length of the recording in milliseconds. */
+  durationMs?: number;
+  title?: string;
+  /** Speech-to-text transcript (auto-filled, always editable). */
+  transcript?: string;
+  category?: VoiceCategory;
+  /** Who recorded it, e.g. 'Daddy' / 'Mummy'. */
+  author?: string;
+  /** Marked a favourite — the keepers. */
+  favourite?: boolean;
+  createdAt: Millis;
+  updatedAt: Millis;
+}
+
+/** Voice note as serialised in a JSON backup (bytes → base64 data URL). */
+export interface VoiceBackup {
+  id: string;
+  recordedAt: Millis;
+  dataUrl: string;
+  durationMs?: number;
+  title?: string;
+  transcript?: string;
+  category?: VoiceCategory;
+  author?: string;
+  favourite?: boolean;
+  createdAt: Millis;
+  updatedAt: Millis;
+}
+
 /** Document as serialised in a JSON backup (bytes → base64 data URL). */
 export interface DocumentBackup {
   id: string;
@@ -375,6 +425,10 @@ export type NewPhotoMeta = Omit<
   PhotoEntry,
   'id' | 'bytes' | 'type' | 'createdAt' | 'updatedAt'
 >;
+export type NewVoiceMeta = Omit<
+  VoiceEntry,
+  'id' | 'bytes' | 'type' | 'createdAt' | 'updatedAt'
+>;
 export type NewDocumentMeta = Omit<
   DocumentEntry,
   'id' | 'bytes' | 'type' | 'createdAt' | 'updatedAt'
@@ -397,6 +451,7 @@ export interface LeoBackup {
   events?: LeoEvent[];
   sizes?: SizeEntry[];
   routines?: RoutineItem[];
+  voices?: VoiceBackup[];
   photos?: PhotoBackup[];
   documents?: DocumentBackup[];
 }

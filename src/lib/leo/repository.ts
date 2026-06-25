@@ -31,11 +31,13 @@ import type {
   NewRoutine,
   NewSize,
   NewSleep,
+  NewVoiceMeta,
   PhotoEntry,
   ProfileInput,
   RoutineItem,
   SizeEntry,
   SleepEntry,
+  VoiceEntry,
 } from './types';
 
 const PROFILE_KEY = 'leo';
@@ -741,6 +743,65 @@ export async function getAllDocuments(): Promise<DocumentEntry[]> {
 }
 
 // ---------------------------------------------------------------------------
+// Voice notes (audio time capsule — coos, laughs, first words, messages)
+// ---------------------------------------------------------------------------
+
+export async function addVoice(
+  blob: Blob,
+  meta: NewVoiceMeta,
+): Promise<VoiceEntry> {
+  const db = await getDB();
+  const time = ts();
+  const entry: VoiceEntry = {
+    ...meta,
+    bytes: await blobToArrayBuffer(blob),
+    type: blob.type || 'audio/webm',
+    id: newId(),
+    createdAt: time,
+    updatedAt: time,
+  };
+  await db.put('voices', entry);
+  return entry;
+}
+
+export async function updateVoice(
+  id: string,
+  patch: Partial<VoiceEntry>,
+): Promise<VoiceEntry> {
+  const db = await getDB();
+  const existing = await db.get('voices', id);
+  if (!existing) throw new Error(`Voice ${id} not found`);
+  const updated: VoiceEntry = { ...existing, ...patch, id, updatedAt: ts() };
+  await db.put('voices', updated);
+  return updated;
+}
+
+export async function deleteVoice(id: string): Promise<void> {
+  const db = await getDB();
+  await db.delete('voices', id);
+}
+
+export async function getVoice(id: string): Promise<VoiceEntry | null> {
+  const db = await getDB();
+  return (await db.get('voices', id)) ?? null;
+}
+
+/** All voice notes, newest → oldest. */
+export async function getAllVoices(): Promise<VoiceEntry[]> {
+  const db = await getDB();
+  const results: VoiceEntry[] = [];
+  let cursor = await db
+    .transaction('voices')
+    .store.index('by-recordedAt')
+    .openCursor(null, 'prev');
+  while (cursor) {
+    results.push(cursor.value);
+    cursor = await cursor.continue();
+  }
+  return results;
+}
+
+// ---------------------------------------------------------------------------
 // Raw writes (for cloud sync — apply remote rows verbatim, no re-stamping)
 // ---------------------------------------------------------------------------
 
@@ -768,7 +829,7 @@ export async function putRaw(store: PlainStore, value: unknown): Promise<void> {
 }
 
 /** Stores holding binary blobs (synced as base64), handled specially. */
-export type BinaryStore = 'photos' | 'documents';
+export type BinaryStore = 'photos' | 'documents' | 'voices';
 
 /** Delete by id from any store (used when a remote tombstone arrives). */
 export async function deleteRaw(
@@ -791,6 +852,12 @@ export async function putPhotoRaw(entry: PhotoEntry): Promise<void> {
 export async function putDocumentRaw(entry: DocumentEntry): Promise<void> {
   const db = await getDB();
   await db.put('documents', entry);
+}
+
+/** Write a fully-formed voice entry (bytes already decoded) verbatim. */
+export async function putVoiceRaw(entry: VoiceEntry): Promise<void> {
+  const db = await getDB();
+  await db.put('voices', entry);
 }
 
 /** Every row in a store (for the two-way sync reconcile). */
@@ -848,6 +915,7 @@ const ALL_STORES = [
   'events',
   'sizes',
   'routines',
+  'voices',
   'photos',
   'documents',
 ] as const;
@@ -866,6 +934,7 @@ export async function exportAll(): Promise<LeoBackup> {
     events,
     sizes,
     routines,
+    voices,
     photos,
     documents,
   ] = await Promise.all([
@@ -880,6 +949,7 @@ export async function exportAll(): Promise<LeoBackup> {
     db.getAll('events'),
     db.getAll('sizes'),
     db.getAll('routines'),
+    db.getAll('voices'),
     db.getAll('photos'),
     db.getAll('documents'),
   ]);
@@ -891,6 +961,12 @@ export async function exportAll(): Promise<LeoBackup> {
   );
   const documentBackups = await Promise.all(
     documents.map(async ({ bytes, type, ...meta }) => ({
+      ...meta,
+      dataUrl: await blobToDataUrl(new Blob([bytes], { type })),
+    })),
+  );
+  const voiceBackups = await Promise.all(
+    voices.map(async ({ bytes, type, ...meta }) => ({
       ...meta,
       dataUrl: await blobToDataUrl(new Blob([bytes], { type })),
     })),
@@ -909,6 +985,7 @@ export async function exportAll(): Promise<LeoBackup> {
     events,
     sizes,
     routines,
+    voices: voiceBackups,
     photos: photoBackups,
     documents: documentBackups,
   };
@@ -949,6 +1026,16 @@ export async function importAll(
       };
     }),
   );
+  const voiceEntries: VoiceEntry[] = await Promise.all(
+    (backup.voices ?? []).map(async ({ dataUrl, ...meta }) => {
+      const blob = await dataUrlToBlob(dataUrl);
+      return {
+        ...meta,
+        bytes: await blobToArrayBuffer(blob),
+        type: blob.type || 'audio/webm',
+      };
+    }),
+  );
 
   const db = await getDB();
   const tx = db.transaction(ALL_STORES, 'readwrite');
@@ -968,6 +1055,7 @@ export async function importAll(
   for (const s of backup.sizes ?? []) await tx.objectStore('sizes').put(s);
   for (const r of backup.routines ?? [])
     await tx.objectStore('routines').put(r);
+  for (const v of voiceEntries) await tx.objectStore('voices').put(v);
   for (const p of photoEntries) await tx.objectStore('photos').put(p);
   for (const d of documentEntries) await tx.objectStore('documents').put(d);
   await tx.done;

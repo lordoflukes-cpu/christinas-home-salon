@@ -14,5 +14,18 @@ export * from './units';
 export * from './growth';
 export { WHO_BOYS, WHO_MAX_MONTH, lmsAt, type WhoMetric } from './who-data';
 export { downscaleImage, usePhotoUrl } from './photo';
+export {
+  VOICE_CATEGORIES,
+  voiceCategory,
+  formatDuration,
+  useVoiceUrl,
+  useVoiceRecorder,
+  isSpeechRecognitionSupported,
+} from './voice';
+export type {
+  VoiceCategoryConfig,
+  VoiceRecorder,
+  RecorderState,
+} from './voice';
 export { leoBackupSchema } from './backup-schema';
 export { DB_VERSION, isStorageAvailable } from './db';

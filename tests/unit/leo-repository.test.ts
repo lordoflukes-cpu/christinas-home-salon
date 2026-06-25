@@ -155,6 +155,35 @@ describe('sizes', () => {
   });
 });
 
+describe('voices', () => {
+  it('adds voice notes newest-first, updates metadata and deletes', async () => {
+    await repo.addVoice(
+      new Blob([new Uint8Array([1, 2, 3])], { type: 'audio/webm' }),
+      { recordedAt: 1000, category: 'firstSound' },
+    );
+    const two = await repo.addVoice(
+      new Blob([new Uint8Array([4, 5, 6, 7])], { type: 'audio/webm' }),
+      { recordedAt: 5000, title: 'Coo', durationMs: 4200 },
+    );
+
+    const all = await repo.getAllVoices();
+    expect(all).toHaveLength(2);
+    expect(all[0].recordedAt).toBe(5000);
+    expect(all[0].bytes.byteLength).toBe(4);
+
+    await repo.updateVoice(two.id, {
+      transcript: 'a little noise',
+      favourite: true,
+    });
+    const saved = (await repo.getAllVoices()).find((v) => v.id === two.id);
+    expect(saved?.transcript).toBe('a little noise');
+    expect(saved?.favourite).toBe(true);
+
+    await repo.deleteVoice(two.id);
+    expect(await repo.getAllVoices()).toHaveLength(1);
+  });
+});
+
 describe('routines', () => {
   it('adds routines ordered by position, updates rating and deletes', async () => {
     const a = await repo.addRoutine({
