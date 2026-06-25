@@ -1,0 +1,103 @@
+import { cn } from '@/lib/utils';
+
+/**
+ * Leo's lion-cub crest — a friendly golden-maned cub with a gold star.
+ * Inline SVG so it renders crisply at any size with no extra request.
+ * Mirrors public/leo/crest.svg (used for the PWA icons).
+ */
+export function LionCrest({
+  className,
+  title = 'Leo',
+}: {
+  className?: string;
+  title?: string;
+}) {
+  return (
+    <svg
+      viewBox="0 0 512 512"
+      className={cn('h-12 w-12', className)}
+      role="img"
+      aria-label={title}
+    >
+      <defs>
+        <radialGradient id="leo-mane" cx="50%" cy="45%" r="60%">
+          <stop offset="0%" stopColor="#eccd68" />
+          <stop offset="55%" stopColor="#e5b73f" />
+          <stop offset="100%" stopColor="#bd7c19" />
+        </radialGradient>
+        <radialGradient id="leo-face" cx="50%" cy="42%" r="62%">
+          <stop offset="0%" stopColor="#fbeccb" />
+          <stop offset="100%" stopColor="#f2dca6" />
+        </radialGradient>
+        <radialGradient id="leo-medallion" cx="50%" cy="38%" r="75%">
+          <stop offset="0%" stopColor="#fffdf7" />
+          <stop offset="100%" stopColor="#fdf2db" />
+        </radialGradient>
+      </defs>
+
+      <circle cx="256" cy="256" r="244" fill="url(#leo-medallion)" />
+      <circle
+        cx="256"
+        cy="256"
+        r="244"
+        fill="none"
+        stroke="#e5b73f"
+        strokeWidth="6"
+        strokeOpacity="0.55"
+      />
+
+      <g fill="url(#leo-mane)">
+        <circle cx="256" cy="116" r="40" />
+        <circle cx="326" cy="130" r="40" />
+        <circle cx="380" cy="180" r="40" />
+        <circle cx="404" cy="248" r="40" />
+        <circle cx="392" cy="320" r="40" />
+        <circle cx="344" cy="374" r="40" />
+        <circle cx="256" cy="396" r="40" />
+        <circle cx="168" cy="374" r="40" />
+        <circle cx="120" cy="320" r="40" />
+        <circle cx="108" cy="248" r="40" />
+        <circle cx="132" cy="180" r="40" />
+        <circle cx="186" cy="130" r="40" />
+        <circle cx="256" cy="252" r="150" />
+      </g>
+
+      <circle cx="176" cy="180" r="44" fill="url(#leo-mane)" />
+      <circle cx="336" cy="180" r="44" fill="url(#leo-mane)" />
+      <circle cx="176" cy="184" r="24" fill="#f7c9c2" />
+      <circle cx="336" cy="184" r="24" fill="#f7c9c2" />
+
+      <circle cx="256" cy="256" r="132" fill="url(#leo-face)" />
+
+      <ellipse cx="212" cy="238" rx="15" ry="19" fill="#3c2a14" />
+      <ellipse cx="300" cy="238" rx="15" ry="19" fill="#3c2a14" />
+      <circle cx="217" cy="231" r="5" fill="#fff" fillOpacity="0.9" />
+      <circle cx="305" cy="231" r="5" fill="#fff" fillOpacity="0.9" />
+
+      <ellipse cx="256" cy="300" rx="66" ry="50" fill="#fff7e6" />
+      <path d="M256 286 l16 14 a18 14 0 0 1 -32 0 z" fill="#7a3b2e" />
+      <path
+        d="M256 300 v18 M256 318 q-16 12 -30 2 M256 318 q16 12 30 2"
+        fill="none"
+        stroke="#7a3b2e"
+        strokeWidth="4"
+        strokeLinecap="round"
+      />
+
+      <g fill="#cba06a">
+        <circle cx="214" cy="300" r="2.5" />
+        <circle cx="210" cy="312" r="2.5" />
+        <circle cx="298" cy="300" r="2.5" />
+        <circle cx="302" cy="312" r="2.5" />
+      </g>
+
+      <path
+        d="M256 40 l9 19 21 3 -15 15 4 21 -19 -10 -19 10 4 -21 -15 -15 21 -3 z"
+        fill="#e5b73f"
+        stroke="#fff"
+        strokeWidth="2"
+        strokeOpacity="0.6"
+      />
+    </svg>
+  );
+}

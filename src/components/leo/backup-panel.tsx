@@ -79,7 +79,7 @@ export function BackupPanel() {
 
   return (
     <Card className="border-cream-200 p-5">
-      <h2 className="mb-1 font-display text-lg font-semibold text-sage-900">
+      <h2 className="mb-1 font-display text-lg font-semibold text-night-900">
         Backup &amp; restore
       </h2>
       <p className="mb-4 flex items-start gap-2 text-sm text-sage-600">

@@ -1,14 +1,21 @@
 'use client';
 
 import { useState } from 'react';
-import { Droplets, Milk, Plus } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Droplets, Milk } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useLeoStore, formatDuration } from '@/lib/leo';
-import { AgeCard } from './cards/age-card';
+import { LeoHero } from './brand/leo-hero';
+import { LionCrest } from './brand/lion-crest';
 import { SinceLastCard } from './cards/since-last-card';
 import { SleepStatusCard } from './cards/sleep-status-card';
 import { QuickAddSheet, type QuickAddState } from './quick-add-sheet';
+
+const fadeUp = {
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0 },
+};
 
 export function Dashboard() {
   const hydrated = useLeoStore((s) => s.hydrated);
@@ -20,7 +27,7 @@ export function Dashboard() {
   if (!hydrated) {
     return (
       <div className="space-y-4">
-        <Skeleton className="h-28 w-full rounded-xl" />
+        <Skeleton className="aspect-[5/4] w-full rounded-3xl" />
         <Skeleton className="h-24 w-full rounded-xl" />
         <Skeleton className="h-24 w-full rounded-xl" />
       </div>
@@ -42,30 +49,42 @@ export function Dashboard() {
 
   return (
     <div className="space-y-4">
-      <AgeCard />
+      <LeoHero />
 
-      <SinceLastCard
-        label="Last feed"
-        icon={Milk}
-        lastAt={lastFeed?.startedAt ?? null}
-        detail={feedDetail}
-        accent="rose"
-      />
-      <SinceLastCard
-        label="Last nappy"
-        icon={Droplets}
-        lastAt={lastDiaper?.changedAt ?? null}
-        detail={lastDiaper?.type}
-        accent="sage"
-      />
+      <div className="grid grid-cols-2 gap-3">
+        <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.05 }}>
+          <SinceLastCard
+            label="Last feed"
+            icon={Milk}
+            lastAt={lastFeed?.startedAt ?? null}
+            detail={feedDetail}
+            accent="rose"
+          />
+        </motion.div>
+        <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.12 }}>
+          <SinceLastCard
+            label="Last nappy"
+            icon={Droplets}
+            lastAt={lastDiaper?.changedAt ?? null}
+            detail={lastDiaper?.type}
+            accent="aegean"
+          />
+        </motion.div>
+      </div>
 
-      <SleepStatusCard />
+      <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.18 }}>
+        <SleepStatusCard />
+      </motion.div>
 
-      <div className="grid grid-cols-2 gap-3 pt-1">
+      <motion.div
+        {...fadeUp}
+        transition={{ duration: 0.4, delay: 0.24 }}
+        className="grid grid-cols-2 gap-3 pt-1"
+      >
         <Button
           onClick={() => setQuickAdd({ kind: 'feed' })}
           size="lg"
-          className="min-h-14 bg-rose-500 text-base hover:bg-rose-600"
+          className="min-h-14 bg-rose-500 text-base shadow-sm hover:bg-rose-600"
         >
           <Milk className="mr-2 h-5 w-5" /> Feed
         </Button>
@@ -73,11 +92,11 @@ export function Dashboard() {
           onClick={() => setQuickAdd({ kind: 'diaper' })}
           size="lg"
           variant="outline"
-          className="min-h-14 border-sage-300 text-base text-sage-700 hover:bg-sage-50"
+          className="min-h-14 border-aegean-300 bg-white text-base text-aegean-700 hover:bg-aegean-50"
         >
           <Droplets className="mr-2 h-5 w-5" /> Nappy
         </Button>
-      </div>
+      </motion.div>
 
       <QuickAddSheet state={quickAdd} onClose={() => setQuickAdd(null)} />
     </div>
@@ -86,16 +105,14 @@ export function Dashboard() {
 
 function SetupPrompt() {
   return (
-    <div className="flex flex-col items-center gap-4 rounded-xl border border-rose-100 bg-rose-50 p-8 text-center">
-      <span className="flex h-14 w-14 items-center justify-center rounded-full bg-rose-100 text-rose-600">
-        <Plus className="h-7 w-7" />
-      </span>
+    <div className="flex flex-col items-center gap-4 rounded-3xl border border-gold-200 bg-cream-50 p-8 text-center shadow-sm">
+      <LionCrest className="h-24 w-24" />
       <div>
-        <h2 className="font-display text-xl font-semibold text-sage-900">
-          Welcome 💙
+        <h2 className="font-display text-2xl font-semibold text-night-900">
+          Welcome, little lion 🦁
         </h2>
         <p className="mt-1 text-sm text-sage-600">
-          Add Leo&apos;s details to get started — it only takes a moment.
+          Add Leo&apos;s details to begin — it only takes a moment.
         </p>
       </div>
       <Button

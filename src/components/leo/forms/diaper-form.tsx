@@ -97,7 +97,7 @@ export function DiaperForm({
         type="submit"
         disabled={busy}
         size="lg"
-        className="min-h-14 w-full bg-rose-500 text-base hover:bg-rose-600"
+        className="min-h-14 w-full bg-aegean-600 text-base hover:bg-aegean-700"
       >
         {entry ? 'Save changes' : 'Save nappy'}
       </Button>

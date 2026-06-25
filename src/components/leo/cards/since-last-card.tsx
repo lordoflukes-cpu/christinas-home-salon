@@ -11,8 +11,13 @@ interface SinceLastCardProps {
   /** Timestamp of the last event, or null if none yet. */
   lastAt: number | null;
   detail?: string;
-  accent?: 'rose' | 'sage';
+  accent?: 'rose' | 'aegean';
 }
+
+const ACCENTS = {
+  rose: { icon: 'text-rose-500', chip: 'bg-rose-100 text-rose-600' },
+  aegean: { icon: 'text-aegean-500', chip: 'bg-aegean-100 text-aegean-600' },
+} as const;
 
 export function SinceLastCard({
   label,
@@ -22,24 +27,31 @@ export function SinceLastCard({
   accent = 'rose',
 }: SinceLastCardProps) {
   const now = useNow();
-  const iconColor = accent === 'rose' ? 'text-rose-500' : 'text-sage-500';
+  const a = ACCENTS[accent];
 
   return (
-    <Card className="flex flex-col gap-1 border-cream-200 p-4">
+    <Card className="flex h-full flex-col gap-2 border-cream-200 p-4">
       <div className="flex items-center gap-2 text-sm font-medium text-sage-600">
-        <Icon className={cn('h-4 w-4', iconColor)} />
+        <span
+          className={cn(
+            'flex h-7 w-7 items-center justify-center rounded-full',
+            a.chip,
+          )}
+        >
+          <Icon className="h-4 w-4" />
+        </span>
         {label}
       </div>
       {lastAt == null ? (
-        <p className="text-lg font-semibold text-sage-400">No entries yet</p>
+        <p className="text-base font-semibold text-sage-400">No entries yet</p>
       ) : (
         <>
-          <p className="text-2xl font-semibold text-sage-900">
+          <p className="font-display text-2xl font-semibold text-night-900">
             {formatElapsed(elapsedSince(lastAt, now))}{' '}
             <span className="text-sm font-normal text-sage-500">ago</span>
           </p>
           <p className="text-xs text-sage-500">
-            at {formatClock(lastAt)}
+            {formatClock(lastAt)}
             {detail ? ` · ${detail}` : ''}
           </p>
         </>

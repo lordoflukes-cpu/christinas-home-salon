@@ -81,6 +81,73 @@
   }
 }
 
+/* ------------------------------------------------------------------ */
+/* Leo tracker — scoped decorative utilities (prefixed .leo-* so they  */
+/* never affect the salon site). Heritage: Greek-key, Ankara/àdìre,    */
+/* gold stars, warm aurora.                                            */
+/* ------------------------------------------------------------------ */
+
+/* Soft cream → gold → rose radial wash for the app background. */
+.leo-aurora {
+  background-color: #fefdfb;
+  background-image:
+    radial-gradient(
+      40rem 40rem at 85% -10%,
+      rgba(217, 158, 35, 0.1),
+      transparent 60%
+    ),
+    radial-gradient(
+      36rem 36rem at -10% 110%,
+      rgba(244, 63, 94, 0.07),
+      transparent 60%
+    );
+}
+
+/* Faint Ankara / àdìre-inspired textile tile. */
+.leo-ankara {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'%3E%3Cg fill='none' stroke='%23d99e23' stroke-opacity='0.07' stroke-width='1.2'%3E%3Cpath d='M24 4l6 6-6 6-6-6z'/%3E%3Cpath d='M0 28l6 6-6 6'/%3E%3Cpath d='M48 28l-6 6 6 6'/%3E%3Ccircle cx='24' cy='34' r='3'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 48px 48px;
+}
+
+/* Thin gold Greek-key (meander) divider; set height ~10px on the element. */
+.leo-greek-key {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='10' viewBox='0 0 32 10'%3E%3Cpath d='M1 9V3h6v3H4v0M9 9V1h14v8h-3V4h-8v5M25 1v6h-3V4' fill='none' stroke='%23d99e23' stroke-opacity='0.55' stroke-width='1.1'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-position: center;
+  background-size: auto 100%;
+}
+
+/* Scattered gold stars for night / sleep / hero overlays. */
+.leo-starfield {
+  background-image:
+    radial-gradient(
+      1.5px 1.5px at 12% 22%,
+      rgba(244, 226, 163, 0.9),
+      transparent
+    ),
+    radial-gradient(
+      1.5px 1.5px at 78% 16%,
+      rgba(244, 226, 163, 0.8),
+      transparent
+    ),
+    radial-gradient(2px 2px at 58% 60%, rgba(236, 205, 104, 0.85), transparent),
+    radial-gradient(
+      1.2px 1.2px at 30% 78%,
+      rgba(244, 226, 163, 0.7),
+      transparent
+    ),
+    radial-gradient(
+      1.2px 1.2px at 88% 72%,
+      rgba(244, 226, 163, 0.7),
+      transparent
+    ),
+    radial-gradient(
+      1.5px 1.5px at 44% 34%,
+      rgba(244, 226, 163, 0.75),
+      transparent
+    );
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { Star } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useLeoStore } from '@/lib/leo';
 import { Segmented } from './forms/feed-form';
@@ -90,7 +91,8 @@ export function LogList() {
         <div className="space-y-5">
           {grouped.map(({ day, items }) => (
             <section key={day}>
-              <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-sage-400">
+              <h3 className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-sage-400">
+                <Star className="h-3 w-3 fill-gold-300 text-gold-400" />
                 {day}
               </h3>
               <div className="rounded-xl border border-cream-200 bg-white px-4">

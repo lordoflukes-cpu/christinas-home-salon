@@ -19,6 +19,7 @@ import {
   sleepDuration,
 } from '@/lib/leo';
 import type { FeedEntry, DiaperEntry, SleepEntry } from '@/lib/leo';
+import { cn } from '@/lib/utils';
 
 type AnyEntry =
   | { kind: 'feed'; entry: FeedEntry }
@@ -26,6 +27,11 @@ type AnyEntry =
   | { kind: 'sleep'; entry: SleepEntry };
 
 const ICONS = { feed: Milk, diaper: Droplets, sleep: Moon } as const;
+const CHIPS = {
+  feed: 'bg-rose-100 text-rose-600',
+  diaper: 'bg-aegean-100 text-aegean-600',
+  sleep: 'bg-night-100 text-night-700',
+} as const;
 
 export function LogItem({
   item,
@@ -42,7 +48,12 @@ export function LogItem({
 
   return (
     <div className="flex items-center gap-3 border-b border-cream-200 py-3 last:border-0">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cream-100 text-sage-600">
+      <span
+        className={cn(
+          'flex h-9 w-9 shrink-0 items-center justify-center rounded-full',
+          CHIPS[item.kind],
+        )}
+      >
         <Icon className="h-4 w-4" />
       </span>
       <div className="min-w-0 flex-1">

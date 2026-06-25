@@ -62,7 +62,7 @@ export function ProfileEditor() {
 
   return (
     <Card className="border-cream-200 p-5">
-      <h2 className="mb-4 font-display text-lg font-semibold text-sage-900">
+      <h2 className="mb-4 font-display text-lg font-semibold text-night-900">
         Baby details
       </h2>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

@@ -10,6 +10,7 @@ import {
 import { FeedForm } from './forms/feed-form';
 import { DiaperForm } from './forms/diaper-form';
 import { SleepControls } from './forms/sleep-controls';
+import { GreekKey } from './decor/greek-key';
 import type { FeedEntry, DiaperEntry, SleepEntry } from '@/lib/leo';
 
 export type QuickAddKind = 'feed' | 'diaper' | 'sleep';
@@ -47,10 +48,11 @@ export function QuickAddSheet({
         {state && meta && (
           <>
             <SheetHeader className="mb-4">
-              <SheetTitle className="font-display text-xl text-sage-900">
+              <SheetTitle className="font-display text-xl text-night-900">
                 {meta.title}
               </SheetTitle>
               <SheetDescription>{meta.description}</SheetDescription>
+              <GreekKey className="mt-2 h-2 w-24" />
             </SheetHeader>
             {state.kind === 'feed' && (
               <FeedForm

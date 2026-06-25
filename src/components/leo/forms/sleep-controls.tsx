@@ -114,7 +114,7 @@ export function SleepControls({
         type="submit"
         disabled={busy}
         size="lg"
-        className="min-h-14 w-full bg-sage-600 text-base hover:bg-sage-700"
+        className="min-h-14 w-full bg-night-700 text-base hover:bg-night-800"
       >
         {entry ? 'Save changes' : 'Save sleep'}
       </Button>
