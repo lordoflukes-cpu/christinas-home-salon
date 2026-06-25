@@ -183,12 +183,31 @@ export interface MedicalEntry {
 // Memories
 // ---------------------------------------------------------------------------
 
+export type MilestoneCategory =
+  | 'physical'
+  | 'sounds'
+  | 'feeding'
+  | 'sleep'
+  | 'social'
+  | 'funny'
+  | 'big';
+
+export type Emotion = 'proud' | 'funny' | 'scary' | 'beautiful' | 'chaotic';
+
 export interface MilestoneEntry {
   id: string;
   /** When it happened (indexed). */
   achievedAt: Millis;
   title: string;
+  category?: MilestoneCategory;
+  /** Note from the logging parent. */
   note?: string;
+  /** Note from Christina. */
+  noteFromChristina?: string;
+  /** Who was there. */
+  whoThere?: string;
+  location?: string;
+  emotion?: Emotion;
   photoId?: string;
   createdAt: Millis;
   updatedAt: Millis;
