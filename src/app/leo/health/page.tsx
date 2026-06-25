@@ -11,11 +11,7 @@ export default function LeoHealthPage() {
   const [tab, setTab] = useState<'growth' | 'medical'>('growth');
   return (
     <div className="space-y-4">
-      <SectionBanner
-        title="Health"
-        subtitle="Growth & wellbeing"
-        variant="dawn"
-      />
+      <SectionBanner title="Health" subtitle="Growth & wellbeing" index={1} />
       <Segmented
         value={tab}
         onChange={(v) => setTab(v as 'growth' | 'medical')}

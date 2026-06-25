@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { LeoProvider, LeoShell } from '@/components/leo';
-import { PaperBackground } from '@/components/leo/decor/paper-background';
+import { NightMeadow } from '@/components/leo/decor/night-meadow';
 
 export const metadata: Metadata = {
   title: { absolute: 'Leo' },
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#3c2c1a',
+  themeColor: '#0b1430',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -29,7 +29,7 @@ export const viewport: Viewport = {
 export default function LeoLayout({ children }: { children: React.ReactNode }) {
   return (
     <LeoProvider>
-      <PaperBackground />
+      <NightMeadow />
       <LeoShell>{children}</LeoShell>
     </LeoProvider>
   );

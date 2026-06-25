@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { useLeoStore, downscaleImage } from '@/lib/leo';
 import type { PhotoEntry } from '@/lib/leo';
-import { LionCrest } from '../brand/lion-crest';
+import { PawMark } from '../brand/paw-mark';
 import { PhotoImage } from './photo-image';
 import { PhotoViewer } from './photo-viewer';
 
@@ -84,7 +84,7 @@ export function PhotoGallery() {
 
       {photos.length === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-3xl border border-gold-200 bg-parchment-50 p-8 text-center">
-          <LionCrest className="h-20 w-20" />
+          <PawMark className="h-14 w-14 text-gold-500" />
           <p className="text-sm text-ink-600">
             A photo a day — watch Leo grow. Tap{' '}
             <span className="font-medium">Add photos</span> to begin.

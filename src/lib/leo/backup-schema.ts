@@ -96,6 +96,7 @@ const photoBackupSchema = z.object({
   takenAt: millis,
   dataUrl: z.string(),
   caption: z.string().optional(),
+  role: z.enum(['gallery', 'backdrop']).optional(),
   w: z.number().optional(),
   h: z.number().optional(),
   createdAt: millis,

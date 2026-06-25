@@ -6,7 +6,7 @@ import type { Route } from 'next';
 import { Activity, BookHeart, Home, Images, Settings } from 'lucide-react';
 import { useLeoStore, useNow, formatAge } from '@/lib/leo';
 import { cn } from '@/lib/utils';
-import { LionCrest } from './brand/lion-crest';
+import { PawMark } from './brand/paw-mark';
 
 const NAV: { href: Route; label: string; icon: typeof Home }[] = [
   { href: '/leo' as Route, label: 'Home', icon: Home },
@@ -24,14 +24,16 @@ export function LeoShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="leo-theme relative mx-auto flex min-h-screen w-full max-w-md flex-col text-ink-900">
       <header className="relative z-20">
-        <div className="flex items-center gap-3 border-b border-ink-300/40 bg-parchment-50/70 px-5 py-4 backdrop-blur-sm">
-          <LionCrest className="h-11 w-11 shrink-0" />
-          <div className="leading-tight">
-            <p className="font-serif text-2xl font-semibold tracking-wide text-ink-900">
+        <div className="flex items-center gap-3 px-5 py-4">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink-950/40 text-gold-300 ring-1 ring-gold-400/30 backdrop-blur-sm">
+            <PawMark className="h-6 w-6" />
+          </span>
+          <div className="leading-tight [text-shadow:0_1px_8px_rgba(6,10,28,0.8)]">
+            <p className="font-serif text-2xl font-semibold tracking-wide text-parchment-50">
               {profile?.name ?? 'Leo'}
             </p>
             {profile && (
-              <p className="font-hand text-base leading-none text-ink-500">
+              <p className="font-hand text-base leading-none text-gold-200">
                 {formatAge(profile.birth, now)}
               </p>
             )}
@@ -41,7 +43,7 @@ export function LeoShell({ children }: { children: React.ReactNode }) {
 
       <main className="relative z-10 flex-1 px-5 pb-28 pt-5">{children}</main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-20 mx-auto w-full max-w-md border-t border-ink-300/50 bg-parchment-100/90 px-2 py-2 backdrop-blur">
+      <nav className="fixed inset-x-0 bottom-0 z-20 mx-auto w-full max-w-md border-t border-gold-400/15 bg-ink-950/75 px-2 py-2 backdrop-blur-md">
         <div className="flex items-stretch gap-1">
           {NAV.map(({ href, label, icon: Icon }) => {
             const active = pathname === href;
@@ -52,7 +54,9 @@ export function LeoShell({ children }: { children: React.ReactNode }) {
                 aria-current={active ? 'page' : undefined}
                 className={cn(
                   'group relative flex flex-1 flex-col items-center gap-1 rounded-lg py-2 text-[11px] font-medium transition-all active:scale-90',
-                  active ? 'text-ink-900' : 'text-ink-400 hover:text-ink-700',
+                  active
+                    ? 'text-gold-200'
+                    : 'text-parchment-200/70 hover:text-parchment-100',
                 )}
               >
                 <Icon className="h-5 w-5" strokeWidth={active ? 2.4 : 1.8} />
@@ -61,7 +65,7 @@ export function LeoShell({ children }: { children: React.ReactNode }) {
                 </span>
                 <span
                   className={cn(
-                    'absolute -top-0.5 h-0.5 rounded-full bg-gold-500 transition-all duration-300',
+                    'absolute -top-0.5 h-0.5 rounded-full bg-gold-400 transition-all duration-300',
                     active ? 'w-6 opacity-100' : 'w-0 opacity-0',
                   )}
                 />

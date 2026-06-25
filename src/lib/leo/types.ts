@@ -129,6 +129,8 @@ export interface JournalEntry {
  * `type`) rather than a Blob — universally structured-cloneable and reliable
  * across browsers/IndexedDB implementations.
  */
+export type PhotoRole = 'gallery' | 'backdrop';
+
 export interface PhotoEntry {
   id: string;
   /** When the photo was taken (indexed). */
@@ -136,6 +138,8 @@ export interface PhotoEntry {
   bytes: ArrayBuffer;
   type: string;
   caption?: string;
+  /** 'backdrop' photos are used behind section banners; default is gallery. */
+  role?: PhotoRole;
   /** Pixel dimensions after downscaling, for layout. */
   w?: number;
   h?: number;
@@ -149,6 +153,7 @@ export interface PhotoBackup {
   takenAt: Millis;
   dataUrl: string;
   caption?: string;
+  role?: PhotoRole;
   w?: number;
   h?: number;
   createdAt: Millis;

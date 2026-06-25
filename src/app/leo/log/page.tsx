@@ -6,7 +6,7 @@ export default function LeoLogPage() {
       <SectionBanner
         title="History"
         subtitle="Feeds, nappies & sleep"
-        variant="day"
+        index={0}
       />
       <LogList />
     </div>

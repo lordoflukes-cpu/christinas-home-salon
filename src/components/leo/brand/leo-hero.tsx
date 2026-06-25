@@ -1,71 +1,86 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { useLeoStore, useNow, formatAge, ageInDays } from '@/lib/leo';
+import { Camera, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/use-toast';
+import {
+  useLeoStore,
+  useNow,
+  formatAge,
+  ageInDays,
+  downscaleImage,
+} from '@/lib/leo';
 import { PhotoImage } from '../photos/photo-image';
-import { SavannaScene, type SceneVariant } from '../decor/savanna-scene';
-import { LionEngraving } from './lion-engraving';
-
-function sceneForHour(hour: number): SceneVariant {
-  if (hour >= 20 || hour < 5) return 'night';
-  if (hour < 8) return 'dawn';
-  if (hour < 17) return 'day';
-  return 'dusk';
-}
+import { NightSky } from '../decor/night-meadow';
+import { PawMark } from './paw-mark';
 
 /**
- * Dashboard hero — a framed savanna diorama on a wood panel: a time-aware sky
- * (the Cancer constellation appears at night), a pride on the ridge, and Leo
- * the cub in front. A chosen cover photo / leo-hero.jpg takes over when set.
+ * Dashboard hero — an engraved frame holding Leo's cover photo. With no photo
+ * yet it shows an elegant starry frame with a one-tap "Add Leo's photo".
  */
 export function LeoHero() {
   const profile = useLeoStore((s) => s.profile);
   const photos = useLeoStore((s) => s.photos);
-  const now = useNow(60_000);
+  const addPhoto = useLeoStore((s) => s.addPhoto);
+  const editProfile = useLeoStore((s) => s.editProfile);
+  const { toast } = useToast();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
   const [fileFailed, setFileFailed] = useState(false);
+  const now = useNow(60_000);
 
   if (!profile) return null;
 
   const age = formatAge(profile.birth, now);
   const days = ageInDays(profile.birth, now);
-  const variant = sceneForHour(new Date(now).getHours());
   const coverPhoto = profile.heroPhotoId
     ? photos.find((p) => p.id === profile.heroPhotoId)
     : null;
-  const showArt = !coverPhoto && fileFailed;
+
+  async function handleFile(file: File) {
+    if (!profile || !file.type.startsWith('image/')) return;
+    setBusy(true);
+    try {
+      const { blob, w, h } = await downscaleImage(file);
+      const entry = await addPhoto(blob, {
+        takenAt: file.lastModified || Date.now(),
+        w,
+        h,
+      });
+      const { id, updatedAt, ...rest } = profile;
+      void id;
+      void updatedAt;
+      await editProfile({ ...rest, heroPhotoId: entry.id });
+      toast({
+        title: 'Lovely 🦁',
+        description: `${profile.name}'s photo is set.`,
+      });
+    } catch {
+      toast({
+        title: 'Could not add photo',
+        description: 'Please try another image.',
+        variant: 'destructive',
+      });
+    } finally {
+      setBusy(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  }
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, ease: 'easeOut' }}
-      className="leo-frame overflow-hidden rounded-[1.7rem] bg-bark-400 shadow-[0_10px_30px_-12px_rgba(44,32,19,0.7)]"
+      className="leo-frame overflow-hidden rounded-[1.7rem] bg-bark-500 shadow-[0_14px_40px_-14px_rgba(0,0,0,0.8)]"
     >
       <div className="relative aspect-[4/3] w-full overflow-hidden">
-        {/* Illustrated savanna diorama (default) */}
-        {!coverPhoto && (
-          <SavannaScene variant={variant} className="absolute inset-0" />
-        )}
+        {/* Starry backdrop inside the frame */}
+        <NightSky className="absolute inset-0" />
 
-        {/* Leo the cub in the foreground */}
-        {showArt && (
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1, y: [0, -4, 0] }}
-            transition={{
-              opacity: { duration: 0.7, delay: 0.25 },
-              scale: { duration: 0.7, delay: 0.25 },
-              y: { duration: 6, repeat: Infinity, ease: 'easeInOut' },
-            }}
-            whileTap={{ scale: 0.97 }}
-            className="absolute inset-x-0 bottom-0 flex justify-center"
-          >
-            <LionEngraving className="w-[52%] max-w-[180px] drop-shadow-[0_8px_10px_rgba(20,12,8,0.55)]" />
-          </motion.div>
-        )}
-
-        {/* Chosen cover photo / dropped-in file */}
+        {/* Cover photo / dropped-in file */}
         {coverPhoto && (
           <PhotoImage
             bytes={coverPhoto.bytes}
@@ -78,11 +93,42 @@ export function LeoHero() {
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src="/leo/leo-hero.jpg"
-            alt={`${profile.name} the little lion`}
+            alt={`${profile.name}`}
             className="absolute inset-0 h-full w-full object-cover"
             onError={() => setFileFailed(true)}
           />
         )}
+
+        {/* Empty-state prompt (no cartoon) */}
+        {!coverPhoto && fileFailed && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
+            <PawMark className="h-12 w-12 text-gold-300/70" />
+            <p className="font-hand text-xl text-parchment-100 [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]">
+              Add a photo of Leo
+            </p>
+            <Button
+              onClick={() => fileRef.current?.click()}
+              disabled={busy}
+              size="lg"
+              className="min-h-12 bg-gold-400 text-base font-semibold text-ink-950 hover:bg-gold-300"
+            >
+              {busy ? (
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              ) : (
+                <Camera className="mr-2 h-5 w-5" />
+              )}
+              Add Leo&apos;s photo
+            </Button>
+          </div>
+        )}
+
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+        />
 
         <div className="leo-vignette pointer-events-none absolute inset-0" />
       </div>

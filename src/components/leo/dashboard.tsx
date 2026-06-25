@@ -16,7 +16,7 @@ import {
   ageCelebration,
 } from '@/lib/leo';
 import { LeoHero } from './brand/leo-hero';
-import { LionCrest } from './brand/lion-crest';
+import { PawMark } from './brand/paw-mark';
 import { SinceLastCard } from './cards/since-last-card';
 import { SleepStatusCard } from './cards/sleep-status-card';
 import { TodayGlance } from './home/today-glance';
@@ -171,7 +171,7 @@ export function Dashboard() {
 function SetupPrompt() {
   return (
     <div className="flex flex-col items-center gap-4 rounded-3xl border border-gold-200 bg-parchment-50 p-8 text-center shadow-sm">
-      <LionCrest className="h-24 w-24" />
+      <PawMark className="h-16 w-16 text-gold-500" />
       <div>
         <h2 className="font-display text-2xl font-semibold text-ink-900">
           Welcome, little lion 🦁

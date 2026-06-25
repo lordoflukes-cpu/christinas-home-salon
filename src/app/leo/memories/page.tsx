@@ -17,7 +17,7 @@ export default function LeoMemoriesPage() {
       <SectionBanner
         title="Memories"
         subtitle="Photos, firsts & letters"
-        variant="dusk"
+        index={2}
       />
       <Segmented
         value={tab}
