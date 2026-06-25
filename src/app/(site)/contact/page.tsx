@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { ContactContent } from '@/components/contact/contact-content';
 import { BUSINESS_INFO } from '@/content/business';
 
@@ -21,7 +22,9 @@ export const metadata: Metadata = {
 export default function ContactPage() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-white to-cream/30">
-      <ContactContent />
+      <Suspense fallback={null}>
+        <ContactContent />
+      </Suspense>
     </main>
   );
 }

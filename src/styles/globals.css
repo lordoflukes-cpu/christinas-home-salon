@@ -81,6 +81,185 @@
   }
 }
 
+/* ------------------------------------------------------------------ */
+/* Leo tracker — scoped decorative utilities (prefixed .leo-* so they  */
+/* never affect the salon site). Heritage: Greek-key, Ankara/àdìre,    */
+/* gold stars, warm aurora.                                            */
+/* ------------------------------------------------------------------ */
+
+/* Warm aged-parchment wash for the app background. */
+.leo-aurora {
+  background-color: #f3e8d2;
+  background-image:
+    radial-gradient(
+      42rem 42rem at 82% -12%,
+      rgba(189, 124, 25, 0.16),
+      transparent 60%
+    ),
+    radial-gradient(
+      38rem 38rem at -12% 112%,
+      rgba(93, 60, 40, 0.14),
+      transparent 60%
+    ),
+    radial-gradient(
+      30rem 30rem at 50% 50%,
+      rgba(251, 246, 236, 0.5),
+      transparent 70%
+    );
+}
+
+/* Fine paper-fibre grain overlay (place as a low-opacity layer). */
+.leo-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+}
+
+/* Soft inner vignette to feel like aged paper edges. */
+.leo-vignette {
+  background: radial-gradient(
+    120% 90% at 50% 40%,
+    transparent 55%,
+    rgba(44, 32, 19, 0.13) 100%
+  );
+}
+
+/* Warm wood-panel ground for the hero. */
+.leo-wood {
+  background-color: #c8945a;
+  background-image:
+    repeating-linear-gradient(
+      92deg,
+      rgba(74, 49, 34, 0.22) 0 2px,
+      rgba(74, 49, 34, 0) 2px 9px,
+      rgba(116, 76, 47, 0.18) 9px 11px,
+      rgba(116, 76, 47, 0) 11px 22px
+    ),
+    linear-gradient(180deg, #d7a96e 0%, #c08850 55%, #a87341 100%);
+}
+
+/* Diagonal engraving hatch (subtle shading). */
+.leo-hatch {
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(60, 44, 26, 0.5) 0 0.6px,
+    transparent 0.6px 4px
+  );
+}
+
+/* Engraved double-rule frame: thin ink border + inset hairline. */
+.leo-frame {
+  border: 1px solid rgba(79, 57, 32, 0.55);
+  box-shadow:
+    inset 0 0 0 1px rgba(251, 246, 236, 0.6),
+    inset 0 0 0 4px rgba(126, 92, 51, 0.16);
+}
+
+/* ---- Night-meadow backdrop animations ---- */
+@keyframes leo-twinkle {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+.leo-twinkle {
+  animation: leo-twinkle 4.5s ease-in-out infinite;
+}
+@keyframes leo-firefly {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  25% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+    transform: translate(8px, -10px);
+  }
+  75% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-6px, -4px);
+  }
+}
+.leo-firefly {
+  animation: leo-firefly 8s ease-in-out infinite;
+  transform-box: fill-box;
+}
+
+/* Scope warm parchment/ink theme tokens to the Leo subtree only, so every
+   shadcn primitive (card, input, dialog, sheet, default button) adopts the
+   engraved palette without affecting the salon site. */
+.leo-theme {
+  --background: 41 55% 90%;
+  --foreground: 33 41% 14%;
+  --card: 41 58% 95%;
+  --card-foreground: 33 41% 14%;
+  --popover: 41 58% 95%;
+  --popover-foreground: 33 41% 14%;
+  --primary: 33 43% 22%;
+  --primary-foreground: 41 60% 96%;
+  --secondary: 41 40% 84%;
+  --secondary-foreground: 33 41% 18%;
+  --muted: 41 45% 86%;
+  --muted-foreground: 33 25% 38%;
+  --accent: 41 56% 83%;
+  --accent-foreground: 33 41% 16%;
+  --border: 33 30% 68%;
+  --input: 33 30% 64%;
+  --ring: 41 73% 45%;
+}
+
+/* Faint Ankara / àdìre-inspired textile tile. */
+.leo-ankara {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'%3E%3Cg fill='none' stroke='%23d99e23' stroke-opacity='0.07' stroke-width='1.2'%3E%3Cpath d='M24 4l6 6-6 6-6-6z'/%3E%3Cpath d='M0 28l6 6-6 6'/%3E%3Cpath d='M48 28l-6 6 6 6'/%3E%3Ccircle cx='24' cy='34' r='3'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 48px 48px;
+}
+
+/* Thin gold Greek-key (meander) divider; set height ~10px on the element. */
+.leo-greek-key {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='10' viewBox='0 0 32 10'%3E%3Cpath d='M1 9V3h6v3H4v0M9 9V1h14v8h-3V4h-8v5M25 1v6h-3V4' fill='none' stroke='%23d99e23' stroke-opacity='0.55' stroke-width='1.1'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-position: center;
+  background-size: auto 100%;
+}
+
+/* Scattered gold stars for night / sleep / hero overlays. */
+.leo-starfield {
+  background-image:
+    radial-gradient(
+      1.5px 1.5px at 12% 22%,
+      rgba(244, 226, 163, 0.9),
+      transparent
+    ),
+    radial-gradient(
+      1.5px 1.5px at 78% 16%,
+      rgba(244, 226, 163, 0.8),
+      transparent
+    ),
+    radial-gradient(2px 2px at 58% 60%, rgba(236, 205, 104, 0.85), transparent),
+    radial-gradient(
+      1.2px 1.2px at 30% 78%,
+      rgba(244, 226, 163, 0.7),
+      transparent
+    ),
+    radial-gradient(
+      1.2px 1.2px at 88% 72%,
+      rgba(244, 226, 163, 0.7),
+      transparent
+    ),
+    radial-gradient(
+      1.5px 1.5px at 44% 34%,
+      rgba(244, 226, 163, 0.75),
+      transparent
+    );
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
