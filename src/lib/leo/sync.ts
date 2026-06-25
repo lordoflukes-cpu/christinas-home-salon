@@ -36,6 +36,7 @@ const PLAIN_STORES = [
   'medical',
   'milestones',
   'journal',
+  'events',
 ] as const;
 type PlainStore = (typeof PLAIN_STORES)[number];
 export type SyncStore = PlainStore | 'photos';

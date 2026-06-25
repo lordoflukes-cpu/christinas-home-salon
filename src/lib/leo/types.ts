@@ -72,10 +72,14 @@ export interface DiaperEntry {
   /** When the nappy was changed (indexed). */
   changedAt: Millis;
   type: DiaperType;
+  /** Optional colour note for dirty nappies (e.g. 'yellow', 'green'). */
+  color?: string;
   note?: string;
   createdAt: Millis;
   updatedAt: Millis;
 }
+
+export type SleepQuality = 'good' | 'ok' | 'restless';
 
 export interface SleepEntry {
   id: string;
@@ -83,7 +87,54 @@ export interface SleepEntry {
   startedAt: Millis;
   /** When sleep ended; `undefined` means "asleep now" (a running timer). */
   endedAt?: Millis;
+  /** Rough quality of the sleep. */
+  quality?: SleepQuality;
   note?: string;
+  createdAt: Millis;
+  updatedAt: Millis;
+}
+
+// ---------------------------------------------------------------------------
+// Daily "moment" events — crying, temperature, medication, symptom, mood.
+// One flexible store keeps the daily log easy to extend.
+// ---------------------------------------------------------------------------
+
+export type EventKind =
+  | 'cry'
+  | 'temperature'
+  | 'medication'
+  | 'symptom'
+  | 'mood';
+export type MoodKind =
+  | 'calm'
+  | 'content'
+  | 'alert'
+  | 'sleepy'
+  | 'unsettled'
+  | 'fussy';
+export type TempMethod = 'armpit' | 'ear' | 'forehead' | 'oral';
+export type Severity = 'mild' | 'moderate' | 'severe';
+
+export interface LeoEvent {
+  id: string;
+  kind: EventKind;
+  /** When it happened (indexed). */
+  at: Millis;
+  note?: string;
+  // crying / fussiness
+  durationMin?: number;
+  reason?: string;
+  // temperature
+  tempC?: number;
+  tempMethod?: TempMethod;
+  // medication
+  medName?: string;
+  dose?: string;
+  // symptom
+  symptom?: string;
+  severity?: Severity;
+  // mood
+  mood?: MoodKind;
   createdAt: Millis;
   updatedAt: Millis;
 }
@@ -195,6 +246,7 @@ export type NewMilestone = Omit<
   'id' | 'createdAt' | 'updatedAt'
 >;
 export type NewJournal = Omit<JournalEntry, 'id' | 'createdAt' | 'updatedAt'>;
+export type NewEvent = Omit<LeoEvent, 'id' | 'createdAt' | 'updatedAt'>;
 export type NewPhotoMeta = Omit<
   PhotoEntry,
   'id' | 'bytes' | 'type' | 'createdAt' | 'updatedAt'
@@ -214,6 +266,7 @@ export interface LeoBackup {
   medical?: MedicalEntry[];
   milestones?: MilestoneEntry[];
   journal?: JournalEntry[];
+  events?: LeoEvent[];
   photos?: PhotoBackup[];
 }
 

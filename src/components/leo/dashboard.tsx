@@ -4,7 +4,17 @@ import { useState } from 'react';
 import Link from 'next/link';
 import type { Route } from 'next';
 import { motion } from 'framer-motion';
-import { Droplets, Images, Milk } from 'lucide-react';
+import {
+  Activity,
+  Droplets,
+  Frown,
+  Images,
+  Milk,
+  Pill,
+  Smile,
+  Thermometer,
+} from 'lucide-react';
+import type { QuickAddKind } from './quick-add-sheet';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -29,6 +39,29 @@ const fadeUp = {
   initial: { opacity: 0, y: 12 },
   animate: { opacity: 1, y: 0 },
 };
+
+const QUICK_LOG: {
+  kind: QuickAddKind;
+  label: string;
+  icon: typeof Smile;
+  tint: string;
+}[] = [
+  { kind: 'mood', label: 'Mood', icon: Smile, tint: 'text-gold-600' },
+  { kind: 'cry', label: 'Crying', icon: Frown, tint: 'text-rose-500' },
+  {
+    kind: 'temperature',
+    label: 'Temp',
+    icon: Thermometer,
+    tint: 'text-orange-500',
+  },
+  { kind: 'medication', label: 'Meds', icon: Pill, tint: 'text-aegean-600' },
+  {
+    kind: 'symptom',
+    label: 'Symptom',
+    icon: Activity,
+    tint: 'text-emerald-600',
+  },
+];
 
 export function Dashboard() {
   const hydrated = useLeoStore((s) => s.hydrated);
@@ -141,6 +174,29 @@ export function Dashboard() {
         >
           <Droplets className="mr-2 h-5 w-5" /> Nappy
         </Button>
+      </motion.div>
+
+      <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.28 }}>
+        <Card className="border-ink-300/40 p-3">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-400">
+            Quick log
+          </p>
+          <div className="grid grid-cols-5 gap-1">
+            {QUICK_LOG.map(({ kind, label, icon: Icon, tint }) => (
+              <button
+                key={kind}
+                type="button"
+                onClick={() => setQuickAdd({ kind })}
+                className="flex flex-col items-center gap-1 rounded-xl py-2 transition-colors hover:bg-parchment-100"
+              >
+                <Icon className={`h-6 w-6 ${tint}`} />
+                <span className="text-[11px] font-medium text-ink-600">
+                  {label}
+                </span>
+              </button>
+            ))}
+          </div>
+        </Card>
       </motion.div>
 
       {photos.length > 0 && (

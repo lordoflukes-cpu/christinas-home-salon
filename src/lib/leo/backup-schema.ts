@@ -58,6 +58,7 @@ const diaperSchema = z.object({
   id: z.string(),
   changedAt: millis,
   type: z.enum(['wet', 'dirty', 'both']),
+  color: z.string().optional(),
   note: z.string().optional(),
   createdAt: millis,
   updatedAt: millis,
@@ -67,7 +68,28 @@ const sleepSchema = z.object({
   id: z.string(),
   startedAt: millis,
   endedAt: millis.optional(),
+  quality: z.enum(['good', 'ok', 'restless']).optional(),
   note: z.string().optional(),
+  createdAt: millis,
+  updatedAt: millis,
+});
+
+const eventSchema = z.object({
+  id: z.string(),
+  kind: z.enum(['cry', 'temperature', 'medication', 'symptom', 'mood']),
+  at: millis,
+  note: z.string().optional(),
+  durationMin: z.number().nonnegative().optional(),
+  reason: z.string().optional(),
+  tempC: z.number().optional(),
+  tempMethod: z.enum(['armpit', 'ear', 'forehead', 'oral']).optional(),
+  medName: z.string().optional(),
+  dose: z.string().optional(),
+  symptom: z.string().optional(),
+  severity: z.enum(['mild', 'moderate', 'severe']).optional(),
+  mood: z
+    .enum(['calm', 'content', 'alert', 'sleepy', 'unsettled', 'fussy'])
+    .optional(),
   createdAt: millis,
   updatedAt: millis,
 });
@@ -139,6 +161,7 @@ export const leoBackupSchema = z.object({
   medical: z.array(medicalSchema).optional(),
   milestones: z.array(milestoneSchema).optional(),
   journal: z.array(journalSchema).optional(),
+  events: z.array(eventSchema).optional(),
   photos: z.array(photoBackupSchema).optional(),
 });
 

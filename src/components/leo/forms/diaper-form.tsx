@@ -11,6 +11,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { useLeoStore, toDatetimeLocal, fromDatetimeLocal } from '@/lib/leo';
 import type { DiaperEntry, DiaperType } from '@/lib/leo';
 import { Segmented } from './feed-form';
+import { ChipGroup } from './event-form';
+
+const COLORS = ['Yellow', 'Brown', 'Green', 'Black', 'Red', 'Mucousy'];
 
 const schema = z.object({
   changedAtLocal: z.string().min(1, 'Pick a time'),
@@ -29,6 +32,7 @@ export function DiaperForm({
   const editDiaper = useLeoStore((s) => s.editDiaper);
 
   const [type, setType] = useState<DiaperType>(entry?.type ?? 'wet');
+  const [color, setColor] = useState(entry?.color ?? '');
   const [busy, setBusy] = useState(false);
 
   const {
@@ -49,6 +53,7 @@ export function DiaperForm({
       const base = {
         type,
         changedAt: fromDatetimeLocal(values.changedAtLocal),
+        color: type !== 'wet' && color ? color : undefined,
         note: values.note?.trim() || undefined,
       };
       if (entry) await editDiaper(entry.id, base);
@@ -73,6 +78,18 @@ export function DiaperForm({
           ]}
         />
       </div>
+
+      {type !== 'wet' && (
+        <div className="space-y-1.5">
+          <Label>Colour (optional)</Label>
+          <ChipGroup
+            options={COLORS.map((c) => ({ value: c, label: c }))}
+            value={color}
+            onChange={setColor}
+            clearable
+          />
+        </div>
+      )}
 
       <div className="space-y-1.5">
         <Label htmlFor="changedAtLocal">Time</Label>

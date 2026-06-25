@@ -12,9 +12,11 @@ import type {
   ImportMode,
   JournalEntry,
   LeoBackup,
+  LeoEvent,
   MedicalEntry,
   MilestoneEntry,
   NewDiaper,
+  NewEvent,
   NewFeed,
   NewGrowth,
   NewJournal,
@@ -40,6 +42,7 @@ interface LeoState {
   medical: MedicalEntry[];
   milestones: MilestoneEntry[];
   journal: JournalEntry[];
+  events: LeoEvent[];
   photos: PhotoEntry[];
 
   hydrate: () => Promise<void>;
@@ -77,6 +80,10 @@ interface LeoState {
   editJournal: (id: string, patch: Partial<JournalEntry>) => Promise<void>;
   removeJournal: (id: string) => Promise<void>;
 
+  createEvent: (input: NewEvent) => Promise<void>;
+  editEvent: (id: string, patch: Partial<LeoEvent>) => Promise<void>;
+  removeEvent: (id: string) => Promise<void>;
+
   addPhoto: (blob: Blob, meta: NewPhotoMeta) => Promise<PhotoEntry>;
   editPhoto: (id: string, patch: Partial<PhotoEntry>) => Promise<void>;
   removePhoto: (id: string) => Promise<void>;
@@ -98,6 +105,7 @@ async function refresh() {
     medical,
     milestones,
     journal,
+    events,
     photos,
   ] = await Promise.all([
     repo.getProfile(),
@@ -110,6 +118,7 @@ async function refresh() {
     repo.getAllMedical(),
     repo.getAllMilestones(),
     repo.getAllJournal(),
+    repo.getRecentEvents(RECENT_LIMIT),
     repo.getAllPhotos(),
   ]);
   return {
@@ -123,6 +132,7 @@ async function refresh() {
     medical,
     milestones,
     journal,
+    events,
     photos,
   };
 }
@@ -158,6 +168,7 @@ export const useLeoStore = create<LeoState>((set, get) => ({
   medical: [],
   milestones: [],
   journal: [],
+  events: [],
   photos: [],
 
   hydrate: async () => {
@@ -322,6 +333,22 @@ export const useLeoStore = create<LeoState>((set, get) => ({
     await repo.deleteJournal(id);
     set({ journal: await repo.getAllJournal() });
     sync.pushDelete('journal', id);
+  },
+
+  createEvent: async (input) => {
+    const entry = await repo.addEvent(input);
+    set({ events: await repo.getRecentEvents(RECENT_LIMIT) });
+    sync.pushEntry('events', entry);
+  },
+  editEvent: async (id, patch) => {
+    const entry = await repo.updateEvent(id, patch);
+    set({ events: await repo.getRecentEvents(RECENT_LIMIT) });
+    sync.pushEntry('events', entry);
+  },
+  removeEvent: async (id) => {
+    await repo.deleteEvent(id);
+    set({ events: await repo.getRecentEvents(RECENT_LIMIT) });
+    sync.pushDelete('events', id);
   },
 
   addPhoto: async (blob, meta) => {

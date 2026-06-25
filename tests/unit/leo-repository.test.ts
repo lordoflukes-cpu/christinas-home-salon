@@ -91,6 +91,23 @@ describe('sleep', () => {
   });
 });
 
+describe('events', () => {
+  it('adds events newest-first and updates/deletes', async () => {
+    await repo.addEvent({ kind: 'mood', at: 1000, mood: 'calm' });
+    const cry = await repo.addEvent({ kind: 'cry', at: 3000, reason: 'wind' });
+    await repo.addEvent({ kind: 'temperature', at: 2000, tempC: 37.1 });
+
+    const recent = await repo.getRecentEvents();
+    expect(recent.map((e) => e.at)).toEqual([3000, 2000, 1000]);
+
+    const updated = await repo.updateEvent(cry.id, { durationMin: 12 });
+    expect(updated.durationMin).toBe(12);
+
+    await repo.deleteEvent(cry.id);
+    expect(await repo.getRecentEvents()).toHaveLength(2);
+  });
+});
+
 describe('profile', () => {
   it('saves and reads the singleton profile', async () => {
     expect(await repo.getProfile()).toBeNull();

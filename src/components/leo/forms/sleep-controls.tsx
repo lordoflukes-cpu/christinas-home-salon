@@ -9,7 +9,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useLeoStore, toDatetimeLocal, fromDatetimeLocal } from '@/lib/leo';
-import type { SleepEntry } from '@/lib/leo';
+import type { SleepEntry, SleepQuality } from '@/lib/leo';
+import { ChipGroup } from './event-form';
+
+const QUALITIES: { value: SleepQuality; label: string }[] = [
+  { value: 'good', label: '😴 Good' },
+  { value: 'ok', label: '🙂 OK' },
+  { value: 'restless', label: '😣 Restless' },
+];
 
 const schema = z
   .object({
@@ -36,6 +43,9 @@ export function SleepControls({
   const startSleepTimer = useLeoStore((s) => s.startSleepTimer);
   const editSleep = useLeoStore((s) => s.editSleep);
   const [busy, setBusy] = useState(false);
+  const [quality, setQuality] = useState<SleepQuality | ''>(
+    entry?.quality ?? '',
+  );
 
   const {
     register,
@@ -58,14 +68,15 @@ export function SleepControls({
         ? fromDatetimeLocal(values.endedAtLocal)
         : undefined;
       const note = values.note?.trim() || undefined;
+      const q = quality || undefined;
       if (entry) {
-        await editSleep(entry.id, { startedAt, endedAt, note });
+        await editSleep(entry.id, { startedAt, endedAt, note, quality: q });
       } else {
-        // create via the timer, then patch end/note onto the new entry
+        // create via the timer, then patch end/note/quality onto the new entry
         await startSleepTimer(startedAt);
         const created = useLeoStore.getState().activeSleep;
-        if (created && (endedAt || note))
-          await editSleep(created.id, { endedAt, note });
+        if (created && (endedAt || note || q))
+          await editSleep(created.id, { endedAt, note, quality: q });
       }
       onDone();
     } finally {
@@ -103,6 +114,16 @@ export function SleepControls({
             {errors.endedAtLocal.message}
           </p>
         )}
+      </div>
+
+      <div className="space-y-1.5">
+        <Label>Quality (optional)</Label>
+        <ChipGroup
+          options={QUALITIES}
+          value={quality}
+          onChange={(v) => setQuality(v as SleepQuality)}
+          clearable
+        />
       </div>
 
       <div className="space-y-1.5">

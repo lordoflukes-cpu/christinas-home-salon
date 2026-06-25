@@ -10,15 +10,30 @@ import {
 import { FeedForm } from './forms/feed-form';
 import { DiaperForm } from './forms/diaper-form';
 import { SleepControls } from './forms/sleep-controls';
+import { EventForm } from './forms/event-form';
 import { GreekKey } from './decor/greek-key';
-import type { FeedEntry, DiaperEntry, SleepEntry } from '@/lib/leo';
+import type {
+  FeedEntry,
+  DiaperEntry,
+  SleepEntry,
+  LeoEvent,
+  EventKind,
+} from '@/lib/leo';
 
-export type QuickAddKind = 'feed' | 'diaper' | 'sleep';
+export type QuickAddKind = 'feed' | 'diaper' | 'sleep' | EventKind;
 
 export interface QuickAddState {
   kind: QuickAddKind;
-  entry?: FeedEntry | DiaperEntry | SleepEntry;
+  entry?: FeedEntry | DiaperEntry | SleepEntry | LeoEvent;
 }
+
+const EVENT_KINDS: EventKind[] = [
+  'cry',
+  'temperature',
+  'medication',
+  'symptom',
+  'mood',
+];
 
 const TITLES: Record<QuickAddKind, { title: string; description: string }> = {
   feed: {
@@ -29,6 +44,23 @@ const TITLES: Record<QuickAddKind, { title: string; description: string }> = {
   sleep: {
     title: 'Log sleep',
     description: 'Record when Leo fell asleep and woke.',
+  },
+  mood: { title: 'Log mood', description: 'How is Leo right now?' },
+  cry: {
+    title: 'Log crying',
+    description: 'Note a fussy spell and a possible reason.',
+  },
+  temperature: {
+    title: 'Log temperature',
+    description: "Record Leo's temperature.",
+  },
+  medication: {
+    title: 'Log medication',
+    description: 'What was given, the dose, and why.',
+  },
+  symptom: {
+    title: 'Log a symptom',
+    description: 'Anything you want to keep an eye on.',
   },
 };
 
@@ -69,6 +101,13 @@ export function QuickAddSheet({
             {state.kind === 'sleep' && (
               <SleepControls
                 entry={state.entry as SleepEntry | undefined}
+                onDone={onClose}
+              />
+            )}
+            {EVENT_KINDS.includes(state.kind as EventKind) && (
+              <EventForm
+                kind={state.kind as EventKind}
+                entry={state.entry as LeoEvent | undefined}
                 onDone={onClose}
               />
             )}
