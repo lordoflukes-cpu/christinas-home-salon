@@ -3,7 +3,6 @@
 import { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Camera, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import {
   useLeoStore,
@@ -13,12 +12,10 @@ import {
   downscaleImage,
 } from '@/lib/leo';
 import { PhotoImage } from '../photos/photo-image';
-import { NightSky } from '../decor/night-meadow';
-import { PawMark } from './paw-mark';
 
 /**
- * Dashboard hero — an engraved frame holding Leo's cover photo. With no photo
- * yet it shows an elegant starry frame with a one-tap "Add Leo's photo".
+ * Dashboard hero — an engraved frame. Shows Leo's cover photo if set, otherwise
+ * a realistic charcoal lion-cub drawing, with a one-tap "Add Leo's photo".
  */
 export function LeoHero() {
   const profile = useLeoStore((s) => s.profile);
@@ -28,7 +25,6 @@ export function LeoHero() {
   const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
-  const [fileFailed, setFileFailed] = useState(false);
   const now = useNow(60_000);
 
   if (!profile) return null;
@@ -74,54 +70,41 @@ export function LeoHero() {
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, ease: 'easeOut' }}
-      className="leo-frame overflow-hidden rounded-[1.7rem] bg-bark-500 shadow-[0_14px_40px_-14px_rgba(0,0,0,0.8)]"
+      className="leo-frame overflow-hidden rounded-[1.7rem] bg-bark-500 shadow-[0_14px_40px_-14px_rgba(0,0,0,0.85)]"
     >
-      <div className="relative aspect-[4/3] w-full overflow-hidden">
-        {/* Starry backdrop inside the frame */}
-        <NightSky className="absolute inset-0" />
-
-        {/* Cover photo / dropped-in file */}
-        {coverPhoto && (
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-ink-950">
+        {coverPhoto ? (
           <PhotoImage
             bytes={coverPhoto.bytes}
             type={coverPhoto.type}
             alt={profile.name}
             className="absolute inset-0 h-full w-full object-cover"
           />
-        )}
-        {!coverPhoto && !fileFailed && (
+        ) : (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src="/leo/leo-hero.jpg"
-            alt={`${profile.name}`}
+            src="/leo/art/cub-portrait.jpg"
+            alt="A little lion cub"
             className="absolute inset-0 h-full w-full object-cover"
-            onError={() => setFileFailed(true)}
           />
         )}
 
-        {/* Empty-state prompt (no cartoon) */}
-        {!coverPhoto && fileFailed && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
-            <PawMark className="h-12 w-12 text-gold-300/70" />
-            <p className="font-hand text-xl text-parchment-100 [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]">
-              Add a photo of Leo
-            </p>
-            <Button
-              onClick={() => fileRef.current?.click()}
-              disabled={busy}
-              size="lg"
-              className="min-h-12 bg-gold-400 text-base font-semibold text-ink-950 hover:bg-gold-300"
-            >
-              {busy ? (
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              ) : (
-                <Camera className="mr-2 h-5 w-5" />
-              )}
-              Add Leo&apos;s photo
-            </Button>
-          </div>
-        )}
+        <div className="leo-vignette pointer-events-none absolute inset-0" />
 
+        {/* Add / change photo */}
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          disabled={busy}
+          className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 rounded-full bg-ink-950/65 px-3 py-1.5 text-xs font-medium text-parchment-50 backdrop-blur-sm transition active:scale-95"
+        >
+          {busy ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Camera className="h-4 w-4" />
+          )}
+          {coverPhoto ? 'Change photo' : "Add Leo's photo"}
+        </button>
         <input
           ref={fileRef}
           type="file"
@@ -129,8 +112,6 @@ export function LeoHero() {
           className="hidden"
           onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
         />
-
-        <div className="leo-vignette pointer-events-none absolute inset-0" />
       </div>
 
       {/* Engraved parchment nameplate */}

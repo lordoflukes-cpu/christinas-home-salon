@@ -2,7 +2,7 @@
  * All user data lives in IndexedDB, so this only caches the static shell
  * (HTML/JS/CSS). Bump CACHE_VERSION to invalidate old caches.
  */
-const CACHE_VERSION = 'leo-v3';
+const CACHE_VERSION = 'leo-v4';
 const SHELL = [
   '/leo',
   '/leo/log',
@@ -10,6 +10,12 @@ const SHELL = [
   '/leo/memories',
   '/leo/settings',
   '/leo/manifest.webmanifest',
+  '/leo/art/savanna-night.jpg',
+  '/leo/art/cub-portrait.jpg',
+  '/leo/art/lion-and-cub.jpg',
+  '/leo/art/acacia-night.webp',
+  '/leo/art/family-sunset.jpg',
+  '/leo/art/family-pride.jpg',
 ];
 
 self.addEventListener('install', (event) => {
