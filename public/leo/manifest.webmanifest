@@ -1,0 +1,31 @@
+{
+  "name": "Leo",
+  "short_name": "Leo",
+  "description": "Leo's baby tracker — feeds, nappies & sleep",
+  "start_url": "/leo",
+  "scope": "/leo",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fefdfb",
+  "theme_color": "#f43f5e",
+  "icons": [
+    {
+      "src": "/leo/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/leo/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/leo/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
