@@ -190,6 +190,24 @@ const sizeSchema = z.object({
   updatedAt: millis,
 });
 
+const routineSchema = z.object({
+  id: z.string(),
+  category: z.enum([
+    'morning',
+    'bedtime',
+    'settling',
+    'sleepCues',
+    'hungerCues',
+    'worked',
+    'didntWork',
+  ]),
+  text: z.string(),
+  position: z.number(),
+  rating: z.enum(['works', 'sometimes', 'no']).optional(),
+  createdAt: millis,
+  updatedAt: millis,
+});
+
 export const leoBackupSchema = z.object({
   schemaVersion: z.number().int().positive(),
   exportedAt: millis,
@@ -203,6 +221,7 @@ export const leoBackupSchema = z.object({
   journal: z.array(journalSchema).optional(),
   events: z.array(eventSchema).optional(),
   sizes: z.array(sizeSchema).optional(),
+  routines: z.array(routineSchema).optional(),
   photos: z.array(photoBackupSchema).optional(),
   documents: z.array(documentBackupSchema).optional(),
 });

@@ -28,10 +28,12 @@ import type {
   NewMedical,
   NewMilestone,
   NewPhotoMeta,
+  NewRoutine,
   NewSize,
   NewSleep,
   PhotoEntry,
   ProfileInput,
+  RoutineItem,
   SizeEntry,
   SleepEntry,
 } from './types';
@@ -631,6 +633,55 @@ export async function getAllSizes(): Promise<SizeEntry[]> {
 }
 
 // ---------------------------------------------------------------------------
+// Routines (morning/bedtime steps, settling, cues, what works / doesn't)
+// ---------------------------------------------------------------------------
+
+export async function addRoutine(input: NewRoutine): Promise<RoutineItem> {
+  const db = await getDB();
+  const time = ts();
+  const entry: RoutineItem = {
+    ...input,
+    id: newId(),
+    createdAt: time,
+    updatedAt: time,
+  };
+  await db.put('routines', entry);
+  return entry;
+}
+
+export async function updateRoutine(
+  id: string,
+  patch: Partial<RoutineItem>,
+): Promise<RoutineItem> {
+  const db = await getDB();
+  const existing = await db.get('routines', id);
+  if (!existing) throw new Error(`Routine ${id} not found`);
+  const updated: RoutineItem = { ...existing, ...patch, id, updatedAt: ts() };
+  await db.put('routines', updated);
+  return updated;
+}
+
+export async function deleteRoutine(id: string): Promise<void> {
+  const db = await getDB();
+  await db.delete('routines', id);
+}
+
+/** All routine items, ordered by position (then category groups in the UI). */
+export async function getAllRoutines(): Promise<RoutineItem[]> {
+  const db = await getDB();
+  const results: RoutineItem[] = [];
+  let cursor = await db
+    .transaction('routines')
+    .store.index('by-position')
+    .openCursor(null, 'next');
+  while (cursor) {
+    results.push(cursor.value);
+    cursor = await cursor.continue();
+  }
+  return results;
+}
+
+// ---------------------------------------------------------------------------
 // Documents (letters, prescriptions, reports — images or PDFs)
 // ---------------------------------------------------------------------------
 
@@ -704,7 +755,8 @@ export type PlainStore =
   | 'milestones'
   | 'journal'
   | 'events'
-  | 'sizes';
+  | 'sizes'
+  | 'routines';
 
 /** Write an entry exactly as given, preserving its id/updatedAt (no stamping). */
 export async function putRaw(store: PlainStore, value: unknown): Promise<void> {
@@ -795,6 +847,7 @@ const ALL_STORES = [
   'journal',
   'events',
   'sizes',
+  'routines',
   'photos',
   'documents',
 ] as const;
@@ -812,6 +865,7 @@ export async function exportAll(): Promise<LeoBackup> {
     journal,
     events,
     sizes,
+    routines,
     photos,
     documents,
   ] = await Promise.all([
@@ -825,6 +879,7 @@ export async function exportAll(): Promise<LeoBackup> {
     db.getAll('journal'),
     db.getAll('events'),
     db.getAll('sizes'),
+    db.getAll('routines'),
     db.getAll('photos'),
     db.getAll('documents'),
   ]);
@@ -853,6 +908,7 @@ export async function exportAll(): Promise<LeoBackup> {
     journal,
     events,
     sizes,
+    routines,
     photos: photoBackups,
     documents: documentBackups,
   };
@@ -910,6 +966,8 @@ export async function importAll(
   for (const j of backup.journal ?? []) await tx.objectStore('journal').put(j);
   for (const e of backup.events ?? []) await tx.objectStore('events').put(e);
   for (const s of backup.sizes ?? []) await tx.objectStore('sizes').put(s);
+  for (const r of backup.routines ?? [])
+    await tx.objectStore('routines').put(r);
   for (const p of photoEntries) await tx.objectStore('photos').put(p);
   for (const d of documentEntries) await tx.objectStore('documents').put(d);
   await tx.done;

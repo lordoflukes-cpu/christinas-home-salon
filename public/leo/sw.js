@@ -2,11 +2,12 @@
  * All user data lives in IndexedDB, so this only caches the static shell
  * (HTML/JS/CSS). Bump CACHE_VERSION to invalidate old caches.
  */
-const CACHE_VERSION = 'leo-v11';
+const CACHE_VERSION = 'leo-v12';
 const SHELL = [
   '/leo',
   '/leo/log',
   '/leo/health',
+  '/leo/routine',
   '/leo/memories',
   '/leo/settings',
   '/leo/manifest.webmanifest',
@@ -24,7 +25,7 @@ self.addEventListener('install', (event) => {
       .open(CACHE_VERSION)
       .then((cache) => cache.addAll(SHELL))
       .then(() => self.skipWaiting())
-      .catch(() => undefined)
+      .catch(() => undefined),
   );
 });
 
@@ -33,9 +34,11 @@ self.addEventListener('activate', (event) => {
     caches
       .keys()
       .then((keys) =>
-        Promise.all(keys.filter((k) => k !== CACHE_VERSION).map((k) => caches.delete(k)))
+        Promise.all(
+          keys.filter((k) => k !== CACHE_VERSION).map((k) => caches.delete(k)),
+        ),
       )
-      .then(() => self.clients.claim())
+      .then(() => self.clients.claim()),
   );
 });
 
@@ -60,14 +63,18 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const target = (event.notification.data && event.notification.data.url) || '/leo';
+  const target =
+    (event.notification.data && event.notification.data.url) || '/leo';
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
-      for (const client of clients) {
-        if (client.url.includes('/leo') && 'focus' in client) return client.focus();
-      }
-      return self.clients.openWindow(target);
-    })
+    self.clients
+      .matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clients) => {
+        for (const client of clients) {
+          if (client.url.includes('/leo') && 'focus' in client)
+            return client.focus();
+        }
+        return self.clients.openWindow(target);
+      }),
   );
 });
 
@@ -79,7 +86,8 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
 
   // Cache the Leo shell and Next static assets; ignore everything else.
-  const inScope = url.pathname.startsWith('/leo') || url.pathname.startsWith('/_next/static');
+  const inScope =
+    url.pathname.startsWith('/leo') || url.pathname.startsWith('/_next/static');
   if (!inScope) return;
 
   // Stale-while-revalidate.
@@ -88,11 +96,12 @@ self.addEventListener('fetch', (event) => {
       const cached = await cache.match(request);
       const network = fetch(request)
         .then((response) => {
-          if (response && response.status === 200) cache.put(request, response.clone());
+          if (response && response.status === 200)
+            cache.put(request, response.clone());
           return response;
         })
         .catch(() => cached);
       return cached || network;
-    })
+    }),
   );
 });

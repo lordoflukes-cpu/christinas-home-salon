@@ -23,6 +23,12 @@ describe('backup round-trip', () => {
     await repo.addEvent({ kind: 'mood', at: 5000, mood: 'content' });
     await repo.addMedical({ kind: 'note', title: 'Red book note', at: 6000 });
     await repo.addSize({ kind: 'nappy', size: 'Size 2', startedAt: 6500 });
+    await repo.addRoutine({
+      category: 'settling',
+      text: 'White noise',
+      position: 0,
+      rating: 'works',
+    });
     await repo.addDocument(
       new Blob([new Uint8Array([5, 6, 7])], { type: 'application/pdf' }),
       { title: 'GP letter', at: 7000 },
@@ -35,6 +41,7 @@ describe('backup round-trip', () => {
     expect(backup.sleeps).toHaveLength(1);
     expect(backup.events).toHaveLength(1);
     expect(backup.sizes).toHaveLength(1);
+    expect(backup.routines).toHaveLength(1);
     expect(backup.documents).toHaveLength(1);
 
     await repo.clearAll();
@@ -47,6 +54,8 @@ describe('backup round-trip', () => {
     expect(await repo.getRecentFeeds()).toHaveLength(1);
     expect((await repo.getLastSleep())?.endedAt).toBe(9000);
     expect(await repo.getRecentEvents()).toHaveLength(1);
+    expect(await repo.getAllRoutines()).toHaveLength(1);
+    expect((await repo.getAllRoutines())[0].rating).toBe('works');
     expect(await repo.getAllDocuments()).toHaveLength(1);
     expect((await repo.getAllDocuments())[0].bytes.byteLength).toBe(3);
   });
