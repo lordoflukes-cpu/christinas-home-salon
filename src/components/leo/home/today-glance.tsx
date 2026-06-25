@@ -49,18 +49,18 @@ export function TodayGlance() {
   ];
 
   return (
-    <Card className="border-cream-200 p-3">
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-sage-400">
+    <Card className="border-ink-300/40 p-3">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-400">
         Today at a glance
       </p>
       <div className="grid grid-cols-3 gap-2 text-center">
         {items.map(({ icon: Icon, label, value, tint }) => (
           <div key={label} className="flex flex-col items-center gap-0.5">
             <Icon className={`h-5 w-5 ${tint}`} />
-            <span className="font-display text-lg font-semibold text-night-900">
+            <span className="font-display text-lg font-semibold text-ink-900">
               {value}
             </span>
-            <span className="text-[11px] text-sage-500">{label}</span>
+            <span className="text-[11px] text-ink-500">{label}</span>
           </div>
         ))}
       </div>

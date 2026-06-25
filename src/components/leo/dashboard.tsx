@@ -81,7 +81,7 @@ export function Dashboard() {
         {badges.map((b) => (
           <span
             key={b}
-            className="rounded-full bg-cream-100 px-3 py-1 text-xs font-medium text-sage-600"
+            className="rounded-full bg-parchment-100 px-3 py-1 text-xs font-medium text-ink-600"
           >
             {b}
           </span>
@@ -124,7 +124,7 @@ export function Dashboard() {
         <Button
           onClick={() => setQuickAdd({ kind: 'feed' })}
           size="lg"
-          className="min-h-14 bg-rose-500 text-base shadow-sm hover:bg-rose-600"
+          className="min-h-14 bg-ink-700 text-base shadow-sm hover:bg-ink-800"
         >
           <Milk className="mr-2 h-5 w-5" /> Feed
         </Button>
@@ -132,7 +132,7 @@ export function Dashboard() {
           onClick={() => setQuickAdd({ kind: 'diaper' })}
           size="lg"
           variant="outline"
-          className="min-h-14 border-aegean-300 bg-white text-base text-aegean-700 hover:bg-aegean-50"
+          className="min-h-14 border-ink-300 bg-parchment-50 text-base text-ink-700 hover:bg-parchment-100"
         >
           <Droplets className="mr-2 h-5 w-5" /> Nappy
         </Button>
@@ -140,7 +140,7 @@ export function Dashboard() {
 
       {photos.length > 0 && (
         <Link href={'/leo/memories' as Route}>
-          <Card className="flex items-center gap-3 border-cream-200 p-3 transition-colors hover:bg-cream-50">
+          <Card className="flex items-center gap-3 border-ink-300/40 p-3 transition-colors hover:bg-parchment-50">
             <div className="flex -space-x-2">
               {photos.slice(0, 3).map((p) => (
                 <PhotoImage
@@ -152,8 +152,8 @@ export function Dashboard() {
               ))}
             </div>
             <div className="flex-1">
-              <p className="text-sm font-medium text-night-900">Memories</p>
-              <p className="text-xs text-sage-500">
+              <p className="text-sm font-medium text-ink-900">Memories</p>
+              <p className="text-xs text-ink-500">
                 {photos.length} photo{photos.length > 1 ? 's' : ''} · tap to
                 view
               </p>
@@ -170,20 +170,20 @@ export function Dashboard() {
 
 function SetupPrompt() {
   return (
-    <div className="flex flex-col items-center gap-4 rounded-3xl border border-gold-200 bg-cream-50 p-8 text-center shadow-sm">
+    <div className="flex flex-col items-center gap-4 rounded-3xl border border-gold-200 bg-parchment-50 p-8 text-center shadow-sm">
       <LionCrest className="h-24 w-24" />
       <div>
-        <h2 className="font-display text-2xl font-semibold text-night-900">
+        <h2 className="font-display text-2xl font-semibold text-ink-900">
           Welcome, little lion 🦁
         </h2>
-        <p className="mt-1 text-sm text-sage-600">
+        <p className="mt-1 text-sm text-ink-600">
           Add Leo&apos;s details to begin — it only takes a moment.
         </p>
       </div>
       <Button
         asChild
         size="lg"
-        className="min-h-12 bg-rose-500 hover:bg-rose-600"
+        className="min-h-12 bg-ink-700 hover:bg-ink-800"
       >
         <a href="/leo/settings">Set up Leo&apos;s profile</a>
       </Button>

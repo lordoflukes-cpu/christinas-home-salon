@@ -78,12 +78,12 @@ export function BackupPanel() {
   }
 
   return (
-    <Card className="border-cream-200 p-5">
-      <h2 className="mb-1 font-display text-lg font-semibold text-night-900">
+    <Card className="border-ink-300/40 p-5">
+      <h2 className="mb-1 font-display text-lg font-semibold text-ink-900">
         Backup &amp; restore
       </h2>
-      <p className="mb-4 flex items-start gap-2 text-sm text-sage-600">
-        <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-sage-500" />
+      <p className="mb-4 flex items-start gap-2 text-sm text-ink-600">
+        <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-ink-500" />
         Everything — entries, growth, milestones, letters and photos — lives
         only on this phone. Export a backup regularly so you never lose it
         (photos are included, so the file can be large).

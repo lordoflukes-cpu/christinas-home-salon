@@ -30,8 +30,8 @@ export function SinceLastCard({
   const a = ACCENTS[accent];
 
   return (
-    <Card className="flex h-full flex-col gap-2 border-cream-200 p-4">
-      <div className="flex items-center gap-2 text-sm font-medium text-sage-600">
+    <Card className="flex h-full flex-col gap-2 border-ink-300/40 p-4">
+      <div className="flex items-center gap-2 text-sm font-medium text-ink-600">
         <span
           className={cn(
             'flex h-7 w-7 items-center justify-center rounded-full',
@@ -43,14 +43,14 @@ export function SinceLastCard({
         {label}
       </div>
       {lastAt == null ? (
-        <p className="text-base font-semibold text-sage-400">No entries yet</p>
+        <p className="text-base font-semibold text-ink-400">No entries yet</p>
       ) : (
         <>
-          <p className="font-display text-2xl font-semibold text-night-900">
+          <p className="font-display text-2xl font-semibold text-ink-900">
             {formatElapsed(elapsedSince(lastAt, now))}{' '}
-            <span className="text-sm font-normal text-sage-500">ago</span>
+            <span className="text-sm font-normal text-ink-500">ago</span>
           </p>
-          <p className="text-xs text-sage-500">
+          <p className="text-xs text-ink-500">
             {formatClock(lastAt)}
             {detail ? ` · ${detail}` : ''}
           </p>

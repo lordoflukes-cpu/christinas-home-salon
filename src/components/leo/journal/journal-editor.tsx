@@ -93,7 +93,7 @@ export function JournalEditor({
         type="submit"
         disabled={busy}
         size="lg"
-        className="min-h-14 w-full bg-rose-500 text-base hover:bg-rose-600"
+        className="min-h-14 w-full bg-ink-700 text-base hover:bg-ink-800"
       >
         {entry ? 'Save letter' : 'Save letter'}
       </Button>

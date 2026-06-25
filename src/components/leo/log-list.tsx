@@ -84,18 +84,18 @@ export function LogList() {
       />
 
       {rows.length === 0 ? (
-        <p className="py-12 text-center text-sm text-sage-500">
+        <p className="py-12 text-center text-sm text-ink-500">
           No entries yet.
         </p>
       ) : (
         <div className="space-y-5">
           {grouped.map(({ day, items }) => (
             <section key={day}>
-              <h3 className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-sage-400">
+              <h3 className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-ink-400">
                 <Star className="h-3 w-3 fill-gold-300 text-gold-400" />
                 {day}
               </h3>
-              <div className="rounded-xl border border-cream-200 bg-white px-4">
+              <div className="rounded-xl border border-ink-300/40 bg-white px-4">
                 {items.map((row) => (
                   <LogItem
                     key={row.entry.id}

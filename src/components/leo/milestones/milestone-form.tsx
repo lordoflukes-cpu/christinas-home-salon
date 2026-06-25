@@ -91,7 +91,7 @@ export function MilestoneForm({
                 'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
                 title === s
                   ? 'border-rose-400 bg-rose-100 text-rose-700'
-                  : 'border-cream-300 text-sage-600 hover:bg-cream-100',
+                  : 'border-ink-300/50 text-ink-600 hover:bg-parchment-100',
               )}
             >
               {s}
@@ -131,7 +131,7 @@ export function MilestoneForm({
         type="submit"
         disabled={busy}
         size="lg"
-        className="min-h-14 w-full bg-rose-500 text-base hover:bg-rose-600"
+        className="min-h-14 w-full bg-ink-700 text-base hover:bg-ink-800"
       >
         {entry ? 'Save changes' : 'Save milestone'}
       </Button>

@@ -25,11 +25,11 @@ export function InstallPrompt() {
   if (!show) return null;
 
   return (
-    <Card className="relative border-rose-100 bg-rose-50 p-4 text-sm text-sage-700">
+    <Card className="relative border-rose-100 bg-rose-50 p-4 text-sm text-ink-700">
       <button
         type="button"
         aria-label="Dismiss"
-        className="absolute right-3 top-3 text-sage-400"
+        className="absolute right-3 top-3 text-ink-400"
         onClick={() => {
           localStorage.setItem(DISMISS_KEY, '1');
           setShow(false);

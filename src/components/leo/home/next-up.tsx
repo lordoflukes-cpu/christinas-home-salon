@@ -39,10 +39,10 @@ export function NextUp() {
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-xs font-medium text-aegean-700">Next up</p>
-              <p className="truncate font-medium text-night-900">
+              <p className="truncate font-medium text-ink-900">
                 {nextAppt.title}
               </p>
-              <p className="truncate text-xs text-sage-500">
+              <p className="truncate text-xs text-ink-500">
                 {formatDateTime(nextAppt.at)}
               </p>
             </div>
@@ -54,8 +54,8 @@ export function NextUp() {
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-xs font-medium text-gold-700">Reminder</p>
-              <p className="font-medium text-night-900">Vitamin D drop today</p>
-              <p className="text-xs text-sage-500">Tap to mark it given</p>
+              <p className="font-medium text-ink-900">Vitamin D drop today</p>
+              <p className="text-xs text-ink-500">Tap to mark it given</p>
             </div>
           </>
         )}

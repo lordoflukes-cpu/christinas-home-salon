@@ -64,7 +64,7 @@ export function PhotoGallery() {
         onClick={() => fileRef.current?.click()}
         disabled={busy}
         size="lg"
-        className="min-h-14 w-full bg-rose-500 text-base hover:bg-rose-600"
+        className="min-h-14 w-full bg-ink-700 text-base hover:bg-ink-800"
       >
         {busy ? (
           <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -83,9 +83,9 @@ export function PhotoGallery() {
       />
 
       {photos.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-3xl border border-gold-200 bg-cream-50 p-8 text-center">
+        <div className="flex flex-col items-center gap-3 rounded-3xl border border-gold-200 bg-parchment-50 p-8 text-center">
           <LionCrest className="h-20 w-20" />
-          <p className="text-sm text-sage-600">
+          <p className="text-sm text-ink-600">
             A photo a day — watch Leo grow. Tap{' '}
             <span className="font-medium">Add photos</span> to begin.
           </p>
@@ -94,7 +94,7 @@ export function PhotoGallery() {
       ) : (
         groups.map(({ day, items }) => (
           <section key={day}>
-            <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-sage-400">
+            <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink-400">
               {day}
             </h3>
             <div className="grid grid-cols-3 gap-1.5">
@@ -103,7 +103,7 @@ export function PhotoGallery() {
                   key={p.id}
                   type="button"
                   onClick={() => setViewerId(p.id)}
-                  className="relative aspect-square overflow-hidden rounded-xl border border-cream-200"
+                  className="relative aspect-square overflow-hidden rounded-xl border border-ink-300/40"
                 >
                   <PhotoImage
                     bytes={p.bytes}

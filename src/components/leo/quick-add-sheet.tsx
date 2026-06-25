@@ -44,11 +44,11 @@ export function QuickAddSheet({
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent side="bottom" className="border-cream-200">
+      <SheetContent side="bottom" className="border-ink-300/40">
         {state && meta && (
           <>
             <SheetHeader className="mb-4">
-              <SheetTitle className="font-display text-xl text-night-900">
+              <SheetTitle className="font-display text-xl text-ink-900">
                 {meta.title}
               </SheetTitle>
               <SheetDescription>{meta.description}</SheetDescription>

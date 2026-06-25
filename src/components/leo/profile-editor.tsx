@@ -74,8 +74,8 @@ export function ProfileEditor() {
   }
 
   return (
-    <Card className="border-cream-200 p-5">
-      <h2 className="mb-4 font-display text-lg font-semibold text-night-900">
+    <Card className="border-ink-300/40 p-5">
+      <h2 className="mb-4 font-display text-lg font-semibold text-ink-900">
         Baby details
       </h2>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -111,7 +111,7 @@ export function ProfileEditor() {
             {...register('birthWeightGrams')}
           />
           {birthWeight ? (
-            <p className="text-xs text-sage-500">
+            <p className="text-xs text-ink-500">
               = {gramsToLbOz(Number(birthWeight))}
             </p>
           ) : null}
@@ -146,7 +146,7 @@ export function ProfileEditor() {
           type="submit"
           disabled={busy}
           size="lg"
-          className="min-h-12 w-full bg-rose-500 hover:bg-rose-600"
+          className="min-h-12 w-full bg-ink-700 hover:bg-ink-800"
         >
           Save details
         </Button>

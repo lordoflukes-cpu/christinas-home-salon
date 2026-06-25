@@ -130,8 +130,8 @@ export function MedicalSection() {
           <Pill className="h-5 w-5" />
         </span>
         <div className="flex-1">
-          <p className="font-medium text-night-900">Vitamin D</p>
-          <p className="text-xs text-sage-600">
+          <p className="font-medium text-ink-900">Vitamin D</p>
+          <p className="text-xs text-ink-600">
             {vitaminStreak > 0
               ? `${vitaminStreak}-day streak 🔥`
               : 'A daily drop for little ones'}
@@ -142,8 +142,8 @@ export function MedicalSection() {
           size="sm"
           className={
             vitaminToday
-              ? 'bg-sage-600 hover:bg-sage-700'
-              : 'bg-gold-500 text-night-900 hover:bg-gold-400'
+              ? 'bg-ink-700 hover:bg-ink-800'
+              : 'bg-gold-500 text-ink-900 hover:bg-gold-400'
           }
         >
           {vitaminToday ? (
@@ -157,9 +157,9 @@ export function MedicalSection() {
       </Card>
 
       {/* Appointments */}
-      <Card className="border-cream-200 p-4">
+      <Card className="border-ink-300/40 p-4">
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-night-900">
+          <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-ink-900">
             <CalendarClock className="h-5 w-5 text-aegean-500" /> Appointments
           </h2>
           <Button
@@ -175,21 +175,19 @@ export function MedicalSection() {
           </Button>
         </div>
         {upcoming.length === 0 ? (
-          <p className="py-2 text-sm text-sage-500">
-            No upcoming appointments.
-          </p>
+          <p className="py-2 text-sm text-ink-500">No upcoming appointments.</p>
         ) : (
           <div>
             {upcoming.map((a) => (
               <div
                 key={a.id}
-                className="flex items-center gap-3 border-b border-cream-200 py-2.5 last:border-0"
+                className="flex items-center gap-3 border-b border-ink-300/40 py-2.5 last:border-0"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-night-900">
+                  <p className="truncate text-sm font-medium text-ink-900">
                     {a.title}
                   </p>
-                  <p className="text-xs text-sage-500">
+                  <p className="text-xs text-ink-500">
                     {formatDateTime(a.at)}
                     {a.location ? ` · ${a.location}` : ''}
                   </p>
@@ -212,11 +210,11 @@ export function MedicalSection() {
       </Card>
 
       {/* Vaccinations */}
-      <Card className="border-cream-200 p-4">
-        <h2 className="mb-1 flex items-center gap-2 font-display text-lg font-semibold text-night-900">
+      <Card className="border-ink-300/40 p-4">
+        <h2 className="mb-1 flex items-center gap-2 font-display text-lg font-semibold text-ink-900">
           <Syringe className="h-5 w-5 text-rose-500" /> Immunisations
         </h2>
-        <p className="mb-3 text-xs text-sage-500">NHS routine schedule</p>
+        <p className="mb-3 text-xs text-ink-500">NHS routine schedule</p>
         <div className="space-y-2">
           {NHS_VACCINES.map((v) => {
             const done = medical.find(
@@ -228,24 +226,22 @@ export function MedicalSection() {
                 key={v.id}
                 type="button"
                 onClick={() => toggleVaccine(v)}
-                className="flex w-full items-center gap-3 rounded-xl border border-cream-200 p-3 text-left transition-colors hover:bg-cream-50"
+                className="flex w-full items-center gap-3 rounded-xl border border-ink-300/40 p-3 text-left transition-colors hover:bg-parchment-50"
               >
                 <span
                   className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${
                     done
-                      ? 'border-sage-600 bg-sage-600 text-white'
-                      : 'border-cream-300'
+                      ? 'border-sage-600 bg-ink-700 text-white'
+                      : 'border-ink-300/50'
                   }`}
                 >
                   {done && <Check className="h-3.5 w-3.5" />}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-night-900">
-                    {v.label}
-                  </p>
-                  <p className="truncate text-xs text-sage-500">{v.detail}</p>
+                  <p className="text-sm font-medium text-ink-900">{v.label}</p>
+                  <p className="truncate text-xs text-ink-500">{v.detail}</p>
                 </div>
-                <span className="shrink-0 text-xs text-sage-400">
+                <span className="shrink-0 text-xs text-ink-400">
                   {done ? 'Done' : due != null ? relDay(due, nowMs) : ''}
                 </span>
               </button>
@@ -255,9 +251,9 @@ export function MedicalSection() {
       </Card>
 
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="bottom" className="border-cream-200">
+        <SheetContent side="bottom" className="border-ink-300/40">
           <SheetHeader className="mb-4">
-            <SheetTitle className="font-display text-xl text-night-900">
+            <SheetTitle className="font-display text-xl text-ink-900">
               {editing ? 'Edit appointment' : 'Add appointment'}
             </SheetTitle>
             <GreekKey className="mt-2 h-2 w-24" />

@@ -101,7 +101,7 @@ export function GrowthForm({
           {...register('weightKg')}
         />
         {weightKg ? (
-          <p className="text-xs text-sage-500">
+          <p className="text-xs text-ink-500">
             = {gramsToLbOz(Math.round(weightKg * 1000))}
           </p>
         ) : null}
@@ -144,7 +144,7 @@ export function GrowthForm({
         type="submit"
         disabled={busy}
         size="lg"
-        className="min-h-14 w-full bg-rose-500 text-base hover:bg-rose-600"
+        className="min-h-14 w-full bg-ink-700 text-base hover:bg-ink-800"
       >
         {entry ? 'Save changes' : 'Save measurement'}
       </Button>

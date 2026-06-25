@@ -40,15 +40,15 @@ export function JournalList() {
           setSheetOpen(true);
         }}
         size="lg"
-        className="min-h-14 w-full bg-rose-500 text-base hover:bg-rose-600"
+        className="min-h-14 w-full bg-ink-700 text-base hover:bg-ink-800"
       >
         <Plus className="mr-2 h-5 w-5" /> Write to Leo
       </Button>
 
       {journal.length === 0 ? (
-        <Card className="flex flex-col items-center gap-2 border-gold-200 bg-cream-50 p-8 text-center">
+        <Card className="flex flex-col items-center gap-2 border-gold-200 bg-parchment-50 p-8 text-center">
           <Feather className="h-8 w-8 text-gold-500" />
-          <p className="text-sm text-sage-600">
+          <p className="text-sm text-ink-600">
             Little letters he can read one day. Tell him about today.
           </p>
         </Card>
@@ -56,12 +56,12 @@ export function JournalList() {
         journal.map((j) => (
           <Card
             key={j.id}
-            className="border-cream-200 bg-gradient-to-br from-cream-50 to-white p-4"
+            className="border-ink-300/40 bg-gradient-to-br from-parchment-50 to-white p-4"
           >
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
                 {j.title && (
-                  <h3 className="font-display text-lg font-semibold text-night-900">
+                  <h3 className="font-display text-lg font-semibold text-ink-900">
                     {j.title}
                   </h3>
                 )}
@@ -79,7 +79,7 @@ export function JournalList() {
                   }}
                   aria-label="Edit"
                 >
-                  <Pencil className="h-4 w-4 text-sage-500" />
+                  <Pencil className="h-4 w-4 text-ink-500" />
                 </Button>
                 <Button
                   variant="ghost"
@@ -101,10 +101,10 @@ export function JournalList() {
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent
           side="bottom"
-          className="max-h-[92vh] overflow-y-auto border-cream-200"
+          className="max-h-[92vh] overflow-y-auto border-ink-300/40"
         >
           <SheetHeader className="mb-4">
-            <SheetTitle className="font-display text-xl text-night-900">
+            <SheetTitle className="font-display text-xl text-ink-900">
               {editing ? 'Edit letter' : 'A letter to Leo'}
             </SheetTitle>
             <GreekKey className="mt-2 h-2 w-24" />

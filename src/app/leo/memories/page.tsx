@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { SectionBanner } from '@/components/leo';
 import { Segmented } from '@/components/leo/forms/feed-form';
 import { PhotoGallery } from '@/components/leo/photos/photo-gallery';
 import { MilestoneList } from '@/components/leo/milestones/milestone-list';
@@ -12,9 +14,11 @@ export default function LeoMemoriesPage() {
   const [tab, setTab] = useState<Tab>('photos');
   return (
     <div className="space-y-4">
-      <h1 className="font-display text-2xl font-semibold text-night-900">
-        Memories
-      </h1>
+      <SectionBanner
+        title="Memories"
+        subtitle="Photos, firsts & letters"
+        variant="dusk"
+      />
       <Segmented
         value={tab}
         onChange={(v) => setTab(v as Tab)}
@@ -24,9 +28,19 @@ export default function LeoMemoriesPage() {
           { value: 'journal', label: 'Letters' },
         ]}
       />
-      {tab === 'photos' && <PhotoGallery />}
-      {tab === 'milestones' && <MilestoneList />}
-      {tab === 'journal' && <JournalList />}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={tab}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.25 }}
+        >
+          {tab === 'photos' && <PhotoGallery />}
+          {tab === 'milestones' && <MilestoneList />}
+          {tab === 'journal' && <JournalList />}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }

@@ -132,6 +132,46 @@ const config: Config = {
           900: '#1e1f49',
           950: '#15163a',
         },
+        // ---- Engraved-keepsake palette (warm paper, wood, sepia ink) ----
+        parchment: {
+          50: '#fbf6ec',
+          100: '#f5ecd8',
+          200: '#ecdcb9',
+          300: '#e0c692',
+          400: '#d3ad6c',
+          500: '#c49550',
+          600: '#a9783f',
+          700: '#875c35',
+          800: '#6f4b30',
+          900: '#5d3f2b',
+          950: '#332115',
+        },
+        ink: {
+          50: '#f7f2ea',
+          100: '#e9dcc8',
+          200: '#d3bd9b',
+          300: '#b9986e',
+          400: '#9c7649',
+          500: '#7e5c33',
+          600: '#654827',
+          700: '#4f3920',
+          800: '#3c2c1a',
+          900: '#2c2013',
+          950: '#1b130b',
+        },
+        bark: {
+          50: '#f6ecd9',
+          100: '#ead2ad',
+          200: '#dbb37e',
+          300: '#c8945a',
+          400: '#b27a44',
+          500: '#946138',
+          600: '#774c2f',
+          700: '#5d3c28',
+          800: '#4a3122',
+          900: '#3c281d',
+          950: '#241710',
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',
@@ -141,6 +181,8 @@ const config: Config = {
       fontFamily: {
         sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
         display: ['var(--font-playfair)', 'Georgia', 'serif'],
+        serif: ['var(--font-cormorant)', 'Georgia', 'serif'],
+        hand: ['var(--font-caveat)', 'ui-rounded', 'cursive'],
       },
       keyframes: {
         'accordion-down': {
@@ -159,12 +201,22 @@ const config: Config = {
           from: { transform: 'translateX(100%)' },
           to: { transform: 'translateX(0)' },
         },
+        'ink-draw': {
+          from: { strokeDashoffset: 'var(--draw-length, 1000)' },
+          to: { strokeDashoffset: '0' },
+        },
+        'ink-in': {
+          from: { opacity: '0', filter: 'blur(3px)' },
+          to: { opacity: '1', filter: 'blur(0)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         'fade-in': 'fade-in 0.5s ease-out forwards',
         'slide-in-from-right': 'slide-in-from-right 0.3s ease-out',
+        'ink-draw': 'ink-draw 1.4s ease-out forwards',
+        'ink-in': 'ink-in 0.7s ease-out forwards',
       },
       typography: {
         DEFAULT: {

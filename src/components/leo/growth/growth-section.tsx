@@ -57,7 +57,7 @@ export function GrowthSection() {
 
   if (!profile) {
     return (
-      <Card className="border-cream-200 p-6 text-center text-sm text-sage-600">
+      <Card className="border-ink-300/40 p-6 text-center text-sm text-ink-600">
         Add Leo&apos;s birthday in Settings to track growth on the WHO curves.
       </Card>
     );
@@ -101,11 +101,11 @@ export function GrowthSection() {
       {/* latest stats */}
       <div className="grid grid-cols-3 gap-2">
         {chips.map(({ m, text, pct }) => (
-          <Card key={m} className="border-cream-200 p-3 text-center">
-            <p className="text-[11px] font-medium text-sage-500">
+          <Card key={m} className="border-ink-300/40 p-3 text-center">
+            <p className="text-[11px] font-medium text-ink-500">
               {METRIC_LABELS[m].label}
             </p>
-            <p className="mt-0.5 text-sm font-semibold text-night-900">
+            <p className="mt-0.5 text-sm font-semibold text-ink-900">
               {m === 'weight' ? text.split(' · ')[0] : text}
             </p>
             {pct != null && (
@@ -118,9 +118,9 @@ export function GrowthSection() {
       </div>
 
       {/* chart */}
-      <Card className="border-cream-200 p-4">
+      <Card className="border-ink-300/40 p-4">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-display text-lg font-semibold text-night-900">
+          <h2 className="font-display text-lg font-semibold text-ink-900">
             Growth
           </h2>
           <Segmented
@@ -133,7 +133,7 @@ export function GrowthSection() {
           />
         </div>
         <GrowthChart metric={metric} birth={birth} entries={growth} />
-        <p className="mt-2 text-center text-[10px] text-sage-400">
+        <p className="mt-2 text-center text-[10px] text-ink-400">
           Shaded bands = WHO boys 3rd–97th percentiles
         </p>
       </Card>
@@ -141,25 +141,25 @@ export function GrowthSection() {
       <Button
         onClick={openAdd}
         size="lg"
-        className="min-h-12 w-full bg-rose-500 hover:bg-rose-600"
+        className="min-h-12 w-full bg-ink-700 hover:bg-ink-800"
       >
         <Plus className="mr-2 h-5 w-5" /> Add measurement
       </Button>
 
       {/* history */}
       {growth.length > 0 && (
-        <Card className="border-cream-200 p-4">
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-sage-400">
+        <Card className="border-ink-300/40 p-4">
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-400">
             History
           </h3>
           <div>
             {[...growth].reverse().map((e) => (
               <div
                 key={e.id}
-                className="flex items-center gap-3 border-b border-cream-200 py-2.5 last:border-0"
+                className="flex items-center gap-3 border-b border-ink-300/40 py-2.5 last:border-0"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-night-900">
+                  <p className="truncate text-sm font-medium text-ink-900">
                     {[
                       e.weightGrams &&
                         formatWeight(e.weightGrams).split(' · ')[0],
@@ -169,7 +169,7 @@ export function GrowthSection() {
                       .filter(Boolean)
                       .join(' · ')}
                   </p>
-                  <p className="text-xs text-sage-500">
+                  <p className="text-xs text-ink-500">
                     {formatDateTime(e.measuredAt)}
                   </p>
                 </div>
@@ -179,7 +179,7 @@ export function GrowthSection() {
                   onClick={() => openEdit(e)}
                   aria-label="Edit"
                 >
-                  <Pencil className="h-4 w-4 text-sage-500" />
+                  <Pencil className="h-4 w-4 text-ink-500" />
                 </Button>
                 <Button
                   variant="ghost"
@@ -197,9 +197,9 @@ export function GrowthSection() {
 
       {/* add/edit sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="bottom" className="border-cream-200">
+        <SheetContent side="bottom" className="border-ink-300/40">
           <SheetHeader className="mb-4">
-            <SheetTitle className="font-display text-xl text-night-900">
+            <SheetTitle className="font-display text-xl text-ink-900">
               {editing ? 'Edit measurement' : 'Add measurement'}
             </SheetTitle>
             <GreekKey className="mt-2 h-2 w-24" />

@@ -169,7 +169,7 @@ export function FeedForm({
         type="submit"
         disabled={busy}
         size="lg"
-        className="min-h-14 w-full bg-rose-500 text-base hover:bg-rose-600"
+        className="min-h-14 w-full bg-ink-700 text-base hover:bg-ink-800"
       >
         {entry ? 'Save changes' : 'Save feed'}
       </Button>
@@ -185,7 +185,7 @@ interface SegmentedProps {
 
 export function Segmented({ value, onChange, options }: SegmentedProps) {
   return (
-    <div className="grid grid-flow-col gap-1 rounded-lg bg-cream-100 p-1">
+    <div className="grid grid-flow-col gap-1 rounded-lg bg-parchment-100 p-1">
       {options.map((opt) => (
         <button
           key={opt.value}
@@ -195,7 +195,7 @@ export function Segmented({ value, onChange, options }: SegmentedProps) {
             'rounded-md py-2 text-sm font-medium transition-colors',
             value === opt.value
               ? 'bg-white text-sage-900 shadow-sm'
-              : 'text-sage-500 hover:text-sage-700',
+              : 'text-ink-500 hover:text-ink-700',
           )}
         >
           {opt.label}

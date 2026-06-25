@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { SectionBanner } from '@/components/leo';
 import { Segmented } from '@/components/leo/forms/feed-form';
 import { GrowthSection } from '@/components/leo/growth/growth-section';
 import { MedicalSection } from '@/components/leo/medical/medical-section';
@@ -9,9 +11,11 @@ export default function LeoHealthPage() {
   const [tab, setTab] = useState<'growth' | 'medical'>('growth');
   return (
     <div className="space-y-4">
-      <h1 className="font-display text-2xl font-semibold text-night-900">
-        Health
-      </h1>
+      <SectionBanner
+        title="Health"
+        subtitle="Growth & wellbeing"
+        variant="dawn"
+      />
       <Segmented
         value={tab}
         onChange={(v) => setTab(v as 'growth' | 'medical')}
@@ -20,7 +24,17 @@ export default function LeoHealthPage() {
           { value: 'medical', label: 'Medical' },
         ]}
       />
-      {tab === 'growth' ? <GrowthSection /> : <MedicalSection />}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={tab}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.25 }}
+        >
+          {tab === 'growth' ? <GrowthSection /> : <MedicalSection />}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }

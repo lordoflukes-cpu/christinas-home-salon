@@ -1,5 +1,10 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, Playfair_Display } from 'next/font/google';
+import {
+  Inter,
+  Playfair_Display,
+  Cormorant_Garamond,
+  Caveat,
+} from 'next/font/google';
 import { Toaster } from '@/components/ui/toaster';
 import { BUSINESS_INFO } from '@/content/business';
 import '@/styles/globals.css';
@@ -14,6 +19,22 @@ const playfair = Playfair_Display({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-playfair',
+});
+
+// Etched editorial serif for the Leo keepsake aesthetic.
+const cormorant = Cormorant_Garamond({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+  variable: '--font-cormorant',
+});
+
+// Handwritten accent for letters / captions.
+const caveat = Caveat({
+  subsets: ['latin'],
+  weight: ['400', '600', '700'],
+  display: 'swap',
+  variable: '--font-caveat',
 });
 
 export const metadata: Metadata = {
@@ -43,7 +64,7 @@ export default function RootLayout({
   return (
     <html
       lang="en-GB"
-      className={`${inter.variable} ${playfair.variable}`}
+      className={`${inter.variable} ${playfair.variable} ${cormorant.variable} ${caveat.variable}`}
       suppressHydrationWarning
     >
       <body className="min-h-screen bg-background font-sans antialiased">

@@ -41,15 +41,15 @@ export function MilestoneList() {
           setSheetOpen(true);
         }}
         size="lg"
-        className="min-h-14 w-full bg-rose-500 text-base hover:bg-rose-600"
+        className="min-h-14 w-full bg-ink-700 text-base hover:bg-ink-800"
       >
         <Plus className="mr-2 h-5 w-5" /> Add a first
       </Button>
 
       {milestones.length === 0 ? (
-        <Card className="flex flex-col items-center gap-2 border-gold-200 bg-cream-50 p-8 text-center">
+        <Card className="flex flex-col items-center gap-2 border-gold-200 bg-parchment-50 p-8 text-center">
           <Sparkles className="h-8 w-8 text-gold-500" />
-          <p className="text-sm text-sage-600">
+          <p className="text-sm text-ink-600">
             Capture Leo&apos;s firsts — that first smile will mean the world
             later.
           </p>
@@ -61,18 +61,18 @@ export function MilestoneList() {
               <span className="absolute -left-[26px] top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-gold-100">
                 <Star className="h-3 w-3 fill-gold-400 text-gold-500" />
               </span>
-              <Card className="border-cream-200 p-3">
+              <Card className="border-ink-300/40 p-3">
                 <div className="flex items-start gap-2">
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-night-900">{m.title}</p>
-                    <p className="text-xs text-sage-500">
+                    <p className="font-medium text-ink-900">{m.title}</p>
+                    <p className="text-xs text-ink-500">
                       {formatDateTime(m.achievedAt)}
                       {profile
                         ? ` · ${formatAge(profile.birth, m.achievedAt)}`
                         : ''}
                     </p>
                     {m.note && (
-                      <p className="mt-1 text-sm text-sage-700">{m.note}</p>
+                      <p className="mt-1 text-sm text-ink-700">{m.note}</p>
                     )}
                   </div>
                   <Button
@@ -84,7 +84,7 @@ export function MilestoneList() {
                     }}
                     aria-label="Edit"
                   >
-                    <Pencil className="h-4 w-4 text-sage-500" />
+                    <Pencil className="h-4 w-4 text-ink-500" />
                   </Button>
                   <Button
                     variant="ghost"
@@ -102,9 +102,9 @@ export function MilestoneList() {
       )}
 
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="bottom" className="border-cream-200">
+        <SheetContent side="bottom" className="border-ink-300/40">
           <SheetHeader className="mb-4">
-            <SheetTitle className="font-display text-xl text-night-900">
+            <SheetTitle className="font-display text-xl text-ink-900">
               {editing ? 'Edit milestone' : 'A new first 🌟'}
             </SheetTitle>
             <GreekKey className="mt-2 h-2 w-24" />

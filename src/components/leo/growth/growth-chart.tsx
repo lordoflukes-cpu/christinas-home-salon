@@ -143,14 +143,20 @@ export function GrowthChart({
           strokeDasharray="3 3"
         />
 
-        {/* Leo's line + points */}
+        {/* Leo's line + points — sepia ink, drawn on like a pen stroke */}
         {points.length > 1 && (
           <path
             d={linePath(
               points.map((p) => ({ month: p.ageMonths, value: p.value })),
             )}
-            className="fill-none stroke-rose-500"
-            strokeWidth={2}
+            className="animate-ink-draw fill-none stroke-ink-700"
+            style={
+              {
+                '--draw-length': '600',
+                strokeDasharray: 600,
+              } as React.CSSProperties
+            }
+            strokeWidth={2.4}
             strokeLinecap="round"
             strokeLinejoin="round"
           />
@@ -161,7 +167,7 @@ export function GrowthChart({
             cx={x(p.ageMonths)}
             cy={y(p.value)}
             r={selected === p.id ? 6 : 4.5}
-            className="cursor-pointer fill-rose-500 stroke-white"
+            className="animate-ink-in cursor-pointer fill-ink-700 stroke-parchment-50"
             strokeWidth={2}
             onClick={() => setSelected(selected === p.id ? null : p.id)}
           />
@@ -169,7 +175,7 @@ export function GrowthChart({
       </svg>
 
       {selectedPoint && (
-        <div className="mt-1 rounded-lg bg-night-900 px-3 py-2 text-center text-xs text-white">
+        <div className="mt-1 rounded-lg bg-ink-900 px-3 py-2 text-center text-xs text-parchment-50">
           <span className="font-semibold">
             {selectedPoint.value.toFixed(unit === 'kg' ? 2 : 1)} {unit}
           </span>{' '}
@@ -180,12 +186,12 @@ export function GrowthChart({
         </div>
       )}
       {!selectedPoint && points.length > 0 && (
-        <p className="mt-1 text-center text-[11px] text-sage-400">
+        <p className="mt-1 text-center text-[11px] text-ink-400">
           Tap a dot to see the value &amp; percentile
         </p>
       )}
       {points.length === 0 && (
-        <p className="mt-1 text-center text-[11px] text-sage-400">
+        <p className="mt-1 text-center text-[11px] text-ink-400">
           Add a measurement to plot {METRIC_LABELS[metric].label.toLowerCase()}{' '}
           on the WHO curves
         </p>

@@ -95,7 +95,7 @@ export function MedicalForm({
         type="submit"
         disabled={busy}
         size="lg"
-        className="min-h-14 w-full bg-aegean-600 text-base hover:bg-aegean-700"
+        className="min-h-14 w-full bg-ink-700 text-base hover:bg-ink-800"
       >
         {entry ? 'Save changes' : 'Save appointment'}
       </Button>

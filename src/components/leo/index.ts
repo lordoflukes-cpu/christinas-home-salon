@@ -5,3 +5,4 @@ export { LogList } from './log-list';
 export { ProfileEditor } from './profile-editor';
 export { BackupPanel } from './backup-panel';
 export { InstallPrompt } from './install-prompt';
+export { SectionBanner } from './section-banner';

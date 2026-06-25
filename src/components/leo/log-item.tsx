@@ -47,7 +47,7 @@ export function LogItem({
   const { time, title, subtitle } = describe(item);
 
   return (
-    <div className="flex items-center gap-3 border-b border-cream-200 py-3 last:border-0">
+    <div className="flex items-center gap-3 border-b border-ink-300/40 py-3 last:border-0">
       <span
         className={cn(
           'flex h-9 w-9 shrink-0 items-center justify-center rounded-full',
@@ -58,13 +58,13 @@ export function LogItem({
       </span>
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium text-sage-900">{title}</p>
-        <p className="text-xs text-sage-500">
+        <p className="text-xs text-ink-500">
           {time}
           {subtitle ? ` · ${subtitle}` : ''}
         </p>
       </div>
       <Button variant="ghost" size="icon" onClick={onEdit} aria-label="Edit">
-        <Pencil className="h-4 w-4 text-sage-500" />
+        <Pencil className="h-4 w-4 text-ink-500" />
       </Button>
       <Button
         variant="ghost"
