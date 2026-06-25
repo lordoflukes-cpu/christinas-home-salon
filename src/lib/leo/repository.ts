@@ -8,6 +8,7 @@ import { now } from '@/lib/time/clock';
 import { getDB, DB_VERSION } from './db';
 import type {
   BabyProfile,
+  BreastSide,
   DiaperEntry,
   FeedEntry,
   GrowthEntry,
@@ -109,6 +110,35 @@ export async function getRecentFeeds(limit = 20): Promise<FeedEntry[]> {
 
 export async function getLastFeed(): Promise<FeedEntry | null> {
   return (await getRecentFeeds(1))[0] ?? null;
+}
+
+/** The currently-running feed timer (a feed with `active: true`), if any. */
+export async function getActiveFeed(): Promise<FeedEntry | null> {
+  const recent = await getRecentFeeds(50);
+  return recent.find((f) => f.active) ?? null;
+}
+
+/** Begin a live breast-feed timer; creates an active feed entry. */
+export async function startFeed(
+  side: BreastSide,
+  startedAt: number = ts(),
+): Promise<FeedEntry> {
+  return addFeed({ type: 'breast', startedAt, side, active: true });
+}
+
+/** Stop a running feed timer, recording its duration in whole minutes. */
+export async function stopFeed(
+  id: string,
+  endedAt: number = ts(),
+): Promise<FeedEntry> {
+  const db = await getDB();
+  const existing = await db.get('feeds', id);
+  if (!existing) throw new Error(`Feed ${id} not found`);
+  const durationMin = Math.max(
+    1,
+    Math.round((endedAt - existing.startedAt) / 60_000),
+  );
+  return updateFeed(id, { active: false, endedAt, durationMin });
 }
 
 // ---------------------------------------------------------------------------

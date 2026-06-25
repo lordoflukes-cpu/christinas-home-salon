@@ -5,6 +5,7 @@ import * as repo from './repository';
 import * as sync from './sync';
 import type {
   BabyProfile,
+  BreastSide,
   DiaperEntry,
   FeedEntry,
   GrowthEntry,
@@ -31,6 +32,7 @@ interface LeoState {
   hydrated: boolean;
   profile: BabyProfile | null;
   feeds: FeedEntry[];
+  activeFeed: FeedEntry | null;
   diapers: DiaperEntry[];
   sleeps: SleepEntry[];
   activeSleep: SleepEntry | null;
@@ -47,6 +49,8 @@ interface LeoState {
   createFeed: (input: NewFeed) => Promise<void>;
   editFeed: (id: string, patch: Partial<FeedEntry>) => Promise<void>;
   removeFeed: (id: string) => Promise<void>;
+  startFeedTimer: (side: BreastSide) => Promise<void>;
+  stopFeedTimer: (id: string) => Promise<void>;
 
   createDiaper: (input: NewDiaper) => Promise<void>;
   editDiaper: (id: string, patch: Partial<DiaperEntry>) => Promise<void>;
@@ -86,6 +90,7 @@ async function refresh() {
   const [
     profile,
     feeds,
+    activeFeed,
     diapers,
     sleeps,
     activeSleep,
@@ -97,6 +102,7 @@ async function refresh() {
   ] = await Promise.all([
     repo.getProfile(),
     repo.getRecentFeeds(RECENT_LIMIT),
+    repo.getActiveFeed(),
     repo.getRecentDiapers(RECENT_LIMIT),
     repo.getRecentSleeps(RECENT_LIMIT),
     repo.getActiveSleep(),
@@ -109,6 +115,7 @@ async function refresh() {
   return {
     profile,
     feeds,
+    activeFeed,
     diapers,
     sleeps,
     activeSleep,
@@ -143,6 +150,7 @@ export const useLeoStore = create<LeoState>((set, get) => ({
   hydrated: false,
   profile: null,
   feeds: [],
+  activeFeed: null,
   diapers: [],
   sleeps: [],
   activeSleep: null,
@@ -180,8 +188,27 @@ export const useLeoStore = create<LeoState>((set, get) => ({
   },
   removeFeed: async (id) => {
     await repo.deleteFeed(id);
-    set({ feeds: await repo.getRecentFeeds(RECENT_LIMIT) });
+    set({
+      feeds: await repo.getRecentFeeds(RECENT_LIMIT),
+      activeFeed: await repo.getActiveFeed(),
+    });
     sync.pushDelete('feeds', id);
+  },
+  startFeedTimer: async (side) => {
+    const entry = await repo.startFeed(side);
+    set({
+      feeds: await repo.getRecentFeeds(RECENT_LIMIT),
+      activeFeed: await repo.getActiveFeed(),
+    });
+    sync.pushEntry('feeds', entry);
+  },
+  stopFeedTimer: async (id) => {
+    const entry = await repo.stopFeed(id);
+    set({
+      feeds: await repo.getRecentFeeds(RECENT_LIMIT),
+      activeFeed: await repo.getActiveFeed(),
+    });
+    sync.pushEntry('feeds', entry);
   },
 
   createDiaper: async (input) => {

@@ -5,6 +5,18 @@ import { z } from 'zod';
 
 const millis = z.number().int().nonnegative();
 
+const reminderPrefsSchema = z.object({
+  enabled: z.boolean(),
+  feed: z.boolean(),
+  feedHours: z.number().positive(),
+  medical: z.boolean(),
+  leadMinutes: z.number().nonnegative(),
+  vitd: z.boolean(),
+  vitdTime: z.string(),
+  sleep: z.boolean(),
+  sleepMaxHours: z.number().positive(),
+});
+
 const babyProfileSchema = z.object({
   id: z.literal('leo'),
   name: z.string(),
@@ -13,6 +25,7 @@ const babyProfileSchema = z.object({
   birthLengthCm: z.number().positive().optional(),
   birthHeadCircCm: z.number().positive().optional(),
   heroPhotoId: z.string().optional(),
+  reminders: reminderPrefsSchema.optional(),
   updatedAt: millis,
 });
 
@@ -25,6 +38,8 @@ const feedSchema = z.object({
   amountMl: z.number().nonnegative().optional(),
   contents: z.enum(['formula', 'breastmilk']).optional(),
   note: z.string().optional(),
+  active: z.boolean().optional(),
+  endedAt: millis.optional(),
   createdAt: millis,
   updatedAt: millis,
 });

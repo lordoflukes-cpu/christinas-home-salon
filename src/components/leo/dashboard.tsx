@@ -18,6 +18,7 @@ import {
 import { LeoHero } from './brand/leo-hero';
 import { PawMark } from './brand/paw-mark';
 import { SinceLastCard } from './cards/since-last-card';
+import { FeedStatusCard } from './cards/feed-status-card';
 import { SleepStatusCard } from './cards/sleep-status-card';
 import { TodayGlance } from './home/today-glance';
 import { NextUp } from './home/next-up';
@@ -111,6 +112,10 @@ export function Dashboard() {
           />
         </motion.div>
       </div>
+
+      <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.16 }}>
+        <FeedStatusCard />
+      </motion.div>
 
       <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.18 }}>
         <SleepStatusCard />

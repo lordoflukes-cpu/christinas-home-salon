@@ -70,3 +70,112 @@ Open the app on both phones, sign in with the shared email/password, and Leo
 keeps both in step. Whatever data each phone already had is merged in on first
 sign-in (newest edit per item wins). The on-device backup (Settings → Backup)
 still works as a belt-and-braces safety net.
+
+---
+
+# Push notifications (optional, needs cloud sync above)
+
+This delivers reminders (feeds, appointments/jabs, daily Vitamin D, long naps)
+to the phone **even when Leo is closed**. On iPhone this requires iOS 16.4+ and
+that Leo is **added to the Home Screen** and opened from there.
+
+## A. Extra tables (one-time)
+
+In **SQL Editor → New query**, run:
+
+```sql
+-- One row per device that opted in to notifications.
+create table if not exists public.leo_push_subscriptions (
+  owner uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  endpoint text primary key,
+  data jsonb not null,
+  updated_at bigint not null
+);
+alter table public.leo_push_subscriptions enable row level security;
+create policy "owner sub read"   on public.leo_push_subscriptions for select using (owner = auth.uid());
+create policy "owner sub insert" on public.leo_push_subscriptions for insert with check (owner = auth.uid());
+create policy "owner sub update" on public.leo_push_subscriptions for update using (owner = auth.uid()) with check (owner = auth.uid());
+create policy "owner sub delete" on public.leo_push_subscriptions for delete using (owner = auth.uid());
+
+-- The reminders waiting to be sent (the app keeps this in step).
+create table if not exists public.leo_scheduled (
+  owner uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  key text not null,
+  fire_at bigint not null,
+  title text not null,
+  body text not null,
+  primary key (owner, key)
+);
+alter table public.leo_scheduled enable row level security;
+create policy "owner sched read"   on public.leo_scheduled for select using (owner = auth.uid());
+create policy "owner sched insert" on public.leo_scheduled for insert with check (owner = auth.uid());
+create policy "owner sched update" on public.leo_scheduled for update using (owner = auth.uid()) with check (owner = auth.uid());
+create policy "owner sched delete" on public.leo_scheduled for delete using (owner = auth.uid());
+```
+
+## B. The push keys (VAPID)
+
+A key pair has already been generated for you. The **public** key (safe to
+ship) is below; the **private** key is a secret and is **not** stored in this
+repo — Claude provided it in the chat. (You can regenerate a pair any time with
+`npx web-push generate-vapid-keys`.)
+
+- **Public** (ships in the app):
+  `BGqK5e6tm4urcn0-_wd5pR8QU4Cj0wgnBWGFlhS-qrlADwKKjZ4iF4KGJsZJTq2-swlRlVrshsnqsPpR_nS8V_E`
+- **Private** (secret — paste from the chat into Supabase below; never commit it)
+
+In **Vercel → Settings → Environment Variables** add:
+
+```
+NEXT_PUBLIC_VAPID_PUBLIC_KEY = BGqK5e6tm4urcn0-_wd5pR8QU4Cj0wgnBWGFlhS-qrlADwKKjZ4iF4KGJsZJTq2-swlRlVrshsnqsPpR_nS8V_E
+```
+
+Then redeploy.
+
+## C. Deploy the sender (Edge Function)
+
+The function lives in this repo at `supabase/functions/leo-push/index.ts`.
+
+In Supabase: **Edge Functions → Create a function**, name it exactly
+**`leo-push`**, paste the file's contents, and **Deploy**. Then under the
+function's **Secrets**, add:
+
+```
+VAPID_PUBLIC_KEY  = BGqK5e6tm4urcn0-_wd5pR8QU4Cj0wgnBWGFlhS-qrlADwKKjZ4iF4KGJsZJTq2-swlRlVrshsnqsPpR_nS8V_E
+VAPID_PRIVATE_KEY = <paste the private key from the chat>
+VAPID_SUBJECT     = mailto:lukeadekoya89@gmail.com
+```
+
+(`SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are provided to the function
+automatically — you don't add those.)
+
+## D. Run it every minute (pg_cron)
+
+In **SQL Editor**, run (replace `<PROJECT_REF>` with your project ref — the
+subdomain of your Project URL — and `<ANON_KEY>` with your anon key):
+
+```sql
+create extension if not exists pg_cron;
+create extension if not exists pg_net;
+
+select cron.schedule(
+  'leo-push-tick',
+  '* * * * *',
+  $$
+  select net.http_post(
+    url := 'https://<PROJECT_REF>.functions.supabase.co/leo-push',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer <ANON_KEY>'
+    )
+  );
+  $$
+);
+```
+
+## E. Turn it on
+
+On each phone: add Leo to the Home Screen, open it, go to **Settings →
+Reminders & notifications → Turn on notifications**, and allow when prompted.
+Choose which reminders you want and their timings. Done — a test notification
+confirms it's working, and reminders will arrive even with the app closed.
