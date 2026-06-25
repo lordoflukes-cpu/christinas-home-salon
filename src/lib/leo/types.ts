@@ -5,6 +5,8 @@
  * range indexing and trivial JSON round-tripping. IDs use `crypto.randomUUID()`.
  */
 
+import type { ReminderPrefs } from './reminders';
+
 /** Epoch milliseconds (e.g. `Date.now()` / `now().getTime()`). */
 export type Millis = number;
 
@@ -24,6 +26,8 @@ export interface BabyProfile {
   birthHeadCircCm?: number;
   /** PhotoEntry id chosen as the hero image, if any. */
   heroPhotoId?: string;
+  /** Notification/reminder preferences (shared across phones). */
+  reminders?: ReminderPrefs;
   updatedAt: Millis;
 }
 
@@ -39,6 +43,10 @@ export interface FeedEntry {
   amountMl?: number;
   contents?: BottleContents;
   note?: string;
+  /** True while a live feed timer is running (set by the stopwatch). */
+  active?: boolean;
+  /** When a timed feed finished; used to derive `durationMin`. */
+  endedAt?: Millis;
   createdAt: Millis;
   updatedAt: Millis;
 }

@@ -2,8 +2,10 @@
 
 import { create } from 'zustand';
 import * as repo from './repository';
+import * as sync from './sync';
 import type {
   BabyProfile,
+  BreastSide,
   DiaperEntry,
   FeedEntry,
   GrowthEntry,
@@ -30,6 +32,7 @@ interface LeoState {
   hydrated: boolean;
   profile: BabyProfile | null;
   feeds: FeedEntry[];
+  activeFeed: FeedEntry | null;
   diapers: DiaperEntry[];
   sleeps: SleepEntry[];
   activeSleep: SleepEntry | null;
@@ -46,6 +49,8 @@ interface LeoState {
   createFeed: (input: NewFeed) => Promise<void>;
   editFeed: (id: string, patch: Partial<FeedEntry>) => Promise<void>;
   removeFeed: (id: string) => Promise<void>;
+  startFeedTimer: (side: BreastSide) => Promise<void>;
+  stopFeedTimer: (id: string) => Promise<void>;
 
   createDiaper: (input: NewDiaper) => Promise<void>;
   editDiaper: (id: string, patch: Partial<DiaperEntry>) => Promise<void>;
@@ -85,6 +90,7 @@ async function refresh() {
   const [
     profile,
     feeds,
+    activeFeed,
     diapers,
     sleeps,
     activeSleep,
@@ -96,6 +102,7 @@ async function refresh() {
   ] = await Promise.all([
     repo.getProfile(),
     repo.getRecentFeeds(RECENT_LIMIT),
+    repo.getActiveFeed(),
     repo.getRecentDiapers(RECENT_LIMIT),
     repo.getRecentSleeps(RECENT_LIMIT),
     repo.getActiveSleep(),
@@ -108,6 +115,7 @@ async function refresh() {
   return {
     profile,
     feeds,
+    activeFeed,
     diapers,
     sleeps,
     activeSleep,
@@ -119,10 +127,30 @@ async function refresh() {
   };
 }
 
+/** Guards against starting realtime sync more than once per session. */
+let syncStarted = false;
+let syncUnsub: (() => void) | null = null;
+
+function startCloudSync(onChange: () => void) {
+  if (syncStarted || !sync.isSyncConfigured()) return;
+  syncStarted = true;
+  // Re-run whenever auth flips (sign-in after load, or sign-out/in again).
+  sync.onAuthChange(() => {
+    syncUnsub?.();
+    void sync.startSync(onChange).then((unsub) => {
+      syncUnsub = unsub;
+    });
+  });
+  void sync.startSync(onChange).then((unsub) => {
+    syncUnsub = unsub;
+  });
+}
+
 export const useLeoStore = create<LeoState>((set, get) => ({
   hydrated: false,
   profile: null,
   feeds: [],
+  activeFeed: null,
   diapers: [],
   sleeps: [],
   activeSleep: null,
@@ -136,59 +164,92 @@ export const useLeoStore = create<LeoState>((set, get) => ({
     if (get().hydrated) return;
     const data = await refresh();
     set({ ...data, hydrated: true });
+    // Kick off shared cloud sync (no-op unless configured + signed in).
+    startCloudSync(() => {
+      void refresh().then((d) => set(d));
+    });
   },
 
   editProfile: async (input) => {
     const profile = await repo.saveProfile(input);
     set({ profile });
+    sync.pushEntry('profile', profile);
   },
 
   createFeed: async (input) => {
-    await repo.addFeed(input);
+    const entry = await repo.addFeed(input);
     set({ feeds: await repo.getRecentFeeds(RECENT_LIMIT) });
+    sync.pushEntry('feeds', entry);
   },
   editFeed: async (id, patch) => {
-    await repo.updateFeed(id, patch);
+    const entry = await repo.updateFeed(id, patch);
     set({ feeds: await repo.getRecentFeeds(RECENT_LIMIT) });
+    sync.pushEntry('feeds', entry);
   },
   removeFeed: async (id) => {
     await repo.deleteFeed(id);
-    set({ feeds: await repo.getRecentFeeds(RECENT_LIMIT) });
+    set({
+      feeds: await repo.getRecentFeeds(RECENT_LIMIT),
+      activeFeed: await repo.getActiveFeed(),
+    });
+    sync.pushDelete('feeds', id);
+  },
+  startFeedTimer: async (side) => {
+    const entry = await repo.startFeed(side);
+    set({
+      feeds: await repo.getRecentFeeds(RECENT_LIMIT),
+      activeFeed: await repo.getActiveFeed(),
+    });
+    sync.pushEntry('feeds', entry);
+  },
+  stopFeedTimer: async (id) => {
+    const entry = await repo.stopFeed(id);
+    set({
+      feeds: await repo.getRecentFeeds(RECENT_LIMIT),
+      activeFeed: await repo.getActiveFeed(),
+    });
+    sync.pushEntry('feeds', entry);
   },
 
   createDiaper: async (input) => {
-    await repo.addDiaper(input);
+    const entry = await repo.addDiaper(input);
     set({ diapers: await repo.getRecentDiapers(RECENT_LIMIT) });
+    sync.pushEntry('diapers', entry);
   },
   editDiaper: async (id, patch) => {
-    await repo.updateDiaper(id, patch);
+    const entry = await repo.updateDiaper(id, patch);
     set({ diapers: await repo.getRecentDiapers(RECENT_LIMIT) });
+    sync.pushEntry('diapers', entry);
   },
   removeDiaper: async (id) => {
     await repo.deleteDiaper(id);
     set({ diapers: await repo.getRecentDiapers(RECENT_LIMIT) });
+    sync.pushDelete('diapers', id);
   },
 
   startSleepTimer: async (startedAt) => {
-    await repo.startSleep(startedAt);
+    const entry = await repo.startSleep(startedAt);
     set({
       sleeps: await repo.getRecentSleeps(RECENT_LIMIT),
       activeSleep: await repo.getActiveSleep(),
     });
+    sync.pushEntry('sleeps', entry);
   },
   stopSleepTimer: async (id, endedAt) => {
-    await repo.endSleep(id, endedAt);
+    const entry = await repo.endSleep(id, endedAt);
     set({
       sleeps: await repo.getRecentSleeps(RECENT_LIMIT),
       activeSleep: await repo.getActiveSleep(),
     });
+    sync.pushEntry('sleeps', entry);
   },
   editSleep: async (id, patch) => {
-    await repo.updateSleep(id, patch);
+    const entry = await repo.updateSleep(id, patch);
     set({
       sleeps: await repo.getRecentSleeps(RECENT_LIMIT),
       activeSleep: await repo.getActiveSleep(),
     });
+    sync.pushEntry('sleeps', entry);
   },
   removeSleep: async (id) => {
     await repo.deleteSleep(id);
@@ -196,72 +257,88 @@ export const useLeoStore = create<LeoState>((set, get) => ({
       sleeps: await repo.getRecentSleeps(RECENT_LIMIT),
       activeSleep: await repo.getActiveSleep(),
     });
+    sync.pushDelete('sleeps', id);
   },
 
   createGrowth: async (input) => {
-    await repo.addGrowth(input);
+    const entry = await repo.addGrowth(input);
     set({ growth: await repo.getAllGrowth() });
+    sync.pushEntry('growth', entry);
   },
   editGrowth: async (id, patch) => {
-    await repo.updateGrowth(id, patch);
+    const entry = await repo.updateGrowth(id, patch);
     set({ growth: await repo.getAllGrowth() });
+    sync.pushEntry('growth', entry);
   },
   removeGrowth: async (id) => {
     await repo.deleteGrowth(id);
     set({ growth: await repo.getAllGrowth() });
+    sync.pushDelete('growth', id);
   },
 
   createMedical: async (input) => {
-    await repo.addMedical(input);
+    const entry = await repo.addMedical(input);
     set({ medical: await repo.getAllMedical() });
+    sync.pushEntry('medical', entry);
   },
   editMedical: async (id, patch) => {
-    await repo.updateMedical(id, patch);
+    const entry = await repo.updateMedical(id, patch);
     set({ medical: await repo.getAllMedical() });
+    sync.pushEntry('medical', entry);
   },
   removeMedical: async (id) => {
     await repo.deleteMedical(id);
     set({ medical: await repo.getAllMedical() });
+    sync.pushDelete('medical', id);
   },
 
   createMilestone: async (input) => {
-    await repo.addMilestone(input);
+    const entry = await repo.addMilestone(input);
     set({ milestones: await repo.getAllMilestones() });
+    sync.pushEntry('milestones', entry);
   },
   editMilestone: async (id, patch) => {
-    await repo.updateMilestone(id, patch);
+    const entry = await repo.updateMilestone(id, patch);
     set({ milestones: await repo.getAllMilestones() });
+    sync.pushEntry('milestones', entry);
   },
   removeMilestone: async (id) => {
     await repo.deleteMilestone(id);
     set({ milestones: await repo.getAllMilestones() });
+    sync.pushDelete('milestones', id);
   },
 
   createJournal: async (input) => {
-    await repo.addJournal(input);
+    const entry = await repo.addJournal(input);
     set({ journal: await repo.getAllJournal() });
+    sync.pushEntry('journal', entry);
   },
   editJournal: async (id, patch) => {
-    await repo.updateJournal(id, patch);
+    const entry = await repo.updateJournal(id, patch);
     set({ journal: await repo.getAllJournal() });
+    sync.pushEntry('journal', entry);
   },
   removeJournal: async (id) => {
     await repo.deleteJournal(id);
     set({ journal: await repo.getAllJournal() });
+    sync.pushDelete('journal', id);
   },
 
   addPhoto: async (blob, meta) => {
     const entry = await repo.addPhoto(blob, meta);
     set({ photos: await repo.getAllPhotos() });
+    sync.pushEntry('photos', entry);
     return entry;
   },
   editPhoto: async (id, patch) => {
-    await repo.updatePhoto(id, patch);
+    const entry = await repo.updatePhoto(id, patch);
     set({ photos: await repo.getAllPhotos() });
+    sync.pushEntry('photos', entry);
   },
   removePhoto: async (id) => {
     await repo.deletePhoto(id);
     set({ photos: await repo.getAllPhotos() });
+    sync.pushDelete('photos', id);
   },
 
   importBackup: async (backup, mode) => {

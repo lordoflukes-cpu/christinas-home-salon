@@ -8,6 +8,7 @@ import { now } from '@/lib/time/clock';
 import { getDB, DB_VERSION } from './db';
 import type {
   BabyProfile,
+  BreastSide,
   DiaperEntry,
   FeedEntry,
   GrowthEntry,
@@ -109,6 +110,35 @@ export async function getRecentFeeds(limit = 20): Promise<FeedEntry[]> {
 
 export async function getLastFeed(): Promise<FeedEntry | null> {
   return (await getRecentFeeds(1))[0] ?? null;
+}
+
+/** The currently-running feed timer (a feed with `active: true`), if any. */
+export async function getActiveFeed(): Promise<FeedEntry | null> {
+  const recent = await getRecentFeeds(50);
+  return recent.find((f) => f.active) ?? null;
+}
+
+/** Begin a live breast-feed timer; creates an active feed entry. */
+export async function startFeed(
+  side: BreastSide,
+  startedAt: number = ts(),
+): Promise<FeedEntry> {
+  return addFeed({ type: 'breast', startedAt, side, active: true });
+}
+
+/** Stop a running feed timer, recording its duration in whole minutes. */
+export async function stopFeed(
+  id: string,
+  endedAt: number = ts(),
+): Promise<FeedEntry> {
+  const db = await getDB();
+  const existing = await db.get('feeds', id);
+  if (!existing) throw new Error(`Feed ${id} not found`);
+  const durationMin = Math.max(
+    1,
+    Math.round((endedAt - existing.startedAt) / 60_000),
+  );
+  return updateFeed(id, { active: false, endedAt, durationMin });
 }
 
 // ---------------------------------------------------------------------------
@@ -494,6 +524,57 @@ export async function getAllPhotos(): Promise<PhotoEntry[]> {
     cursor = await cursor.continue();
   }
   return results;
+}
+
+// ---------------------------------------------------------------------------
+// Raw writes (for cloud sync — apply remote rows verbatim, no re-stamping)
+// ---------------------------------------------------------------------------
+
+/** Stores whose rows are plain JSON and sync 1:1 (everything except photos). */
+export type PlainStore =
+  | 'profile'
+  | 'feeds'
+  | 'diapers'
+  | 'sleeps'
+  | 'growth'
+  | 'medical'
+  | 'milestones'
+  | 'journal';
+
+/** Write an entry exactly as given, preserving its id/updatedAt (no stamping). */
+export async function putRaw(store: PlainStore, value: unknown): Promise<void> {
+  const db = await getDB();
+  // idb's typed `put` can't express a runtime-chosen store; cast at the boundary.
+  await (
+    db as unknown as { put: (s: string, v: unknown) => Promise<unknown> }
+  ).put(store, value);
+}
+
+/** Delete by id from any store (used when a remote tombstone arrives). */
+export async function deleteRaw(
+  store: PlainStore | 'photos',
+  id: string,
+): Promise<void> {
+  const db = await getDB();
+  await (
+    db as unknown as { delete: (s: string, k: string) => Promise<void> }
+  ).delete(store, id);
+}
+
+/** Write a fully-formed photo entry (bytes already decoded) verbatim. */
+export async function putPhotoRaw(entry: PhotoEntry): Promise<void> {
+  const db = await getDB();
+  await db.put('photos', entry);
+}
+
+/** Every row in a store (for the two-way sync reconcile). */
+export async function getAllRaw<T = unknown>(
+  store: PlainStore | 'photos',
+): Promise<T[]> {
+  const db = await getDB();
+  return (await (
+    db as unknown as { getAll: (s: string) => Promise<T[]> }
+  ).getAll(store)) as T[];
 }
 
 // ---------------------------------------------------------------------------

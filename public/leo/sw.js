@@ -2,7 +2,7 @@
  * All user data lives in IndexedDB, so this only caches the static shell
  * (HTML/JS/CSS). Bump CACHE_VERSION to invalidate old caches.
  */
-const CACHE_VERSION = 'leo-v4';
+const CACHE_VERSION = 'leo-v5';
 const SHELL = [
   '/leo',
   '/leo/log',
@@ -36,6 +36,38 @@ self.addEventListener('activate', (event) => {
         Promise.all(keys.filter((k) => k !== CACHE_VERSION).map((k) => caches.delete(k)))
       )
       .then(() => self.clients.claim())
+  );
+});
+
+// --- Web Push: show reminders even when the app is closed -----------------
+self.addEventListener('push', (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch (e) {
+    payload = { title: 'Leo 🦁', body: event.data ? event.data.text() : '' };
+  }
+  const title = payload.title || 'Leo 🦁';
+  const options = {
+    body: payload.body || '',
+    icon: '/leo/icon-192.png',
+    badge: '/leo/icon-192.png',
+    tag: payload.tag || 'leo-reminder',
+    data: { url: payload.url || '/leo' },
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = (event.notification.data && event.notification.data.url) || '/leo';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if (client.url.includes('/leo') && 'focus' in client) return client.focus();
+      }
+      return self.clients.openWindow(target);
+    })
   );
 });
 
