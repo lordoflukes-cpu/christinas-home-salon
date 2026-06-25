@@ -41,21 +41,39 @@ export function SectionBanner({
       className="leo-frame relative mb-1 h-28 overflow-hidden rounded-2xl bg-ink-950 shadow-md"
     >
       {backdrop ? (
-        <PhotoImage
-          bytes={backdrop.bytes}
-          type={backdrop.type}
-          alt=""
-          className="absolute inset-0 h-full w-full object-cover"
-        />
+        <>
+          <PhotoImage
+            bytes={backdrop.bytes}
+            type={backdrop.type}
+            alt=""
+            className="absolute inset-0 h-full w-full scale-110 object-cover opacity-45 blur-xl"
+          />
+          <PhotoImage
+            bytes={backdrop.bytes}
+            type={backdrop.type}
+            alt=""
+            className="absolute inset-0 h-full w-full object-contain"
+          />
+        </>
       ) : (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={fallback}
-          alt=""
-          className="absolute inset-0 h-full w-full object-cover"
-        />
+        <>
+          {/* blurred fill so the full picture shows without cropping */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={fallback}
+            alt=""
+            aria-hidden
+            className="absolute inset-0 h-full w-full scale-110 object-cover opacity-45 blur-xl"
+          />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={fallback}
+            alt=""
+            className="absolute inset-0 h-full w-full object-contain"
+          />
+        </>
       )}
-      <div className="absolute inset-0 bg-gradient-to-t from-ink-950/90 via-ink-950/40 to-ink-950/10" />
+      <div className="absolute inset-0 bg-gradient-to-t from-ink-950/85 via-ink-950/25 to-transparent" />
       <div className="absolute inset-0 flex flex-col justify-end p-4 [text-shadow:0_1px_8px_rgba(0,0,0,0.9)]">
         <h1 className="font-serif text-3xl font-semibold leading-none tracking-wide text-parchment-50">
           {title}

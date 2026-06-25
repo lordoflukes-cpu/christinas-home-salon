@@ -81,12 +81,22 @@ export function LeoHero() {
             className="absolute inset-0 h-full w-full object-cover"
           />
         ) : (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src="/leo/art/cub-portrait.jpg"
-            alt="A little lion cub"
-            className="absolute inset-0 h-full w-full object-cover"
-          />
+          <>
+            {/* blurred fill so the cub portrait shows fully, never cropped */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/leo/art/cub-portrait.jpg"
+              alt=""
+              aria-hidden
+              className="absolute inset-0 h-full w-full scale-110 object-cover opacity-40 blur-2xl"
+            />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/leo/art/cub-portrait.jpg"
+              alt="A little lion cub"
+              className="absolute inset-0 h-full w-full object-contain"
+            />
+          </>
         )}
 
         <div className="leo-vignette pointer-events-none absolute inset-0" />
