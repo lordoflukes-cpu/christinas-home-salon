@@ -6,6 +6,7 @@ export * from './age';
 export * from './summary';
 export * from './doctor-summary';
 export * from './journal-prompts';
+export * from './photo-albums';
 export * from './units';
 export * from './growth';
 export { WHO_BOYS, WHO_MAX_MONTH, lmsAt, type WhoMetric } from './who-data';
