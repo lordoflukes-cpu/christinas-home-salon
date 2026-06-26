@@ -157,241 +157,260 @@ export function NotificationsPanel() {
         Reminders &amp; notifications
       </h2>
 
-      {!supported ? (
-        <p className="flex items-start gap-2 text-sm text-ink-600">
+      {/* Enable / status sits at the top; the timing settings below are always
+          visible so you can configure feed/sleep times whenever you like. */}
+      <p className="mb-4 text-sm text-ink-600">
+        Off by default — only what you switch on here will ever buzz your phone.
+        Everything else stays a quiet list in your Home agenda.
+        {denied && (
+          <span className="mt-1 block text-rose-600">
+            Notifications are blocked in your phone’s settings — allow them for
+            Leo, then try again.
+          </span>
+        )}
+      </p>
+
+      {!supported && (
+        <p className="mb-4 flex items-start gap-2 rounded-xl border border-ink-200/60 bg-parchment-50/60 p-3 text-sm text-ink-600">
           <Smartphone className="mt-0.5 h-4 w-4 shrink-0" />
-          On iPhone, open Leo from your <strong>Home Screen</strong> (Share →
-          Add to Home Screen) and open it from there — a browser tab can’t show
-          notifications.
+          To actually receive these on iPhone, open Leo from your{' '}
+          <strong>Home Screen</strong> (Share → Add to Home Screen). You can
+          still set your timings below.
         </p>
-      ) : (
-        <>
-          <p className="mb-4 text-sm text-ink-600">
-            Off by default — only what you switch on here will ever buzz your
-            phone. Everything else stays a quiet list in your Home agenda.
-            {denied && (
-              <span className="mt-1 block text-rose-600">
-                Notifications are blocked in your phone’s settings — allow them
-                for Leo, then try again.
-              </span>
-            )}
+      )}
+
+      {supported && !active && (
+        <Button
+          onClick={turnOn}
+          disabled={busy || denied}
+          size="lg"
+          className="mb-4 min-h-12 w-full bg-ink-700 hover:bg-ink-800"
+        >
+          <Bell className="mr-2 h-5 w-5" /> Turn on notifications
+        </Button>
+      )}
+
+      {active && (
+        <div className="mb-4 space-y-4">
+          {/* Status: what's actually working */}
+          <div className="space-y-1.5 rounded-xl border border-ink-200/60 bg-parchment-50/60 p-3">
+            <StatusRow
+              ok
+              label="On this phone"
+              hint="Reminders show while Leo is open"
+            />
+            <StatusRow
+              ok={pushConfigured}
+              label="When Leo is closed"
+              hint={
+                pushConfigured
+                  ? 'Delivered in the background via the cloud'
+                  : 'Needs the one-time cloud setup (see docs/leo-cloud-sync.md)'
+              }
+            />
+          </div>
+
+          <DeliveryDiagnostics
+            supported={supported}
+            permission={permission}
+            pushConfigured={pushConfigured}
+          />
+        </div>
+      )}
+
+      {/* Timing settings — always visible and editable */}
+      <div className="space-y-4">
+        {!active && (
+          <p className="text-xs text-ink-500">
+            Set your reminder timings here — they’ll start nudging once you turn
+            notifications on
+            {!pushConfigured &&
+              ' (and finish the one-time cloud setup for closed-app delivery)'}
+            .
           </p>
+        )}
 
-          {!active ? (
-            <Button
-              onClick={turnOn}
-              disabled={busy || denied}
-              size="lg"
-              className="min-h-12 w-full bg-ink-700 hover:bg-ink-800"
-            >
-              <Bell className="mr-2 h-5 w-5" /> Turn on notifications
-            </Button>
-          ) : (
-            <div className="space-y-4">
-              {/* Status: what's actually working */}
-              <div className="space-y-1.5 rounded-xl border border-ink-200/60 bg-parchment-50/60 p-3">
-                <StatusRow
-                  ok
-                  label="On this phone"
-                  hint="Reminders show while Leo is open"
-                />
-                <StatusRow
-                  ok={pushConfigured}
-                  label="When Leo is closed"
-                  hint={
-                    pushConfigured
-                      ? 'Delivered in the background via the cloud'
-                      : 'Needs the one-time cloud setup (see docs/leo-cloud-sync.md)'
-                  }
-                />
-              </div>
+        <ToggleRow
+          label="Feed reminders"
+          hint={`Nudge ${prefs.feedHours}h after the last feed`}
+          checked={prefs.feed}
+          onChange={(v) => savePrefs({ feed: v })}
+        >
+          <NumberField
+            label="Hours"
+            value={prefs.feedHours}
+            min={1}
+            max={12}
+            onCommit={(n) => savePrefs({ feedHours: n })}
+          />
+        </ToggleRow>
 
-              <DeliveryDiagnostics
-                supported={supported}
-                permission={permission}
-                pushConfigured={pushConfigured}
+        <ToggleRow
+          label="Appointments & jabs"
+          hint={`Remind ${prefs.leadMinutes} min before`}
+          checked={prefs.medical}
+          onChange={(v) => savePrefs({ medical: v })}
+        >
+          <NumberField
+            label="Mins before"
+            value={prefs.leadMinutes}
+            min={0}
+            max={1440}
+            step={15}
+            onCommit={(n) => savePrefs({ leadMinutes: n })}
+          />
+        </ToggleRow>
+
+        <ToggleRow
+          label="Daily Vitamin D"
+          hint={`Every day at ${prefs.vitdTime}`}
+          checked={prefs.vitd}
+          onChange={(v) => savePrefs({ vitd: v })}
+        >
+          <div className="flex items-center gap-2">
+            <Label className="text-xs text-ink-500">Time</Label>
+            <Input
+              type="time"
+              defaultValue={prefs.vitdTime}
+              onBlur={(e) => savePrefs({ vitdTime: e.target.value })}
+              className="h-9 w-28"
+            />
+          </div>
+        </ToggleRow>
+
+        <ToggleRow
+          label="Long-nap nudge"
+          hint={`If a sleep timer runs over ${prefs.sleepMaxHours}h`}
+          checked={prefs.sleep}
+          onChange={(v) => savePrefs({ sleep: v })}
+        >
+          <NumberField
+            label="Hours"
+            value={prefs.sleepMaxHours}
+            min={1}
+            max={12}
+            onCommit={(n) => savePrefs({ sleepMaxHours: n })}
+          />
+        </ToggleRow>
+
+        <ToggleRow
+          label="Awake-too-long nudge"
+          hint={`“Might be getting tired” after ${prefs.wakeWindowMinutes} min awake`}
+          checked={prefs.wakeWindow}
+          onChange={(v) => savePrefs({ wakeWindow: v })}
+        >
+          <NumberField
+            label="Mins awake"
+            value={prefs.wakeWindowMinutes}
+            min={20}
+            max={240}
+            step={5}
+            onCommit={(n) => savePrefs({ wakeWindowMinutes: n })}
+          />
+        </ToggleRow>
+
+        <ToggleRow
+          label="Bedtime routine"
+          hint={`A nudge to wind down at ${prefs.bedtimeTime}`}
+          checked={prefs.bedtime}
+          onChange={(v) => savePrefs({ bedtime: v })}
+        >
+          <div className="flex items-center gap-2">
+            <Label className="text-xs text-ink-500">Time</Label>
+            <Input
+              type="time"
+              defaultValue={prefs.bedtimeTime}
+              onBlur={(e) => savePrefs({ bedtimeTime: e.target.value })}
+              className="h-9 w-28"
+            />
+          </div>
+        </ToggleRow>
+
+        <ToggleRow
+          label="Nappy check"
+          hint={`Nudge ${prefs.nappyHours}h after the last change`}
+          checked={prefs.nappy}
+          onChange={(v) => savePrefs({ nappy: v })}
+        >
+          <NumberField
+            label="Hours"
+            value={prefs.nappyHours}
+            min={1}
+            max={12}
+            onCommit={(n) => savePrefs({ nappyHours: n })}
+          />
+        </ToggleRow>
+
+        <ToggleRow
+          label="Quiet hours"
+          hint={
+            prefs.quiet
+              ? `Hold non-urgent nudges ${prefs.quietStart}–${prefs.quietEnd}`
+              : 'Hold non-urgent nudges overnight'
+          }
+          checked={prefs.quiet}
+          onChange={(v) => savePrefs({ quiet: v })}
+        >
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Moon className="h-4 w-4 text-aegean-500" />
+              <Label className="text-xs text-ink-500">From</Label>
+              <Input
+                type="time"
+                defaultValue={prefs.quietStart}
+                onBlur={(e) => savePrefs({ quietStart: e.target.value })}
+                className="h-9 w-28"
               />
-
-              <ToggleRow
-                label="Feed reminders"
-                hint={`Nudge ${prefs.feedHours}h after the last feed`}
-                checked={prefs.feed}
-                onChange={(v) => savePrefs({ feed: v })}
-              >
-                <NumberField
-                  label="Hours"
-                  value={prefs.feedHours}
-                  min={1}
-                  max={12}
-                  onCommit={(n) => savePrefs({ feedHours: n })}
-                />
-              </ToggleRow>
-
-              <ToggleRow
-                label="Appointments & jabs"
-                hint={`Remind ${prefs.leadMinutes} min before`}
-                checked={prefs.medical}
-                onChange={(v) => savePrefs({ medical: v })}
-              >
-                <NumberField
-                  label="Mins before"
-                  value={prefs.leadMinutes}
-                  min={0}
-                  max={1440}
-                  step={15}
-                  onCommit={(n) => savePrefs({ leadMinutes: n })}
-                />
-              </ToggleRow>
-
-              <ToggleRow
-                label="Daily Vitamin D"
-                hint={`Every day at ${prefs.vitdTime}`}
-                checked={prefs.vitd}
-                onChange={(v) => savePrefs({ vitd: v })}
-              >
-                <div className="flex items-center gap-2">
-                  <Label className="text-xs text-ink-500">Time</Label>
-                  <Input
-                    type="time"
-                    defaultValue={prefs.vitdTime}
-                    onBlur={(e) => savePrefs({ vitdTime: e.target.value })}
-                    className="h-9 w-28"
-                  />
-                </div>
-              </ToggleRow>
-
-              <ToggleRow
-                label="Long-nap nudge"
-                hint={`If a sleep timer runs over ${prefs.sleepMaxHours}h`}
-                checked={prefs.sleep}
-                onChange={(v) => savePrefs({ sleep: v })}
-              >
-                <NumberField
-                  label="Hours"
-                  value={prefs.sleepMaxHours}
-                  min={1}
-                  max={12}
-                  onCommit={(n) => savePrefs({ sleepMaxHours: n })}
-                />
-              </ToggleRow>
-
-              <ToggleRow
-                label="Awake-too-long nudge"
-                hint={`“Might be getting tired” after ${prefs.wakeWindowMinutes} min awake`}
-                checked={prefs.wakeWindow}
-                onChange={(v) => savePrefs({ wakeWindow: v })}
-              >
-                <NumberField
-                  label="Mins awake"
-                  value={prefs.wakeWindowMinutes}
-                  min={20}
-                  max={240}
-                  step={5}
-                  onCommit={(n) => savePrefs({ wakeWindowMinutes: n })}
-                />
-              </ToggleRow>
-
-              <ToggleRow
-                label="Bedtime routine"
-                hint={`A nudge to wind down at ${prefs.bedtimeTime}`}
-                checked={prefs.bedtime}
-                onChange={(v) => savePrefs({ bedtime: v })}
-              >
-                <div className="flex items-center gap-2">
-                  <Label className="text-xs text-ink-500">Time</Label>
-                  <Input
-                    type="time"
-                    defaultValue={prefs.bedtimeTime}
-                    onBlur={(e) => savePrefs({ bedtimeTime: e.target.value })}
-                    className="h-9 w-28"
-                  />
-                </div>
-              </ToggleRow>
-
-              <ToggleRow
-                label="Nappy check"
-                hint={`Nudge ${prefs.nappyHours}h after the last change`}
-                checked={prefs.nappy}
-                onChange={(v) => savePrefs({ nappy: v })}
-              >
-                <NumberField
-                  label="Hours"
-                  value={prefs.nappyHours}
-                  min={1}
-                  max={12}
-                  onCommit={(n) => savePrefs({ nappyHours: n })}
-                />
-              </ToggleRow>
-
-              <ToggleRow
-                label="Quiet hours"
-                hint={
-                  prefs.quiet
-                    ? `Hold non-urgent nudges ${prefs.quietStart}–${prefs.quietEnd}`
-                    : 'Hold non-urgent nudges overnight'
-                }
-                checked={prefs.quiet}
-                onChange={(v) => savePrefs({ quiet: v })}
-              >
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Moon className="h-4 w-4 text-aegean-500" />
-                    <Label className="text-xs text-ink-500">From</Label>
-                    <Input
-                      type="time"
-                      defaultValue={prefs.quietStart}
-                      onBlur={(e) => savePrefs({ quietStart: e.target.value })}
-                      className="h-9 w-28"
-                    />
-                    <Label className="text-xs text-ink-500">to</Label>
-                    <Input
-                      type="time"
-                      defaultValue={prefs.quietEnd}
-                      onBlur={(e) => savePrefs({ quietEnd: e.target.value })}
-                      className="h-9 w-28"
-                    />
-                  </div>
-                  <p className="text-xs text-ink-500">
-                    Feed, Vitamin D and nap nudges wait until morning.
-                    Appointment &amp; jab reminders always come through.
-                  </p>
-                </div>
-              </ToggleRow>
-
-              <AiTimingSuggestions onApply={savePrefs} />
-
-              <Button
-                onClick={localTest}
-                disabled={busy}
-                variant="outline"
-                className="min-h-11 w-full border-ink-300 bg-parchment-50 text-ink-700 hover:bg-parchment-100"
-              >
-                <Bell className="mr-2 h-4 w-4" /> Send a test now (this phone)
-              </Button>
-
-              {pushConfigured && (
-                <Button
-                  onClick={realTest}
-                  disabled={busy}
-                  variant="outline"
-                  className="min-h-11 w-full border-ink-300 bg-parchment-50 text-ink-700 hover:bg-parchment-100"
-                >
-                  <Cloud className="mr-2 h-4 w-4" /> Send a closed-app test to
-                  all phones
-                </Button>
-              )}
-
-              <Button
-                onClick={turnOff}
-                disabled={busy}
-                variant="ghost"
-                className="min-h-11 w-full justify-start text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-              >
-                <BellOff className="mr-2 h-5 w-5" /> Turn off on this phone
-              </Button>
+              <Label className="text-xs text-ink-500">to</Label>
+              <Input
+                type="time"
+                defaultValue={prefs.quietEnd}
+                onBlur={(e) => savePrefs({ quietEnd: e.target.value })}
+                className="h-9 w-28"
+              />
             </div>
+            <p className="text-xs text-ink-500">
+              Feed, Vitamin D and nap nudges wait until morning. Appointment
+              &amp; jab reminders always come through.
+            </p>
+          </div>
+        </ToggleRow>
+
+        <AiTimingSuggestions onApply={savePrefs} />
+      </div>
+
+      {active && (
+        <div className="mt-4 space-y-2">
+          <Button
+            onClick={localTest}
+            disabled={busy}
+            variant="outline"
+            className="min-h-11 w-full border-ink-300 bg-parchment-50 text-ink-700 hover:bg-parchment-100"
+          >
+            <Bell className="mr-2 h-4 w-4" /> Send a test now (this phone)
+          </Button>
+
+          {pushConfigured && (
+            <Button
+              onClick={realTest}
+              disabled={busy}
+              variant="outline"
+              className="min-h-11 w-full border-ink-300 bg-parchment-50 text-ink-700 hover:bg-parchment-100"
+            >
+              <Cloud className="mr-2 h-4 w-4" /> Send a closed-app test to all
+              phones
+            </Button>
           )}
-        </>
+
+          <Button
+            onClick={turnOff}
+            disabled={busy}
+            variant="ghost"
+            className="min-h-11 w-full justify-start text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+          >
+            <BellOff className="mr-2 h-5 w-5" /> Turn off on this phone
+          </Button>
+        </div>
       )}
     </Card>
   );
