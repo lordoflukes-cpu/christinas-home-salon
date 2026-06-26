@@ -12,6 +12,7 @@ export * from './routine-config';
 export * from './routine-templates';
 export * from './routine-session';
 export * from './routine-insights';
+export * from './routine-review';
 export * from './care-tasks';
 export * from './agenda';
 export * from './recap';

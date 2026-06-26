@@ -22,6 +22,7 @@ import { SessionSheet } from './session-sheet';
 import { SessionDetail } from './session-detail';
 import { HandoverSheet } from './handover-sheet';
 import { AdviserButton } from './adviser-button';
+import { BestNowCard, WeeklyInsights } from './insights-panel';
 
 function outcomeBadge(s: RoutineSession): { text: string; cls: string } | null {
   if (s.endedAt == null)
@@ -96,6 +97,9 @@ export function RoutineHome() {
 
       {/* AI adviser */}
       <AdviserButton />
+
+      {/* Deterministic "best for right now" — works offline, no AI needed */}
+      <BestNowCard />
 
       {/* On now */}
       {openSession && (
@@ -215,6 +219,9 @@ export function RoutineHome() {
           </ul>
         </div>
       )}
+
+      {/* This week + what's working */}
+      <WeeklyInsights />
 
       {!profile && (
         <Card className="border-ink-300/40 p-4 text-center text-sm text-ink-600">
