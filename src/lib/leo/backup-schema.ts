@@ -343,6 +343,38 @@ const recapSchema = z.object({
   updatedAt: millis,
 });
 
+const savedRoutineSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  type: z.enum([
+    'morning',
+    'nap',
+    'bedtime',
+    'settling',
+    'feed_recovery',
+    'custom',
+  ]),
+  steps: z.array(z.string()),
+  methods: z.array(z.string()).optional(),
+  note: z.string().optional(),
+  fromSessionId: z.string().optional(),
+  createdAt: millis,
+  updatedAt: millis,
+});
+
+const experimentSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  hypothesis: z.string().optional(),
+  startedAt: millis,
+  days: z.number().positive().optional(),
+  status: z.enum(['running', 'worked', 'didnt', 'mixed', 'abandoned']),
+  outcome: z.string().optional(),
+  endedAt: millis.optional(),
+  createdAt: millis,
+  updatedAt: millis,
+});
+
 export const leoBackupSchema = z.object({
   schemaVersion: z.number().int().positive(),
   exportedAt: millis,
@@ -358,6 +390,8 @@ export const leoBackupSchema = z.object({
   sizes: z.array(sizeSchema).optional(),
   routines: z.array(routineSchema).optional(),
   routineSessions: z.array(routineSessionSchema).optional(),
+  savedRoutines: z.array(savedRoutineSchema).optional(),
+  experiments: z.array(experimentSchema).optional(),
   careTasks: z.array(careTaskSchema).optional(),
   recaps: z.array(recapSchema).optional(),
   voices: z.array(voiceBackupSchema).optional(),

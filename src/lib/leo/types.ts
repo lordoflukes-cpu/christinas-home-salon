@@ -261,6 +261,62 @@ export interface RoutineSession {
 }
 
 // ---------------------------------------------------------------------------
+// Saved routines — a named, reusable routine the parents can start from
+// ---------------------------------------------------------------------------
+
+/**
+ * A reusable routine the parents have saved (often distilled from a session
+ * that worked well). Starting one pre-fills a new session's steps + suggested
+ * methods, so a good bedtime/nap flow is one tap away.
+ */
+export interface SavedRoutine {
+  id: string;
+  name: string;
+  type: RoutineSessionType;
+  /** Ordered step names to tick off. */
+  steps: string[];
+  /** Settling methods worth trying for this routine. */
+  methods?: string[];
+  note?: string;
+  /** The session it was created from, if any. */
+  fromSessionId?: string;
+  createdAt: Millis;
+  updatedAt: Millis;
+}
+
+// ---------------------------------------------------------------------------
+// Experiments — a deliberate "let's try X for a few days and see" tracker
+// ---------------------------------------------------------------------------
+
+export type ExperimentStatus =
+  | 'running'
+  | 'worked'
+  | 'didnt'
+  | 'mixed'
+  | 'abandoned';
+
+/**
+ * A small, deliberate experiment ("dream feed at 10pm for 5 nights"). Parents
+ * note what they're trying and why, then record how it went — turning guesswork
+ * into something they can look back on. Never medical guidance.
+ */
+export interface Experiment {
+  id: string;
+  title: string;
+  /** What they hope it does, e.g. "might help him sleep longer". */
+  hypothesis?: string;
+  startedAt: Millis;
+  /** Planned length in days (optional). */
+  days?: number;
+  status: ExperimentStatus;
+  /** Free-text reflection once concluded. */
+  outcome?: string;
+  endedAt?: Millis;
+  createdAt: Millis;
+  updatedAt: Millis;
+}
+
+// ---------------------------------------------------------------------------
 // Care tasks — recurring household nudges (in-app agenda only, never pushed)
 // ---------------------------------------------------------------------------
 
@@ -562,6 +618,11 @@ export type NewJournal = Omit<JournalEntry, 'id' | 'createdAt' | 'updatedAt'>;
 export type NewEvent = Omit<LeoEvent, 'id' | 'createdAt' | 'updatedAt'>;
 export type NewSize = Omit<SizeEntry, 'id' | 'createdAt' | 'updatedAt'>;
 export type NewRoutine = Omit<RoutineItem, 'id' | 'createdAt' | 'updatedAt'>;
+export type NewSavedRoutine = Omit<
+  SavedRoutine,
+  'id' | 'createdAt' | 'updatedAt'
+>;
+export type NewExperiment = Omit<Experiment, 'id' | 'createdAt' | 'updatedAt'>;
 export type NewRoutineSession = Omit<
   RoutineSession,
   'id' | 'createdAt' | 'updatedAt'
@@ -602,6 +663,8 @@ export interface LeoBackup {
   sizes?: SizeEntry[];
   routines?: RoutineItem[];
   routineSessions?: RoutineSession[];
+  savedRoutines?: SavedRoutine[];
+  experiments?: Experiment[];
   careTasks?: CareTask[];
   recaps?: MonthlyRecap[];
   voices?: VoiceBackup[];

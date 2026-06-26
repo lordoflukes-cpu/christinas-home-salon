@@ -10,6 +10,7 @@ import type {
   CareTask,
   DiaperEntry,
   DocumentEntry,
+  Experiment,
   FeedEntry,
   GrowthEntry,
   JournalEntry,
@@ -20,13 +21,14 @@ import type {
   PhotoEntry,
   RoutineItem,
   RoutineSession,
+  SavedRoutine,
   SizeEntry,
   SleepEntry,
   VoiceEntry,
 } from './types';
 
 export const DB_NAME = 'leo-tracker';
-export const DB_VERSION = 11;
+export const DB_VERSION = 12;
 
 /** Cached TTS audio (regenerable — never synced or backed up). */
 export interface TtsCacheEntry {
@@ -101,6 +103,16 @@ export interface LeoDB extends DBSchema {
   routineSessions: {
     key: string;
     value: RoutineSession;
+    indexes: { 'by-startedAt': number };
+  };
+  savedRoutines: {
+    key: string;
+    value: SavedRoutine;
+    indexes: { 'by-createdAt': number };
+  };
+  experiments: {
+    key: string;
+    value: Experiment;
     indexes: { 'by-startedAt': number };
   };
   voices: {
@@ -227,6 +239,19 @@ export function getDB(): Promise<IDBPDatabase<LeoDB>> {
         // v11 store (additive) — regenerable TTS audio cache
         if (!db.objectStoreNames.contains('ttsCache')) {
           db.createObjectStore('ttsCache', { keyPath: 'key' });
+        }
+        // v12 stores (additive) — saved routines + experiments
+        if (!db.objectStoreNames.contains('savedRoutines')) {
+          const saved = db.createObjectStore('savedRoutines', {
+            keyPath: 'id',
+          });
+          saved.createIndex('by-createdAt', 'createdAt');
+        }
+        if (!db.objectStoreNames.contains('experiments')) {
+          const experiments = db.createObjectStore('experiments', {
+            keyPath: 'id',
+          });
+          experiments.createIndex('by-startedAt', 'startedAt');
         }
       },
     });

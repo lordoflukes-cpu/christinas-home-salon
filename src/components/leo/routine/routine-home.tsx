@@ -23,6 +23,8 @@ import { SessionDetail } from './session-detail';
 import { HandoverSheet } from './handover-sheet';
 import { AdviserButton } from './adviser-button';
 import { BestNowCard, WeeklyInsights } from './insights-panel';
+import { SavedRoutinesPanel } from './saved-routines';
+import { ExperimentsPanel } from './experiments-panel';
 
 function outcomeBadge(s: RoutineSession): { text: string; cls: string } | null {
   if (s.endedAt == null)
@@ -219,6 +221,12 @@ export function RoutineHome() {
           </ul>
         </div>
       )}
+
+      {/* Saved routines */}
+      <SavedRoutinesPanel onOpenSession={setActiveId} />
+
+      {/* Experiments */}
+      <ExperimentsPanel />
 
       {/* This week + what's working */}
       <WeeklyInsights />

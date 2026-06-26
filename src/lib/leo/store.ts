@@ -21,6 +21,7 @@ import type {
   NewDiaper,
   NewDocumentMeta,
   NewEvent,
+  NewExperiment,
   NewFeed,
   NewGrowth,
   NewJournal,
@@ -30,13 +31,16 @@ import type {
   NewPhotoMeta,
   NewRoutine,
   NewRoutineSession,
+  NewSavedRoutine,
   NewSize,
   NewVoiceMeta,
+  Experiment,
   PhotoEntry,
   ProfileInput,
   RecapInput,
   RoutineItem,
   RoutineSession,
+  SavedRoutine,
   SizeEntry,
   SleepEntry,
   VoiceEntry,
@@ -60,6 +64,8 @@ interface LeoState {
   sizes: SizeEntry[];
   routines: RoutineItem[];
   routineSessions: RoutineSession[];
+  savedRoutines: SavedRoutine[];
+  experiments: Experiment[];
   careTasks: CareTask[];
   recaps: MonthlyRecap[];
   voices: VoiceEntry[];
@@ -116,6 +122,14 @@ interface LeoState {
   ) => Promise<void>;
   removeRoutineSession: (id: string) => Promise<void>;
 
+  createSavedRoutine: (input: NewSavedRoutine) => Promise<SavedRoutine>;
+  editSavedRoutine: (id: string, patch: Partial<SavedRoutine>) => Promise<void>;
+  removeSavedRoutine: (id: string) => Promise<void>;
+
+  createExperiment: (input: NewExperiment) => Promise<Experiment>;
+  editExperiment: (id: string, patch: Partial<Experiment>) => Promise<void>;
+  removeExperiment: (id: string) => Promise<void>;
+
   createCareTask: (input: NewCareTask) => Promise<void>;
   editCareTask: (id: string, patch: Partial<CareTask>) => Promise<void>;
   removeCareTask: (id: string) => Promise<void>;
@@ -159,6 +173,8 @@ async function refresh() {
     sizes,
     routines,
     routineSessions,
+    savedRoutines,
+    experiments,
     careTasks,
     recaps,
     voices,
@@ -179,6 +195,8 @@ async function refresh() {
     repo.getAllSizes(),
     repo.getAllRoutines(),
     repo.getAllRoutineSessions(),
+    repo.getAllSavedRoutines(),
+    repo.getAllExperiments(),
     repo.getAllCareTasks(),
     repo.getAllRecaps(),
     repo.getAllVoices(),
@@ -200,6 +218,8 @@ async function refresh() {
     sizes,
     routines,
     routineSessions,
+    savedRoutines,
+    experiments,
     careTasks,
     recaps,
     voices,
@@ -243,6 +263,8 @@ export const useLeoStore = create<LeoState>((set, get) => ({
   sizes: [],
   routines: [],
   routineSessions: [],
+  savedRoutines: [],
+  experiments: [],
   careTasks: [],
   recaps: [],
   voices: [],
@@ -460,6 +482,40 @@ export const useLeoStore = create<LeoState>((set, get) => ({
     await repo.deleteRoutineSession(id);
     set({ routineSessions: await repo.getAllRoutineSessions() });
     sync.pushDelete('routineSessions', id);
+  },
+
+  createSavedRoutine: async (input) => {
+    const entry = await repo.addSavedRoutine(input);
+    set({ savedRoutines: await repo.getAllSavedRoutines() });
+    sync.pushEntry('savedRoutines', entry);
+    return entry;
+  },
+  editSavedRoutine: async (id, patch) => {
+    const entry = await repo.updateSavedRoutine(id, patch);
+    set({ savedRoutines: await repo.getAllSavedRoutines() });
+    sync.pushEntry('savedRoutines', entry);
+  },
+  removeSavedRoutine: async (id) => {
+    await repo.deleteSavedRoutine(id);
+    set({ savedRoutines: await repo.getAllSavedRoutines() });
+    sync.pushDelete('savedRoutines', id);
+  },
+
+  createExperiment: async (input) => {
+    const entry = await repo.addExperiment(input);
+    set({ experiments: await repo.getAllExperiments() });
+    sync.pushEntry('experiments', entry);
+    return entry;
+  },
+  editExperiment: async (id, patch) => {
+    const entry = await repo.updateExperiment(id, patch);
+    set({ experiments: await repo.getAllExperiments() });
+    sync.pushEntry('experiments', entry);
+  },
+  removeExperiment: async (id) => {
+    await repo.deleteExperiment(id);
+    set({ experiments: await repo.getAllExperiments() });
+    sync.pushDelete('experiments', id);
   },
 
   createCareTask: async (input) => {
