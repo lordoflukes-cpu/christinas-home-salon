@@ -38,6 +38,7 @@ export function AdviserButton({ compact = false }: { compact?: boolean }) {
   const sleeps = useLeoStore((s) => s.sleeps);
   const activeSleep = useLeoStore((s) => s.activeSleep);
   const routineSessions = useLeoStore((s) => s.routineSessions);
+  const voicePrefs = useLeoStore((s) => s.profile?.voicePrefs);
   const now = useNow(60_000);
 
   const [result, setResult] = useState<AiResultState | null>(null);
@@ -62,7 +63,8 @@ export function AdviserButton({ compact = false }: { compact?: boolean }) {
       now,
     };
     const context = buildContext('right-now', sources);
-    const res = await askLeo('right-now', context);
+    const patwah = voicePrefs?.enabled ? voicePrefs.patwahStrength : undefined;
+    const res = await askLeo('right-now', context, undefined, patwah);
     setResult({
       task: TASK,
       loading: false,

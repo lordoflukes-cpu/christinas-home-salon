@@ -20,8 +20,9 @@ const requestSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const apiKey = process.env.ELEVENLABS_API_KEY;
-    const voiceId = process.env.ELEVENLABS_VOICE_ID;
-    if (!apiKey || !voiceId) {
+    // Default voice: "Denzel — Jamaican, raspy & deep". Override via env.
+    const voiceId = process.env.ELEVENLABS_VOICE_ID || 'dhwafD61uVd8h85wAZSE';
+    if (!apiKey) {
       return NextResponse.json(
         { error: 'Voice not configured' },
         { status: 503 },

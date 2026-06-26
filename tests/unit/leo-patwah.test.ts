@@ -3,6 +3,7 @@ import {
   PATWAH_STRENGTHS,
   PATWAH_SAMPLE,
   patwahReminder,
+  patwahStyleInstruction,
   medicationSpeech,
   agendaSpeech,
   type ReminderSpeechKind,
@@ -55,6 +56,22 @@ describe('patwahReminder', () => {
     for (const strength of PATWAH_STRENGTHS) {
       expect(PATWAH_SAMPLE[strength].length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('patwahStyleInstruction', () => {
+  it('differs by strength and always keeps medical facts in clear English', () => {
+    const seen = new Set<string>();
+    for (const strength of PATWAH_STRENGTHS) {
+      const instr = patwahStyleInstruction(strength);
+      expect(instr.length).toBeGreaterThan(0);
+      expect(instr.toLowerCase()).toContain('patois');
+      // the safety carve-out is present at every strength
+      expect(instr).toMatch(/medical|medication|dose/i);
+      expect(instr).toMatch(/clear standard English/i);
+      seen.add(instr);
+    }
+    expect(seen.size).toBe(PATWAH_STRENGTHS.length);
   });
 });
 

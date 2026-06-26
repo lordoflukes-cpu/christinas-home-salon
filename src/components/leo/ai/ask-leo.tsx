@@ -31,6 +31,7 @@ export function AskLeo() {
   const sleeps = useLeoStore((s) => s.sleeps);
   const activeSleep = useLeoStore((s) => s.activeSleep);
   const routineSessions = useLeoStore((s) => s.routineSessions);
+  const voicePrefs = useLeoStore((s) => s.profile?.voicePrefs);
   const now = useNow(3_600_000);
 
   const [result, setResult] = useState<AiResultState | null>(null);
@@ -59,7 +60,11 @@ export function AskLeo() {
   async function run(task: AiTask, q?: string) {
     setResult({ task, loading: true });
     const context = buildContext(task.key, sources(), { question: q });
-    const res = await askLeo(task.key, context, q);
+    const patwah =
+      voicePrefs?.enabled && task.key !== 'doctor-notes'
+        ? voicePrefs.patwahStrength
+        : undefined;
+    const res = await askLeo(task.key, context, q, patwah);
     setResult({
       task,
       loading: false,

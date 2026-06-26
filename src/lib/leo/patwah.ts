@@ -139,6 +139,23 @@ const PHRASES: Record<ReminderSpeechKind, Pools> = {
   },
 };
 
+/**
+ * Style instruction appended to the AI system prompt so generated content comes
+ * out *in* Jamaican Patois at the chosen strength — with a hard carve-out that
+ * medical facts stay clear English. Pure + testable; used by the AI route.
+ */
+export function patwahStyleInstruction(strength: PatwahStrength): string {
+  const level: Record<PatwahStrength, string> = {
+    light:
+      'Write mostly in clear English with a gentle Jamaican-Patois lilt — a few natural Patois words and rhythms, easy for anyone to read.',
+    medium:
+      'Write in natural, warm Jamaican Patois that is still easy to follow — Patois phrasing and vocabulary, not too heavy.',
+    heavy:
+      'Write in rich, expressive Jamaican Patois throughout, the way it is spoken at home.',
+  };
+  return `${level[strength]} Keep it warm and human. IMPORTANT: keep all medical facts — medication names, doses, numbers, dates, times and any health-safety wording — in clear standard English even inside the Patois, so nothing important is ever unclear.`;
+}
+
 /** A friendly sample line for the "Test voice" button. */
 export const PATWAH_SAMPLE: Record<PatwahStrength, string> = {
   light: 'Hi, I’m Leo’s helper. I’ll give you a little nudge now and then.',

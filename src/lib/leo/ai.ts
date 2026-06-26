@@ -418,12 +418,13 @@ export async function askLeo(
   task: AiTaskKey,
   context: string,
   question?: string,
+  patwah?: 'light' | 'medium' | 'heavy',
 ): Promise<AskLeoResult> {
   try {
     const res = await fetch('/api/leo/ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ task, context, question }),
+      body: JSON.stringify({ task, context, question, patwah }),
     });
     const data = (await res.json().catch(() => ({}))) as {
       text?: string;

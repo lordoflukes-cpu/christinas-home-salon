@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import Anthropic from '@anthropic-ai/sdk';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { patwahStyleInstruction } from '@/lib/leo/patwah';
 
 /**
  * "Ask Leo" — the only server-side touchpoint for the AI helper.
@@ -31,6 +32,8 @@ const requestSchema = z.object({
   ]),
   context: z.string().min(1).max(20000),
   question: z.string().max(500).optional(),
+  /** When set, generate the reply in Jamaican Patois at this strength. */
+  patwah: z.enum(['light', 'medium', 'heavy']).optional(),
 });
 
 const SYSTEM_PROMPT = `You are "Ask Leo", a warm, gentle assistant inside a private baby-tracking app used by Leo's parents. You help them make sense of what they have already logged about their baby — feeds, nappies, sleep, health events, milestones, journal notes and growth.
@@ -92,8 +95,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { task, context, question } = parsed.data;
+    const { task, context, question, patwah } = parsed.data;
     const instruction = TASK_INSTRUCTIONS[task];
+
+    // Patois generation — never for clinical doctor notes.
+    const system =
+      patwah && task !== 'doctor-notes'
+        ? `${SYSTEM_PROMPT}\n\n${patwahStyleInstruction(patwah)}`
+        : SYSTEM_PROMPT;
 
     const userContent =
       `${instruction}\n\n` +
@@ -106,7 +115,7 @@ export async function POST(request: NextRequest) {
       model: MODEL,
       max_tokens: 1500,
       thinking: { type: 'adaptive' },
-      system: SYSTEM_PROMPT,
+      system,
       messages: [{ role: 'user', content: userContent }],
     });
 
