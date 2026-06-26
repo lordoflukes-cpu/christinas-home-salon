@@ -10,6 +10,10 @@ import {
   Cloud,
   Sparkles,
   Loader2,
+  Stethoscope,
+  RefreshCw,
+  ChevronDown,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -33,10 +37,15 @@ import {
   enableNotifications,
   disablePush,
   areNotificationsSupported,
+  isPushSupported,
   isPushConfigured,
+  isPushEnabled,
   showTestNotification,
   sendTestPush,
   notificationPermission,
+  notificationChecklist,
+  pushAccountStatus,
+  type PushAccountStatus,
 } from '@/lib/leo/notifications';
 
 export function NotificationsPanel() {
@@ -193,6 +202,12 @@ export function NotificationsPanel() {
                   }
                 />
               </div>
+
+              <DeliveryDiagnostics
+                supported={supported}
+                permission={permission}
+                pushConfigured={pushConfigured}
+              />
 
               <ToggleRow
                 label="Feed reminders"
@@ -462,6 +477,124 @@ function AiTimingSuggestions({
             <p className="mt-1.5 text-xs text-ink-400">{unavailable}</p>
           )}
         </>
+      )}
+    </div>
+  );
+}
+
+/**
+ * An expandable, self-checking readout of the whole closed-app delivery chain —
+ * so a silent feature becomes verifiable. Shows each link's status plus a live
+ * count of subscribed devices and queued reminders from the cloud.
+ */
+function DeliveryDiagnostics({
+  supported,
+  permission,
+  pushConfigured,
+}: {
+  supported: boolean;
+  permission: NotificationPermission | 'default';
+  pushConfigured: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [subscribed, setSubscribed] = useState(false);
+  const [account, setAccount] = useState<PushAccountStatus | null>(null);
+
+  async function refresh() {
+    setLoading(true);
+    try {
+      const [enabled, acct] = await Promise.all([
+        isPushEnabled(),
+        pushAccountStatus(),
+      ]);
+      setSubscribed(enabled);
+      setAccount(acct);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (open && !account && !loading) void refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  const items = notificationChecklist({
+    supported,
+    pushSupported: isPushSupported(),
+    permission,
+    pushConfigured,
+    signedIn: account?.signedIn ?? false,
+    subscribedThisDevice: subscribed,
+  });
+
+  return (
+    <div className="rounded-xl border border-ink-200/60 bg-parchment-50/60">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center gap-2 p-3 text-left"
+      >
+        <Stethoscope className="h-4 w-4 text-ink-500" />
+        <span className="flex-1 text-sm font-medium text-ink-900">
+          Check delivery setup
+        </span>
+        <ChevronDown
+          className={cn(
+            'h-4 w-4 text-ink-400 transition-transform',
+            open && 'rotate-180',
+          )}
+        />
+      </button>
+
+      {open && (
+        <div className="space-y-2 px-3 pb-3">
+          {items.map((it) => (
+            <div key={it.label} className="flex items-start gap-2">
+              <span
+                className={cn(
+                  'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full',
+                  it.ok
+                    ? 'bg-emerald-100 text-emerald-700'
+                    : 'bg-parchment-200 text-ink-400',
+                )}
+              >
+                {it.ok ? (
+                  <Check className="h-3 w-3" />
+                ) : (
+                  <X className="h-2.5 w-2.5" />
+                )}
+              </span>
+              <span className="flex-1">
+                <span className="block text-sm text-ink-800">{it.label}</span>
+                <span className="block text-xs text-ink-500">{it.hint}</span>
+              </span>
+            </div>
+          ))}
+
+          {account?.signedIn && (
+            <p className="pt-1 text-xs text-ink-500">
+              {account.devices} {account.devices === 1 ? 'device' : 'devices'}{' '}
+              subscribed · {account.pending}{' '}
+              {account.pending === 1 ? 'reminder' : 'reminders'} queued
+            </p>
+          )}
+
+          <Button
+            onClick={() => void refresh()}
+            disabled={loading}
+            variant="outline"
+            className="mt-1 h-9 w-full border-ink-300 bg-parchment-50 text-ink-700 hover:bg-parchment-100"
+          >
+            {loading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="mr-2 h-4 w-4" />
+            )}
+            Re-check
+          </Button>
+        </div>
       )}
     </div>
   );
