@@ -223,7 +223,9 @@ export async function POST(request: NextRequest) {
       const client = new Anthropic({ apiKey });
       const message = await client.messages.create({
         model: MODEL,
-        max_tokens: 2000,
+        // A full red-book report yields many actions + long notes; give the
+        // model enough room so the JSON isn't truncated mid-object.
+        max_tokens: 4096,
         system: EXTRACT_SYSTEM,
         messages: [{ role: 'user', content: context }],
       });

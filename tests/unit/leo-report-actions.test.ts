@@ -94,6 +94,19 @@ describe('parseActions', () => {
     expect(out?.actions).toHaveLength(1);
   });
 
+  it('recovers complete actions from a reply truncated mid-JSON', () => {
+    // Two full objects, then a third cut off at the token limit (no closing).
+    const truncated =
+      '{"actions":[' +
+      '{"type":"profile","summary":"Profile","fields":{"name":"Leo","gp":"Old Court House Surgery"}},' +
+      '{"type":"medical","medicalKind":"note","summary":"NIPE","title":"Newborn examination"},' +
+      '{"type":"event","eventKind":"symptom","summary":"Rash","sympt';
+    const out = parseActions(truncated);
+    expect(out?.actions).toHaveLength(2);
+    expect(out?.actions[0].fields?.name).toBe('Leo');
+    expect(out?.actions[1].medicalKind).toBe('note');
+  });
+
   it('returns null for non-JSON', () => {
     expect(parseActions('sorry, no idea')).toBeNull();
   });

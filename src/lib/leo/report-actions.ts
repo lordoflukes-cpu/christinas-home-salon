@@ -153,6 +153,50 @@ function extractJson(text: string): unknown {
 }
 
 /**
+ * Last-resort recovery for a truncated or slightly-malformed reply: scan for the
+ * actions array and pull out each COMPLETE top-level `{…}` object (string-aware,
+ * brace-matched), parsing each on its own. A cut-off final object is simply
+ * skipped — so a response truncated at the token limit still yields everything
+ * that came before the cut. Returns the parsed objects, or null if none.
+ */
+function salvageObjects(text: string): unknown[] | null {
+  const start = text.indexOf('[');
+  if (start === -1) return null;
+  const objs: unknown[] = [];
+  let depth = 0;
+  let inStr = false;
+  let esc = false;
+  let objStart = -1;
+  for (let i = start + 1; i < text.length; i++) {
+    const ch = text[i];
+    if (inStr) {
+      if (esc) esc = false;
+      else if (ch === '\\') esc = true;
+      else if (ch === '"') inStr = false;
+      continue;
+    }
+    if (ch === '"') inStr = true;
+    else if (ch === '{') {
+      if (depth === 0) objStart = i;
+      depth++;
+    } else if (ch === '}') {
+      depth--;
+      if (depth === 0 && objStart !== -1) {
+        try {
+          objs.push(JSON.parse(text.slice(objStart, i + 1)));
+        } catch {
+          /* skip a malformed object */
+        }
+        objStart = -1;
+      }
+    } else if (ch === ']' && depth === 0) {
+      break;
+    }
+  }
+  return objs.length ? objs : null;
+}
+
+/**
  * Parse the model's reply into proposed actions. Resilient on purpose: accepts
  * `{"actions":[…]}` or a bare `[…]`, copes with prose/fences around the JSON,
  * and validates each action INDIVIDUALLY so one malformed entry never discards
@@ -160,12 +204,14 @@ function extractJson(text: string): unknown {
  */
 export function parseActions(text: string): ProposedActions | null {
   const data = extractJson(text);
-  if (data == null) return null;
-  const list = Array.isArray(data)
+  let list: unknown[] | null = Array.isArray(data)
     ? data
-    : Array.isArray((data as { actions?: unknown }).actions)
+    : data && Array.isArray((data as { actions?: unknown }).actions)
       ? (data as { actions: unknown[] }).actions
       : null;
+  // Whole-document parse failed (often a truncated reply) — recover object by
+  // object so a response cut off at the token limit still files what it can.
+  if (!list) list = salvageObjects(text);
   if (!list) return null;
   const actions: ProposedAction[] = [];
   for (const item of list) {
