@@ -31,12 +31,14 @@ export {
   formatAudioDuration,
   useVoiceUrl,
   useVoiceRecorder,
+  useSpeechInput,
   isSpeechRecognitionSupported,
 } from './voice';
 export type {
   VoiceCategoryConfig,
   VoiceRecorder,
   RecorderState,
+  SpeechInput,
 } from './voice';
 export { leoBackupSchema } from './backup-schema';
 export { DB_VERSION, isStorageAvailable } from './db';

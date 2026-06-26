@@ -2,12 +2,14 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Send } from 'lucide-react';
+import { Send, Mic } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import {
   useLeoStore,
   useNow,
+  useSpeechInput,
   AI_TASKS,
   buildContext,
   askLeo,
@@ -57,7 +59,7 @@ export function AskLeo() {
     };
   }
 
-  async function run(task: AiTask, q?: string) {
+  async function run(task: AiTask, q?: string, viaVoice = false) {
     setResult({ task, loading: true });
     const context = buildContext(task.key, sources(), { question: q });
     const patwah =
@@ -71,8 +73,15 @@ export function AskLeo() {
       text: res.text,
       error: res.error,
       notConfigured: res.notConfigured,
+      autoSpeak: viaVoice,
     });
   }
+
+  const speech = useSpeechInput((text) => {
+    setQuestion(text);
+    const qt = AI_TASKS.find((t) => t.needsQuestion);
+    if (qt) void run(qt, text, true);
+  });
 
   function onCard(task: AiTask) {
     if (task.needsQuestion) {
@@ -115,14 +124,37 @@ export function AskLeo() {
           <div className="flex gap-2">
             <input
               id="ask-leo-q"
-              value={question}
+              value={speech.listening ? speech.transcript : question}
               onChange={(e) => setQuestion(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') onCard(questionTask);
               }}
-              placeholder="When did Leo first smile?"
+              placeholder={
+                speech.listening ? 'Listening…' : 'When did Leo first smile?'
+              }
               className="min-h-11 flex-1 rounded-xl border border-ink-300 bg-white px-3 text-[15px] text-ink-900 outline-none placeholder:text-ink-400 focus:border-gold-400"
             />
+            {speech.supported && (
+              <Button
+                type="button"
+                onClick={() =>
+                  speech.listening ? speech.stop() : speech.start()
+                }
+                size="lg"
+                variant="outline"
+                aria-label={
+                  speech.listening ? 'Stop listening' : 'Ask by voice'
+                }
+                className={cn(
+                  'min-h-11 shrink-0 border-ink-300',
+                  speech.listening
+                    ? 'animate-pulse border-rose-300 bg-rose-50 text-rose-600'
+                    : 'bg-parchment-50 text-ink-700 hover:bg-parchment-100',
+                )}
+              >
+                <Mic className="h-5 w-5" />
+              </Button>
+            )}
             <Button
               type="button"
               onClick={() => onCard(questionTask)}
@@ -133,6 +165,9 @@ export function AskLeo() {
               <Send className="h-5 w-5" />
             </Button>
           </div>
+          {speech.error && (
+            <p className="mt-1.5 text-xs text-rose-500">{speech.error}</p>
+          )}
         </Card>
       )}
 

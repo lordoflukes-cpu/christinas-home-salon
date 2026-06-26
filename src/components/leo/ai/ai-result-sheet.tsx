@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Copy,
   Check,
@@ -28,6 +28,8 @@ export interface AiResultState {
   text?: string;
   error?: string;
   notConfigured?: boolean;
+  /** Speak the answer aloud automatically when it arrives (voice questions). */
+  autoSpeak?: boolean;
 }
 
 export function AiResultSheet({
@@ -47,6 +49,21 @@ export function AiResultSheet({
   const canSpeak = !!voicePrefs?.enabled && voicePrefs.speakAi;
 
   const open = state !== null;
+
+  // Auto-speak the answer for voice-asked questions (best-effort).
+  const spokenRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (
+      state?.autoSpeak &&
+      canSpeak &&
+      state.text &&
+      spokenRef.current !== state.text
+    ) {
+      spokenRef.current = state.text;
+      void speak(state.text);
+    }
+    if (!state?.text) spokenRef.current = null;
+  }, [state?.autoSpeak, state?.text, canSpeak, speak]);
 
   async function copy() {
     if (!state?.text) return;
