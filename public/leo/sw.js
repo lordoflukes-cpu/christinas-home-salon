@@ -2,7 +2,7 @@
  * All user data lives in IndexedDB, so this only caches the static shell
  * (HTML/JS/CSS). Bump CACHE_VERSION to invalidate old caches.
  */
-const CACHE_VERSION = 'leo-v48';
+const CACHE_VERSION = 'leo-v49';
 const SHELL = [
   '/leo',
   '/leo/timeline',
@@ -97,7 +97,28 @@ self.addEventListener('fetch', (event) => {
   // Don't cache the slideshow music (large MP3s; stream from network instead).
   if (url.pathname.startsWith('/leo/music/')) return;
 
-  // Stale-while-revalidate.
+  // Page navigations (the HTML documents) are network-first: a fresh deploy
+  // shows immediately when online, and the cache is the offline fallback.
+  // Without this, stale-while-revalidate served the previously-cached page and
+  // new releases never appeared until a later, second reload.
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      caches.open(CACHE_VERSION).then(async (cache) => {
+        try {
+          const response = await fetch(request);
+          if (response && response.status === 200)
+            cache.put(request, response.clone());
+          return response;
+        } catch (e) {
+          const cached = await cache.match(request);
+          return cached || (await cache.match('/leo'));
+        }
+      }),
+    );
+    return;
+  }
+
+  // Hashed static assets / other in-scope GETs: stale-while-revalidate.
   event.respondWith(
     caches.open(CACHE_VERSION).then(async (cache) => {
       const cached = await cache.match(request);

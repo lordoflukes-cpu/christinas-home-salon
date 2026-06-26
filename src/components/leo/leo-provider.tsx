@@ -24,16 +24,49 @@ export function LeoProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (
-      process.env.NODE_ENV === 'production' &&
-      typeof navigator !== 'undefined' &&
-      'serviceWorker' in navigator
+      process.env.NODE_ENV !== 'production' ||
+      typeof navigator === 'undefined' ||
+      !('serviceWorker' in navigator)
     ) {
-      navigator.serviceWorker
-        .register('/leo/sw.js', { scope: '/leo' })
-        .catch((err) =>
-          console.error('Leo: service worker registration failed', err),
-        );
+      return;
     }
+
+    const sw = navigator.serviceWorker;
+
+    // Reload exactly once when a new service worker takes control, so a fresh
+    // deploy is shown instead of the previously-cached build. Guarded against
+    // reload loops and skipped on the very first install (no prior controller).
+    let refreshing = false;
+    const hadController = Boolean(sw.controller);
+    const onControllerChange = () => {
+      if (refreshing || !hadController) return;
+      refreshing = true;
+      window.location.reload();
+    };
+    sw.addEventListener('controllerchange', onControllerChange);
+
+    let reg: ServiceWorkerRegistration | undefined;
+    sw.register('/leo/sw.js', { scope: '/leo' })
+      .then((r) => {
+        reg = r;
+        r.update().catch(() => undefined);
+      })
+      .catch((err) =>
+        console.error('Leo: service worker registration failed', err),
+      );
+
+    // Check for a new version whenever the app is brought back to the
+    // foreground (re-opening the PWA) — that's when a deploy should land.
+    const onVisible = () => {
+      if (document.visibilityState === 'visible')
+        reg?.update().catch(() => undefined);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+
+    return () => {
+      sw.removeEventListener('controllerchange', onControllerChange);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, []);
 
   // Keep the cloud reminder schedule in step with the data + preferences.
