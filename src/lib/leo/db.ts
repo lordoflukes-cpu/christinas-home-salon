@@ -8,6 +8,7 @@ import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import type {
   BabyProfile,
   CareTask,
+  ChatTurn,
   DiaperEntry,
   DocumentEntry,
   Experiment,
@@ -16,6 +17,7 @@ import type {
   JournalEntry,
   LeoEvent,
   MedicalEntry,
+  Memory,
   MilestoneEntry,
   MonthlyRecap,
   PhotoEntry,
@@ -28,7 +30,7 @@ import type {
 } from './types';
 
 export const DB_NAME = 'leo-tracker';
-export const DB_VERSION = 12;
+export const DB_VERSION = 13;
 
 /** Cached TTS audio (regenerable — never synced or backed up). */
 export interface TtsCacheEntry {
@@ -129,6 +131,16 @@ export interface LeoDB extends DBSchema {
     key: string;
     value: MonthlyRecap;
     indexes: { 'by-monthIndex': number };
+  };
+  memories: {
+    key: string;
+    value: Memory;
+    indexes: { 'by-createdAt': number };
+  };
+  chatMessages: {
+    key: string;
+    value: ChatTurn;
+    indexes: { 'by-createdAt': number };
   };
   ttsCache: {
     key: string;
@@ -252,6 +264,15 @@ export function getDB(): Promise<IDBPDatabase<LeoDB>> {
             keyPath: 'id',
           });
           experiments.createIndex('by-startedAt', 'startedAt');
+        }
+        // v13 stores (additive) — Second Brain: durable memories + chat history
+        if (!db.objectStoreNames.contains('memories')) {
+          const memories = db.createObjectStore('memories', { keyPath: 'id' });
+          memories.createIndex('by-createdAt', 'createdAt');
+        }
+        if (!db.objectStoreNames.contains('chatMessages')) {
+          const chat = db.createObjectStore('chatMessages', { keyPath: 'id' });
+          chat.createIndex('by-createdAt', 'createdAt');
         }
       },
     });

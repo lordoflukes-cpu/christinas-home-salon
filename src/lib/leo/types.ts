@@ -604,6 +604,74 @@ export interface DocumentBackup {
   updatedAt: Millis;
 }
 
+// ---------------------------------------------------------------------------
+// Second Brain — durable AI memory + persistent chat history
+// ---------------------------------------------------------------------------
+
+/**
+ * What a memory is about — drives recall weighting and how carefully it is
+ * handled. `health` and `allergy` are safety-critical: always recalled, never
+ * decayed, and confirmed with the parent before the AI saves them.
+ */
+export type MemoryCategory =
+  | 'health'
+  | 'allergy'
+  | 'preference'
+  | 'routine'
+  | 'person'
+  | 'milestone'
+  | 'fact'
+  | 'note';
+
+/** Where a memory came from — the AI distilling chat, or the parent teaching it. */
+export type MemorySource = 'ai' | 'user' | 'chat';
+
+/**
+ * One durable fact the AI "knows" about Leo — the Second Brain. Recall scores
+ * these by relevance, importance and recency (see `memory.ts`) and injects the
+ * top few into the chat so the assistant remembers across sessions and devices.
+ */
+export interface Memory {
+  id: string;
+  /** The remembered fact, in plain language. */
+  text: string;
+  category: MemoryCategory;
+  /** Free keywords that help recall (e.g. ['dairy', 'rash']). */
+  tags: string[];
+  /** How important this is, 1 (trivial) – 10 (critical). */
+  importance: number;
+  /** Confidence multiplier 0–1; lowered when something is uncertain. */
+  trust: number;
+  source: MemorySource;
+  /** Pinned memories are always recalled and never decayed. */
+  pinned: boolean;
+  /** If set, this memory has been replaced by another (kept for history). */
+  supersededBy?: string;
+  /** How many times this memory has been recalled into a conversation. */
+  useCount: number;
+  /** When it was last recalled (epoch ms). */
+  lastUsedAt?: Millis;
+  createdAt: Millis;
+  updatedAt: Millis;
+}
+
+export type NewMemory = Omit<Memory, 'id' | 'createdAt' | 'updatedAt'>;
+
+/** A single persisted chat turn (synced + backed up, so history roams devices). */
+export interface ChatTurn {
+  id: string;
+  /** Conversation id; one rolling thread today (`'main'`), extensible later. */
+  threadId: string;
+  role: 'user' | 'assistant';
+  content: string;
+  /** True for a rolling-summary turn that condenses older history. */
+  summary?: boolean;
+  createdAt: Millis;
+  updatedAt: Millis;
+}
+
+export type NewChatTurn = Omit<ChatTurn, 'id' | 'createdAt' | 'updatedAt'>;
+
 /** Input shapes for creating entries (repository fills id + timestamps). */
 export type NewFeed = Omit<FeedEntry, 'id' | 'createdAt' | 'updatedAt'>;
 export type NewDiaper = Omit<DiaperEntry, 'id' | 'createdAt' | 'updatedAt'>;
@@ -667,6 +735,8 @@ export interface LeoBackup {
   experiments?: Experiment[];
   careTasks?: CareTask[];
   recaps?: MonthlyRecap[];
+  memories?: Memory[];
+  chatMessages?: ChatTurn[];
   voices?: VoiceBackup[];
   photos?: PhotoBackup[];
   documents?: DocumentBackup[];

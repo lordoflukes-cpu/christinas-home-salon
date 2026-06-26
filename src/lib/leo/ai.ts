@@ -37,6 +37,14 @@ import {
 import { routineTypeConfig } from './routine-templates';
 import type { ReminderAdvice } from './reminder-advice';
 import type { ProposedAction } from './report-actions';
+import type { Memory } from './types';
+import {
+  rankMemories,
+  memoriesContext,
+  recalledIds,
+  memoriesForDistil,
+  type MemoryOp,
+} from './memory';
 
 const DAY = 86_400_000;
 
@@ -159,6 +167,8 @@ export interface AiSources extends TimelineSources {
   sleeps: SleepEntry[];
   activeSleep: SleepEntry | null;
   routineSessions: RoutineSession[];
+  /** Durable Second-Brain memories (optional — absent in older callers). */
+  memories?: Memory[];
   now: number;
 }
 
@@ -598,17 +608,38 @@ export function chatContext(sources: AiSources): string {
   return clamp(parts.filter(Boolean).join('\n\n'));
 }
 
-/** Send the conversation + snapshot and get Leo's reply. */
+/**
+ * Recall the most relevant Second-Brain memories for a query (the latest user
+ * turn). Returns the labelled block to inject server-side plus the ids recalled
+ * so the caller can bump their use counts. Pure — safe to call every turn.
+ */
+export function recallMemories(
+  memories: Memory[],
+  query: string,
+  now: number,
+): { block: string; ids: string[] } {
+  const ranked = rankMemories(memories, query, { now });
+  return { block: memoriesContext(ranked), ids: recalledIds(ranked) };
+}
+
+/** Send the conversation + snapshot (+ recalled memories) and get Leo's reply. */
 export async function chatWithLeo(
   messages: ChatMessage[],
   context: string,
   patwah?: 'light' | 'medium' | 'heavy',
+  memories?: string,
 ): Promise<ChatResult> {
   try {
     const res = await fetch('/api/leo/ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ task: 'chat', context, messages, patwah }),
+      body: JSON.stringify({
+        task: 'chat',
+        context,
+        messages,
+        patwah,
+        memories,
+      }),
     });
     const data = (await res.json().catch(() => ({}))) as {
       text?: string;
@@ -693,6 +724,129 @@ export async function extractActions(
       return { error: data.error || 'Couldn’t make sense of that.' };
     }
     return { actions: data.actions ?? [] };
+  } catch {
+    return { error: 'Couldn’t reach Leo. Check your connection.' };
+  }
+}
+
+// --- Second Brain: distil memories from a conversation ----------------------
+
+export interface DistilResult {
+  memories?: MemoryOp[];
+  error?: string;
+  notConfigured?: boolean;
+}
+
+/**
+ * After an exchange, ask the server which durable memories are worth keeping.
+ * Sends the recent transcript + the memories we already hold (so it can choose
+ * ADD vs UPDATE). Never writes — the caller saves/confirms the returned ops.
+ */
+export async function distilMemories(
+  messages: ChatMessage[],
+  existing: Memory[],
+): Promise<DistilResult> {
+  const transcript = messages
+    .slice(-8)
+    .map((m) => `${m.role === 'user' ? 'Parent' : 'Leo'}: ${m.content}`)
+    .join('\n');
+  if (!transcript.trim()) return { memories: [] };
+  const context = clamp(
+    `Recent conversation:\n${transcript}\n\nMemories you already hold:\n${memoriesForDistil(
+      existing,
+    )}`,
+  );
+  try {
+    const res = await fetch('/api/leo/ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ task: 'distil-memories', context }),
+    });
+    const data = (await res.json().catch(() => ({}))) as {
+      memories?: MemoryOp[];
+      error?: string;
+    };
+    if (res.status === 503) return { notConfigured: true, error: data.error };
+    if (!res.ok) return { error: data.error || 'Couldn’t update memory.' };
+    return { memories: data.memories ?? [] };
+  } catch {
+    return { error: 'Couldn’t reach Leo. Check your connection.' };
+  }
+}
+
+// --- Deep research ----------------------------------------------------------
+
+/**
+ * A rich context bundle for the "deep research" pass: age, today + the week,
+ * what settles Leo, the health snapshot, recent highlights and known allergies.
+ */
+export function researchContext(sources: AiSources): string {
+  const today = summariseDay({
+    feeds: sources.feeds,
+    diapers: sources.diapers,
+    sleeps: sources.sleeps,
+    events: sources.events,
+    now: sources.now,
+    name: sources.profile?.name,
+  });
+  const methods = methodStats(sources.routineSessions, { minTried: 2 })
+    .slice(0, 6)
+    .map(
+      (s) =>
+        `- ${s.method}: ${Math.round(s.successRate * 100)}% (${s.wins}/${s.tried})`,
+    )
+    .join('\n');
+  const health = doctorSummary({
+    events: sources.events,
+    feeds: sources.feeds,
+    diapers: sources.diapers,
+    sleeps: sources.sleeps,
+    now: sources.now,
+    days: 14,
+    name: sources.profile?.name,
+  });
+  const parts = [
+    ageLine(sources),
+    `Today so far: ${today.narrative}`,
+    `The last 7 days, one line each:\n${weekLines(sources, 7)}`,
+    methods ? `Settling methods that have worked:\n${methods}` : '',
+    `Health snapshot (last 14 days):\n${health}`,
+    `Recent highlights:\n${highlightLines(sources, 16)}`,
+    sources.profile?.allergies
+      ? `Known allergies/notes: ${sources.profile.allergies}`
+      : '',
+  ];
+  return clamp(parts.filter(Boolean).join('\n\n'));
+}
+
+/** Run a deep-research pass; recalled memories are injected server-side. */
+export async function researchLeo(
+  question: string,
+  context: string,
+  memories?: string,
+  patwah?: 'light' | 'medium' | 'heavy',
+): Promise<ChatResult> {
+  try {
+    const res = await fetch('/api/leo/ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        task: 'research',
+        context,
+        question: question || undefined,
+        memories,
+        patwah,
+      }),
+    });
+    const data = (await res.json().catch(() => ({}))) as {
+      text?: string;
+      error?: string;
+    };
+    if (res.status === 503) return { notConfigured: true, error: data.error };
+    if (!res.ok) {
+      return { error: data.error || 'Couldn’t pull a research read together.' };
+    }
+    return { text: data.text };
   } catch {
     return { error: 'Couldn’t reach Leo. Check your connection.' };
   }

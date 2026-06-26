@@ -7,6 +7,7 @@ import type {
   BabyProfile,
   BreastSide,
   CareTask,
+  ChatTurn,
   DiaperEntry,
   DocumentEntry,
   FeedEntry,
@@ -16,8 +17,10 @@ import type {
   LeoBackup,
   LeoEvent,
   MedicalEntry,
+  Memory,
   MilestoneEntry,
   MonthlyRecap,
+  NewChatTurn,
   NewDiaper,
   NewDocumentMeta,
   NewEvent,
@@ -27,6 +30,7 @@ import type {
   NewJournal,
   NewMedical,
   NewCareTask,
+  NewMemory,
   NewMilestone,
   NewPhotoMeta,
   NewRoutine,
@@ -68,6 +72,8 @@ interface LeoState {
   experiments: Experiment[];
   careTasks: CareTask[];
   recaps: MonthlyRecap[];
+  memories: Memory[];
+  chatMessages: ChatTurn[];
   voices: VoiceEntry[];
   photos: PhotoEntry[];
   documents: DocumentEntry[];
@@ -137,6 +143,15 @@ interface LeoState {
 
   saveRecap: (monthIndex: number, patch: RecapInput) => Promise<void>;
 
+  createMemory: (input: NewMemory) => Promise<Memory>;
+  editMemory: (id: string, patch: Partial<Memory>) => Promise<void>;
+  removeMemory: (id: string) => Promise<void>;
+  /** Raise useCount/lastUsedAt for the memories just recalled (fire-and-forget). */
+  touchMemories: (ids: string[]) => Promise<void>;
+
+  addChatTurn: (input: NewChatTurn) => Promise<ChatTurn>;
+  clearChat: () => Promise<void>;
+
   createEvent: (input: NewEvent) => Promise<void>;
   editEvent: (id: string, patch: Partial<LeoEvent>) => Promise<void>;
   removeEvent: (id: string) => Promise<void>;
@@ -177,6 +192,8 @@ async function refresh() {
     experiments,
     careTasks,
     recaps,
+    memories,
+    chatMessages,
     voices,
     photos,
     documents,
@@ -199,6 +216,8 @@ async function refresh() {
     repo.getAllExperiments(),
     repo.getAllCareTasks(),
     repo.getAllRecaps(),
+    repo.getAllMemories(),
+    repo.getAllChatTurns(),
     repo.getAllVoices(),
     repo.getAllPhotos(),
     repo.getAllDocuments(),
@@ -222,6 +241,8 @@ async function refresh() {
     experiments,
     careTasks,
     recaps,
+    memories,
+    chatMessages,
     voices,
     photos,
     documents,
@@ -267,6 +288,8 @@ export const useLeoStore = create<LeoState>((set, get) => ({
   experiments: [],
   careTasks: [],
   recaps: [],
+  memories: [],
+  chatMessages: [],
   voices: [],
   photos: [],
   documents: [],
@@ -543,6 +566,50 @@ export const useLeoStore = create<LeoState>((set, get) => ({
     const entry = await repo.saveRecap(monthIndex, patch);
     set({ recaps: await repo.getAllRecaps() });
     sync.pushEntry('recaps', entry);
+  },
+
+  createMemory: async (input) => {
+    const entry = await repo.addMemory(input);
+    set({ memories: await repo.getAllMemories() });
+    sync.pushEntry('memories', entry);
+    return entry;
+  },
+  editMemory: async (id, patch) => {
+    const entry = await repo.updateMemory(id, patch);
+    set({ memories: await repo.getAllMemories() });
+    sync.pushEntry('memories', entry);
+  },
+  removeMemory: async (id) => {
+    await repo.deleteMemory(id);
+    set({ memories: await repo.getAllMemories() });
+    sync.pushDelete('memories', id);
+  },
+  touchMemories: async (ids) => {
+    if (!ids.length) return;
+    const known = new Set(get().memories.map((m) => m.id));
+    const now = Date.now();
+    for (const id of ids) {
+      if (!known.has(id)) continue;
+      const current = get().memories.find((m) => m.id === id);
+      const entry = await repo.updateMemory(id, {
+        useCount: (current?.useCount ?? 0) + 1,
+        lastUsedAt: now,
+      });
+      sync.pushEntry('memories', entry);
+    }
+    set({ memories: await repo.getAllMemories() });
+  },
+
+  addChatTurn: async (input) => {
+    const entry = await repo.addChatTurn(input);
+    set({ chatMessages: await repo.getAllChatTurns() });
+    sync.pushEntry('chatMessages', entry);
+    return entry;
+  },
+  clearChat: async () => {
+    const ids = await repo.clearChat();
+    set({ chatMessages: [] });
+    for (const id of ids) sync.pushDelete('chatMessages', id);
   },
 
   createEvent: async (input) => {
