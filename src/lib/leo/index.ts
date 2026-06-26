@@ -9,6 +9,8 @@ export * from './journal-prompts';
 export * from './photo-albums';
 export * from './sizes';
 export * from './routine-config';
+export * from './routine-templates';
+export * from './routine-session';
 export * from './care-tasks';
 export * from './agenda';
 export * from './recap';

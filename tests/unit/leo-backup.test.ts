@@ -29,6 +29,13 @@ describe('backup round-trip', () => {
       position: 0,
       rating: 'works',
     });
+    await repo.addRoutineSession({
+      type: 'settling',
+      startedAt: 6550,
+      endedAt: 6560,
+      methods: [{ method: 'Shoulder cuddle', result: 'worked' }],
+      settled: true,
+    });
     await repo.addCareTask({
       kind: 'binDay',
       label: 'Bin day',
@@ -58,6 +65,7 @@ describe('backup round-trip', () => {
     expect(backup.events).toHaveLength(1);
     expect(backup.sizes).toHaveLength(1);
     expect(backup.routines).toHaveLength(1);
+    expect(backup.routineSessions).toHaveLength(1);
     expect(backup.careTasks).toHaveLength(1);
     expect(backup.recaps).toHaveLength(1);
     expect(backup.voices).toHaveLength(1);
@@ -75,6 +83,10 @@ describe('backup round-trip', () => {
     expect(await repo.getRecentEvents()).toHaveLength(1);
     expect(await repo.getAllRoutines()).toHaveLength(1);
     expect((await repo.getAllRoutines())[0].rating).toBe('works');
+    expect(await repo.getAllRoutineSessions()).toHaveLength(1);
+    expect((await repo.getAllRoutineSessions())[0].methods?.[0].method).toBe(
+      'Shoulder cuddle',
+    );
     expect(await repo.getAllVoices()).toHaveLength(1);
     expect((await repo.getAllVoices())[0].bytes.byteLength).toBe(4);
     expect((await repo.getAllVoices())[0].category).toBe('firstSound');

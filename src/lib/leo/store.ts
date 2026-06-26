@@ -29,12 +29,14 @@ import type {
   NewMilestone,
   NewPhotoMeta,
   NewRoutine,
+  NewRoutineSession,
   NewSize,
   NewVoiceMeta,
   PhotoEntry,
   ProfileInput,
   RecapInput,
   RoutineItem,
+  RoutineSession,
   SizeEntry,
   SleepEntry,
   VoiceEntry,
@@ -57,6 +59,7 @@ interface LeoState {
   events: LeoEvent[];
   sizes: SizeEntry[];
   routines: RoutineItem[];
+  routineSessions: RoutineSession[];
   careTasks: CareTask[];
   recaps: MonthlyRecap[];
   voices: VoiceEntry[];
@@ -106,6 +109,13 @@ interface LeoState {
   editRoutine: (id: string, patch: Partial<RoutineItem>) => Promise<void>;
   removeRoutine: (id: string) => Promise<void>;
 
+  createRoutineSession: (input: NewRoutineSession) => Promise<RoutineSession>;
+  editRoutineSession: (
+    id: string,
+    patch: Partial<RoutineSession>,
+  ) => Promise<void>;
+  removeRoutineSession: (id: string) => Promise<void>;
+
   createCareTask: (input: NewCareTask) => Promise<void>;
   editCareTask: (id: string, patch: Partial<CareTask>) => Promise<void>;
   removeCareTask: (id: string) => Promise<void>;
@@ -148,6 +158,7 @@ async function refresh() {
     events,
     sizes,
     routines,
+    routineSessions,
     careTasks,
     recaps,
     voices,
@@ -167,6 +178,7 @@ async function refresh() {
     repo.getRecentEvents(RECENT_LIMIT),
     repo.getAllSizes(),
     repo.getAllRoutines(),
+    repo.getAllRoutineSessions(),
     repo.getAllCareTasks(),
     repo.getAllRecaps(),
     repo.getAllVoices(),
@@ -187,6 +199,7 @@ async function refresh() {
     events,
     sizes,
     routines,
+    routineSessions,
     careTasks,
     recaps,
     voices,
@@ -229,6 +242,7 @@ export const useLeoStore = create<LeoState>((set, get) => ({
   events: [],
   sizes: [],
   routines: [],
+  routineSessions: [],
   careTasks: [],
   recaps: [],
   voices: [],
@@ -429,6 +443,23 @@ export const useLeoStore = create<LeoState>((set, get) => ({
     await repo.deleteRoutine(id);
     set({ routines: await repo.getAllRoutines() });
     sync.pushDelete('routines', id);
+  },
+
+  createRoutineSession: async (input) => {
+    const entry = await repo.addRoutineSession(input);
+    set({ routineSessions: await repo.getAllRoutineSessions() });
+    sync.pushEntry('routineSessions', entry);
+    return entry;
+  },
+  editRoutineSession: async (id, patch) => {
+    const entry = await repo.updateRoutineSession(id, patch);
+    set({ routineSessions: await repo.getAllRoutineSessions() });
+    sync.pushEntry('routineSessions', entry);
+  },
+  removeRoutineSession: async (id) => {
+    await repo.deleteRoutineSession(id);
+    set({ routineSessions: await repo.getAllRoutineSessions() });
+    sync.pushDelete('routineSessions', id);
   },
 
   createCareTask: async (input) => {

@@ -183,6 +183,81 @@ export interface RoutineItem {
 }
 
 // ---------------------------------------------------------------------------
+// Routine SESSIONS — a logged settling / nap / bedtime episode (the smart log)
+// ---------------------------------------------------------------------------
+
+export type RoutineSessionType =
+  | 'morning'
+  | 'nap'
+  | 'bedtime'
+  | 'settling'
+  | 'feed_recovery'
+  | 'custom';
+
+/** How a settling method went this time. */
+export type MethodResult =
+  | 'worked'
+  | 'helped'
+  | 'no_effect'
+  | 'made_worse'
+  | 'not_sure';
+
+export type ParentName = 'Luke' | 'Christina' | 'Both';
+
+/** One step of a routine template, ticked off as it happens. */
+export interface RoutineStep {
+  name: string;
+  done: boolean;
+  at?: Millis;
+}
+
+/** A settling method tried during a session, with its outcome. */
+export interface RoutineMethod {
+  method: string;
+  result: MethodResult;
+  at?: Millis;
+  minutesTried?: number;
+}
+
+/** A "put down" attempt and whether Leo stayed asleep. */
+export interface PutDownAttempt {
+  kind: 'awake' | 'drowsy' | 'asleep' | 'transfer';
+  result: 'stayed' | 'woke';
+  afterMinutesAsleep?: number;
+  at?: Millis;
+}
+
+/**
+ * A logged routine session. Nested arrays live inline (cloud sync mirrors the
+ * record as JSON, so nested objects are fine).
+ */
+export interface RoutineSession {
+  id: string;
+  type: RoutineSessionType;
+  startedAt: Millis;
+  endedAt?: Millis;
+  startedBy?: ParentName;
+  location?: string;
+  beforeMood?: string;
+  contextTags?: string[];
+  sleepCues?: string[];
+  hungerCues?: string[];
+  windSigns?: string[];
+  steps?: RoutineStep[];
+  methods?: RoutineMethod[];
+  putDowns?: PutDownAttempt[];
+  settled?: boolean;
+  settleMinutes?: number;
+  sleptMinutes?: number;
+  wokeAfterPutDown?: boolean;
+  wokeMood?: 'calm' | 'fussy' | 'crying';
+  confidence?: 'high' | 'medium' | 'low';
+  note?: string;
+  createdAt: Millis;
+  updatedAt: Millis;
+}
+
+// ---------------------------------------------------------------------------
 // Care tasks — recurring household nudges (in-app agenda only, never pushed)
 // ---------------------------------------------------------------------------
 
@@ -484,6 +559,10 @@ export type NewJournal = Omit<JournalEntry, 'id' | 'createdAt' | 'updatedAt'>;
 export type NewEvent = Omit<LeoEvent, 'id' | 'createdAt' | 'updatedAt'>;
 export type NewSize = Omit<SizeEntry, 'id' | 'createdAt' | 'updatedAt'>;
 export type NewRoutine = Omit<RoutineItem, 'id' | 'createdAt' | 'updatedAt'>;
+export type NewRoutineSession = Omit<
+  RoutineSession,
+  'id' | 'createdAt' | 'updatedAt'
+>;
 export type NewCareTask = Omit<CareTask, 'id' | 'createdAt' | 'updatedAt'>;
 /** Editable fields of a monthly recap (id/monthIndex/timestamps are managed). */
 export type RecapInput = Partial<
@@ -519,6 +598,7 @@ export interface LeoBackup {
   events?: LeoEvent[];
   sizes?: SizeEntry[];
   routines?: RoutineItem[];
+  routineSessions?: RoutineSession[];
   careTasks?: CareTask[];
   recaps?: MonthlyRecap[];
   voices?: VoiceBackup[];

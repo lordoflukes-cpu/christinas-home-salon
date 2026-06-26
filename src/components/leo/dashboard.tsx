@@ -8,6 +8,7 @@ import {
   Activity,
   Droplets,
   Frown,
+  HeartHandshake,
   Images,
   Milk,
   Pill,
@@ -199,6 +200,24 @@ export function Dashboard() {
             ))}
           </div>
         </Card>
+      </motion.div>
+
+      <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.29 }}>
+        <Link href={'/leo/routine?unsettled=1' as Route}>
+          <Card className="flex items-center gap-3 border-rose-200 bg-gradient-to-br from-rose-50 to-parchment-50 p-3 transition-colors hover:from-rose-100">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-rose-100 text-rose-500">
+              <HeartHandshake className="h-5 w-5" />
+            </span>
+            <div className="flex-1">
+              <p className="font-display text-base text-ink-900">
+                Leo is unsettled
+              </p>
+              <p className="text-xs text-ink-500">
+                Start settling · log what you try
+              </p>
+            </div>
+          </Card>
+        </Link>
       </motion.div>
 
       <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.3 }}>

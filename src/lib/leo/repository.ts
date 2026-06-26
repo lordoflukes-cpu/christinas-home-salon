@@ -32,6 +32,7 @@ import type {
   NewMilestone,
   NewPhotoMeta,
   NewRoutine,
+  NewRoutineSession,
   NewSize,
   NewSleep,
   NewVoiceMeta,
@@ -39,6 +40,7 @@ import type {
   ProfileInput,
   RecapInput,
   RoutineItem,
+  RoutineSession,
   SizeEntry,
   SleepEntry,
   VoiceEntry,
@@ -688,6 +690,62 @@ export async function getAllRoutines(): Promise<RoutineItem[]> {
 }
 
 // ---------------------------------------------------------------------------
+// Routine sessions (logged settling / nap / bedtime episodes — the smart log)
+// ---------------------------------------------------------------------------
+
+export async function addRoutineSession(
+  input: NewRoutineSession,
+): Promise<RoutineSession> {
+  const db = await getDB();
+  const time = ts();
+  const entry: RoutineSession = {
+    ...input,
+    id: newId(),
+    createdAt: time,
+    updatedAt: time,
+  };
+  await db.put('routineSessions', entry);
+  return entry;
+}
+
+export async function updateRoutineSession(
+  id: string,
+  patch: Partial<RoutineSession>,
+): Promise<RoutineSession> {
+  const db = await getDB();
+  const existing = await db.get('routineSessions', id);
+  if (!existing) throw new Error(`Routine session ${id} not found`);
+  const updated: RoutineSession = {
+    ...existing,
+    ...patch,
+    id,
+    updatedAt: ts(),
+  };
+  await db.put('routineSessions', updated);
+  return updated;
+}
+
+export async function deleteRoutineSession(id: string): Promise<void> {
+  const db = await getDB();
+  await db.delete('routineSessions', id);
+}
+
+/** All routine sessions, newest-first by start time. */
+export async function getAllRoutineSessions(): Promise<RoutineSession[]> {
+  const db = await getDB();
+  const results: RoutineSession[] = [];
+  let cursor = await db
+    .transaction('routineSessions')
+    .store.index('by-startedAt')
+    .openCursor(null, 'prev');
+  while (cursor) {
+    results.push(cursor.value);
+    cursor = await cursor.continue();
+  }
+  return results;
+}
+
+// ---------------------------------------------------------------------------
 // Care tasks (recurring household nudges — in-app agenda only)
 // ---------------------------------------------------------------------------
 
@@ -899,6 +957,7 @@ export type PlainStore =
   | 'events'
   | 'sizes'
   | 'routines'
+  | 'routineSessions'
   | 'careTasks'
   | 'recaps';
 
@@ -998,6 +1057,7 @@ const ALL_STORES = [
   'events',
   'sizes',
   'routines',
+  'routineSessions',
   'careTasks',
   'recaps',
   'voices',
@@ -1019,6 +1079,7 @@ export async function exportAll(): Promise<LeoBackup> {
     events,
     sizes,
     routines,
+    routineSessions,
     careTasks,
     recaps,
     voices,
@@ -1036,6 +1097,7 @@ export async function exportAll(): Promise<LeoBackup> {
     db.getAll('events'),
     db.getAll('sizes'),
     db.getAll('routines'),
+    db.getAll('routineSessions'),
     db.getAll('careTasks'),
     db.getAll('recaps'),
     db.getAll('voices'),
@@ -1074,6 +1136,7 @@ export async function exportAll(): Promise<LeoBackup> {
     events,
     sizes,
     routines,
+    routineSessions,
     careTasks,
     recaps,
     voices: voiceBackups,
@@ -1146,6 +1209,8 @@ export async function importAll(
   for (const s of backup.sizes ?? []) await tx.objectStore('sizes').put(s);
   for (const r of backup.routines ?? [])
     await tx.objectStore('routines').put(r);
+  for (const s of backup.routineSessions ?? [])
+    await tx.objectStore('routineSessions').put(s);
   for (const c of backup.careTasks ?? [])
     await tx.objectStore('careTasks').put(c);
   for (const r of backup.recaps ?? []) await tx.objectStore('recaps').put(r);
