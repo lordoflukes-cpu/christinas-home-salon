@@ -109,6 +109,93 @@ describe('computeReminders', () => {
     expect(r.find((x) => x.key === 'sleep')!.fireAt).toBe(NOW + 3 * 3_600_000);
   });
 
+  it('schedules a wake-window nudge from the last ended sleep when awake', () => {
+    const ended = NOW - 30 * 60_000; // ended 30 min ago
+    const sleeps: SleepEntry[] = [
+      {
+        id: 's1',
+        startedAt: NOW - 2 * 3_600_000,
+        endedAt: ended,
+        createdAt: NOW,
+        updatedAt: NOW,
+      },
+    ];
+    const r = computeReminders({
+      prefs: {
+        ...ON,
+        vitd: false,
+        feed: false,
+        wakeWindow: true,
+        wakeWindowMinutes: 90,
+      },
+      feeds: [],
+      medical: [],
+      activeSleep: null,
+      sleeps,
+      now: NOW,
+    });
+    expect(r.find((x) => x.key === 'wake')!.fireAt).toBe(ended + 90 * 60_000);
+  });
+
+  it('does not schedule a wake-window nudge while currently asleep', () => {
+    const active: SleepEntry = {
+      id: 's2',
+      startedAt: NOW - 10 * 60_000,
+      createdAt: NOW,
+      updatedAt: NOW,
+    };
+    const r = computeReminders({
+      prefs: { ...ON, vitd: false, feed: false, wakeWindow: true },
+      feeds: [],
+      medical: [],
+      activeSleep: active,
+      sleeps: [active],
+      now: NOW,
+    });
+    expect(r.find((x) => x.key === 'wake')).toBeUndefined();
+  });
+
+  it('schedules a bedtime reminder at the set time', () => {
+    const r = computeReminders({
+      prefs: {
+        ...ON,
+        vitd: false,
+        feed: false,
+        bedtime: true,
+        bedtimeTime: '19:00',
+      },
+      feeds: [],
+      medical: [],
+      activeSleep: null,
+      now: NOW, // 12:00 → 19:00 today
+    });
+    const b = r.find((x) => x.key === 'bedtime')!;
+    expect(new Date(b.fireAt).getHours()).toBe(19);
+  });
+
+  it('schedules a nappy nudge nappyHours after the last change', () => {
+    const changedAt = NOW - 30 * 60_000;
+    const r = computeReminders({
+      prefs: { ...ON, vitd: false, feed: false, nappy: true, nappyHours: 3 },
+      feeds: [],
+      medical: [],
+      activeSleep: null,
+      diapers: [
+        {
+          id: 'd1',
+          changedAt,
+          type: 'wet',
+          createdAt: changedAt,
+          updatedAt: changedAt,
+        },
+      ],
+      now: NOW,
+    });
+    expect(r.find((x) => x.key === 'nappy')!.fireAt).toBe(
+      changedAt + 3 * 3_600_000,
+    );
+  });
+
   it('drops reminders whose time has already passed', () => {
     // last feed long ago → feed reminder is in the past → filtered out
     const r = computeReminders({

@@ -15,6 +15,14 @@ const reminderPrefsSchema = z.object({
   vitdTime: z.string(),
   sleep: z.boolean(),
   sleepMaxHours: z.number().positive(),
+  // Wake-window, bedtime & nappy nudges — defaulted so older backups (which
+  // predate these) still parse cleanly.
+  wakeWindow: z.boolean().default(false),
+  wakeWindowMinutes: z.number().positive().default(90),
+  bedtime: z.boolean().default(false),
+  bedtimeTime: z.string().default('19:00'),
+  nappy: z.boolean().default(false),
+  nappyHours: z.number().positive().default(3),
   // Quiet hours — defaulted so older backups (which predate these) still parse.
   quiet: z.boolean().default(false),
   quietStart: z.string().default('22:00'),

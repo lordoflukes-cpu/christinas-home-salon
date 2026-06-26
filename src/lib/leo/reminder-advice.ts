@@ -19,15 +19,27 @@ const DAY = 86_400_000;
 export const REMINDER_ADVICE_SYSTEM = `You suggest gentle baby reminder timings for an app, from the snapshot of a real baby's age, weight, feeding type and recent rhythm provided by the parent.
 
 Return ONLY a JSON object (no prose, no markdown) of the form:
-{"feedHours": 3, "sleepMaxHours": 2, "vitdTime": "09:00", "quietStart": "22:00", "quietEnd": "07:00", "rationale": "one short, warm sentence"}
+{"feedHours": 3, "sleepMaxHours": 2, "wakeWindowMinutes": 75, "bedtime": "19:00", "vitdTime": "09:00", "quietStart": "22:00", "quietEnd": "07:00", "rationale": "one short, warm sentence"}
 
-Guidance: base "feedHours" on the baby's typical gap between feeds and age (newborns feed often, ~2–3h; older babies stretch longer). "sleepMaxHours" is when a long-nap nudge should fire (a little above their usual nap). "vitdTime" a sensible daily time (UK babies are usually given daily vitamin D). Quiet hours cover their longest night stretch. Omit any field you can't sensibly suggest. NEVER give medical advice or mention amounts/doses — these are only reminder timings. Keep "rationale" to one friendly sentence referencing what you saw (e.g. "Leo's feeds are about 3 hours apart at the moment").`;
+Guidance:
+- "feedHours": base on the baby's typical gap between feeds and age (newborns feed often, ~2–3h; older babies stretch longer).
+- "sleepMaxHours": when a long-nap nudge should fire (a little above their usual nap).
+- "wakeWindowMinutes": how long the baby can comfortably stay awake between sleeps before getting overtired — strongly age-dependent (newborns ~45–60 min; ~3 months ~75–90 min; ~6 months ~2–3 hours). Lean on the observed awake stretch when given.
+- "bedtime": a sensible time (HH:MM) to start the bedtime routine for this age (younger babies often settle earlier).
+- "vitdTime": a sensible daily time (UK babies are usually given daily vitamin D).
+- Quiet hours cover their longest night stretch.
+Omit any field you can't sensibly suggest. NEVER give medical advice or mention amounts/doses — these are only reminder timings. Keep "rationale" to one friendly sentence referencing what you saw (e.g. "Leo's feeds are about 3 hours apart and he manages around 75 minutes awake at the moment").`;
 
 const adviceSchema = z.object({
   // Bounds are enforced by clampAdvice so an over-eager number is corrected
   // rather than discarding the whole suggestion.
   feedHours: z.number().positive().optional(),
   sleepMaxHours: z.number().positive().optional(),
+  wakeWindowMinutes: z.number().positive().optional(),
+  bedtime: z
+    .string()
+    .regex(/^\d{1,2}:\d{2}$/)
+    .optional(),
   vitdTime: z
     .string()
     .regex(/^\d{1,2}:\d{2}$/)
@@ -56,6 +68,10 @@ function clampAdvice(a: ReminderAdvice): ReminderAdvice {
     sleepMaxHours:
       a.sleepMaxHours != null
         ? Math.min(12, Math.max(1, Math.round(a.sleepMaxHours)))
+        : undefined,
+    wakeWindowMinutes:
+      a.wakeWindowMinutes != null
+        ? Math.min(240, Math.max(20, Math.round(a.wakeWindowMinutes)))
         : undefined,
   };
 }

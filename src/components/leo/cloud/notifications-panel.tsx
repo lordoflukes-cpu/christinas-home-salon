@@ -53,7 +53,10 @@ export function NotificationsPanel() {
   const editProfile = useLeoStore((s) => s.editProfile);
   const { toast } = useToast();
 
-  const prefs: ReminderPrefs = profile?.reminders ?? DEFAULT_REMINDER_PREFS;
+  const prefs: ReminderPrefs = {
+    ...DEFAULT_REMINDER_PREFS,
+    ...(profile?.reminders ?? {}),
+  };
   const [permission, setPermission] = useState<
     NotificationPermission | 'default'
   >('default');
@@ -273,6 +276,54 @@ export function NotificationsPanel() {
               </ToggleRow>
 
               <ToggleRow
+                label="Awake-too-long nudge"
+                hint={`“Might be getting tired” after ${prefs.wakeWindowMinutes} min awake`}
+                checked={prefs.wakeWindow}
+                onChange={(v) => savePrefs({ wakeWindow: v })}
+              >
+                <NumberField
+                  label="Mins awake"
+                  value={prefs.wakeWindowMinutes}
+                  min={20}
+                  max={240}
+                  step={5}
+                  onCommit={(n) => savePrefs({ wakeWindowMinutes: n })}
+                />
+              </ToggleRow>
+
+              <ToggleRow
+                label="Bedtime routine"
+                hint={`A nudge to wind down at ${prefs.bedtimeTime}`}
+                checked={prefs.bedtime}
+                onChange={(v) => savePrefs({ bedtime: v })}
+              >
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs text-ink-500">Time</Label>
+                  <Input
+                    type="time"
+                    defaultValue={prefs.bedtimeTime}
+                    onBlur={(e) => savePrefs({ bedtimeTime: e.target.value })}
+                    className="h-9 w-28"
+                  />
+                </div>
+              </ToggleRow>
+
+              <ToggleRow
+                label="Nappy check"
+                hint={`Nudge ${prefs.nappyHours}h after the last change`}
+                checked={prefs.nappy}
+                onChange={(v) => savePrefs({ nappy: v })}
+              >
+                <NumberField
+                  label="Hours"
+                  value={prefs.nappyHours}
+                  min={1}
+                  max={12}
+                  onCommit={(n) => savePrefs({ nappyHours: n })}
+                />
+              </ToggleRow>
+
+              <ToggleRow
                 label="Quiet hours"
                 hint={
                   prefs.quiet
@@ -395,6 +446,14 @@ function AiTimingSuggestions({
       patch.sleep = true;
       patch.sleepMaxHours = advice.sleepMaxHours;
     }
+    if (advice.wakeWindowMinutes != null) {
+      patch.wakeWindow = true;
+      patch.wakeWindowMinutes = advice.wakeWindowMinutes;
+    }
+    if (advice.bedtime) {
+      patch.bedtime = true;
+      patch.bedtimeTime = advice.bedtime;
+    }
     if (advice.vitdTime) {
       patch.vitd = true;
       patch.vitdTime = advice.vitdTime;
@@ -427,6 +486,12 @@ function AiTimingSuggestions({
             {advice.sleepMaxHours != null && (
               <li>• Long-nap nudge after {advice.sleepMaxHours}h</li>
             )}
+            {advice.wakeWindowMinutes != null && (
+              <li>
+                • Awake-too-long nudge after {advice.wakeWindowMinutes} min
+              </li>
+            )}
+            {advice.bedtime && <li>• Bedtime routine at {advice.bedtime}</li>}
             {advice.vitdTime && <li>• Vitamin D at {advice.vitdTime}</li>}
             {advice.quietStart && advice.quietEnd && (
               <li>
