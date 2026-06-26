@@ -183,6 +183,119 @@ export async function sendTestPush(): Promise<{ ok: boolean; error?: string }> {
   return { ok: true };
 }
 
+// ---------------------------------------------------------------------------
+// Diagnostics — make the (otherwise silent) closed-app chain observable
+// ---------------------------------------------------------------------------
+
+/** A snapshot of every link in the push chain, for the in-app checklist. */
+export interface ChainState {
+  /** Notification API + service worker available (enough for local). */
+  supported: boolean;
+  /** PushManager available (needed for closed-app delivery). */
+  pushSupported: boolean;
+  permission: NotificationPermission | 'default';
+  /** VAPID key + Supabase both present (the cloud pipeline is wired). */
+  pushConfigured: boolean;
+  /** Signed in to the shared family account. */
+  signedIn: boolean;
+  /** This device has an active push subscription. */
+  subscribedThisDevice: boolean;
+}
+
+export interface ChecklistItem {
+  label: string;
+  ok: boolean;
+  hint: string;
+}
+
+/**
+ * Turn a {@link ChainState} into an ordered checklist of every link needed for
+ * closed-app delivery, so a parent can see exactly what's done and what's left.
+ * Pure — unit tested.
+ */
+export function notificationChecklist(s: ChainState): ChecklistItem[] {
+  return [
+    {
+      label: 'This device can show notifications',
+      ok: s.supported && s.pushSupported,
+      hint: s.supported
+        ? s.pushSupported
+          ? 'Ready'
+          : 'This browser can’t do closed-app push'
+        : 'Open Leo from your Home Screen, not a browser tab',
+    },
+    {
+      label: 'You allowed notifications',
+      ok: s.permission === 'granted',
+      hint:
+        s.permission === 'granted'
+          ? 'Allowed'
+          : s.permission === 'denied'
+            ? 'Blocked in your phone’s settings — allow them for Leo'
+            : 'Tap “Turn on notifications” and allow when asked',
+    },
+    {
+      label: 'Closed-app delivery configured',
+      ok: s.pushConfigured,
+      hint: s.pushConfigured
+        ? 'Cloud pipeline is set up'
+        : 'One-time setup needed (see docs/leo-cloud-sync.md)',
+    },
+    {
+      label: 'Signed in to cloud sync',
+      ok: s.signedIn,
+      hint: s.signedIn ? 'Signed in' : 'Sign in (Settings → Cloud sync)',
+    },
+    {
+      label: 'This phone is subscribed',
+      ok: s.subscribedThisDevice,
+      hint: s.subscribedThisDevice
+        ? 'Will receive closed-app reminders'
+        : 'Turn notifications on here to subscribe this phone',
+    },
+  ];
+}
+
+export interface PushAccountStatus {
+  signedIn: boolean;
+  /** How many devices on the account are subscribed for push. */
+  devices: number;
+  /** How many reminders are currently queued to send. */
+  pending: number;
+}
+
+/**
+ * Read how many devices are subscribed and how many reminders are queued for
+ * this account — a live readout that confirms the cloud side is working.
+ * Returns null when sync isn't configured.
+ */
+export async function pushAccountStatus(): Promise<PushAccountStatus | null> {
+  const sb = getSupabase();
+  if (!sb) return null;
+  const { data: userData } = await sb.auth.getUser();
+  const owner = userData.user?.id;
+  if (!owner) return { signedIn: false, devices: 0, pending: 0 };
+  try {
+    const [subs, sched] = await Promise.all([
+      sb
+        .from(SUBS_TABLE)
+        .select('endpoint', { count: 'exact', head: true })
+        .eq('owner', owner),
+      sb
+        .from(SCHED_TABLE)
+        .select('key', { count: 'exact', head: true })
+        .eq('owner', owner),
+    ]);
+    return {
+      signedIn: true,
+      devices: subs.count ?? 0,
+      pending: sched.count ?? 0,
+    };
+  } catch {
+    return { signedIn: true, devices: 0, pending: 0 };
+  }
+}
+
 /** Show a notification immediately (used to confirm the toggle works). */
 export async function showTestNotification(): Promise<void> {
   const reg = await swRegistration();
