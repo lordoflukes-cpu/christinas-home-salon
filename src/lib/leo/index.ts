@@ -21,6 +21,7 @@ export * from './care-tasks';
 export * from './agenda';
 export * from './recap';
 export * from './timeline';
+export * from './slideshow';
 export * from './ai';
 export * from './patwah';
 export * from './briefing';

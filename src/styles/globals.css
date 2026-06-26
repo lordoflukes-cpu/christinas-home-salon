@@ -192,6 +192,75 @@
   transform-box: fill-box;
 }
 
+/* ---- Slideshow: slow Ken-Burns drifts + shooting stars ---- */
+@keyframes leo-kenburns-a {
+  from {
+    transform: scale(1.04) translate(0, 0);
+  }
+  to {
+    transform: scale(1.16) translate(-2.5%, -2%);
+  }
+}
+@keyframes leo-kenburns-b {
+  from {
+    transform: scale(1.16) translate(2.5%, 1.5%);
+  }
+  to {
+    transform: scale(1.04) translate(0, 0);
+  }
+}
+@keyframes leo-kenburns-c {
+  from {
+    transform: scale(1.05) translate(2%, -1.5%);
+  }
+  to {
+    transform: scale(1.18) translate(-1.5%, 2%);
+  }
+}
+.leo-kenburns-a {
+  animation: leo-kenburns-a 9s ease-out forwards;
+}
+.leo-kenburns-b {
+  animation: leo-kenburns-b 9s ease-out forwards;
+}
+.leo-kenburns-c {
+  animation: leo-kenburns-c 9s ease-out forwards;
+}
+
+@keyframes leo-shoot {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(18deg) scaleX(0.2);
+  }
+  6% {
+    opacity: 1;
+  }
+  18% {
+    opacity: 1;
+    transform: translate(-46vw, 30vh) rotate(18deg) scaleX(1);
+  }
+  24%,
+  100% {
+    opacity: 0;
+    transform: translate(-52vw, 34vh) rotate(18deg) scaleX(1);
+  }
+}
+.leo-shoot {
+  animation: leo-shoot 7s ease-in infinite;
+}
+
+/* Calm everything for users who prefer reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  .leo-kenburns-a,
+  .leo-kenburns-b,
+  .leo-kenburns-c,
+  .leo-shoot,
+  .leo-twinkle,
+  .leo-firefly {
+    animation: none !important;
+  }
+}
+
 /* Scope warm parchment/ink theme tokens to the Leo subtree only, so every
    shadcn primitive (card, input, dialog, sheet, default button) adopts the
    engraved palette without affecting the salon site. */
