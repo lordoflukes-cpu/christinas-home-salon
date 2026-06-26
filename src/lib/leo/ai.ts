@@ -36,6 +36,7 @@ import {
 } from './routine-insights';
 import { routineTypeConfig } from './routine-templates';
 import type { ReminderAdvice } from './reminder-advice';
+import type { ProposedAction } from './report-actions';
 
 const DAY = 86_400_000;
 
@@ -655,6 +656,43 @@ export async function getReminderAdvice(
       return { error: data.error || 'Couldn’t get a suggestion right now.' };
     }
     return { advice: data.advice };
+  } catch {
+    return { error: 'Couldn’t reach Leo. Check your connection.' };
+  }
+}
+
+// --- "File this for me" — pasted report → proposed actions ------------------
+
+export interface ExtractActionsResult {
+  actions?: ProposedAction[];
+  error?: string;
+  notConfigured?: boolean;
+}
+
+/**
+ * Send a pasted report / notes / instruction and get back proposed actions
+ * across the app. The caller shows them for confirmation — this never writes.
+ */
+export async function extractActions(
+  text: string,
+): Promise<ExtractActionsResult> {
+  const trimmed = text.trim();
+  if (!trimmed) return { actions: [] };
+  try {
+    const res = await fetch('/api/leo/ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ task: 'extract-actions', context: trimmed }),
+    });
+    const data = (await res.json().catch(() => ({}))) as {
+      actions?: ProposedAction[];
+      error?: string;
+    };
+    if (res.status === 503) return { notConfigured: true, error: data.error };
+    if (!res.ok) {
+      return { error: data.error || 'Couldn’t make sense of that.' };
+    }
+    return { actions: data.actions ?? [] };
   } catch {
     return { error: 'Couldn’t reach Leo. Check your connection.' };
   }

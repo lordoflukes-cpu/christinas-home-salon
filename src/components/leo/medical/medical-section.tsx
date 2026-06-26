@@ -30,6 +30,7 @@ import { GreekKey } from '../decor/greek-key';
 import { MedicalForm } from './medical-form';
 import { DoctorSummarySheet } from './doctor-summary-sheet';
 import { QuickAddSheet, type QuickAddState } from '../quick-add-sheet';
+import { FileReportButton } from '../ai/file-report-sheet';
 
 /** NHS routine immunisation schedule (first year). */
 const NHS_VACCINES = [
@@ -158,6 +159,9 @@ export function MedicalSection() {
 
   return (
     <div className="space-y-4">
+      {/* File a note / report with the AI (confirm before it saves) */}
+      <FileReportButton />
+
       {/* Doctor summary */}
       <button
         type="button"
