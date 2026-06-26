@@ -17,14 +17,14 @@ Return ONLY a JSON object {"actions": [ ... ]} and nothing else (no prose, no ma
 - {"type":"profile","summary":"Set GP to Dr Patel","fields":{"name":"Leo","birth":"2026-06-24T22:54","birthPlace":"...","gp":"Dr Patel","healthVisitor":"...","allergies":"...","birthWeightGrams":3400,"birthLengthCm":51,"birthHeadCircCm":35,"hospital":"...","midwife":"...","doctor":"...","nhsNumber":"...","parents":"...","birthStory":"..."}}
 - {"type":"medical","summary":"Red-book: 8-week check","medicalKind":"note|appointment|vaccination|medication","title":"...","when":"2026-06-20","category":"GP|Health visitor|Hospital|Midwife","note":"...","batch":"...","reaction":"..."}
 - {"type":"event","summary":"Rash, mild","eventKind":"symptom|temperature|medication|mood|cry","when":"2026-06-26T09:00","symptom":"runny nose","severity":"mild|moderate|severe","tempC":38,"medName":"Calpol","dose":"2.5ml","mood":"unsettled","note":"..."}
-- {"type":"feed","summary":"Bottle 90ml","feedType":"breast|bottle","amountMl":90,"contents":"formula|breastmilk","side":"L|R","durationMin":12}
-- {"type":"diaper","summary":"Dirty nappy","diaperType":"wet|dirty|both","color":"yellow"}
-- {"type":"sleep","summary":"Nap"}
+- {"type":"feed","summary":"Bottle 90ml at 2pm","when":"2026-06-26T14:00","feedType":"breast|bottle","amountMl":90,"contents":"formula|breastmilk","side":"L|R","durationMin":12}
+- {"type":"diaper","summary":"Dirty nappy at 9am","when":"2026-06-26T09:00","diaperType":"wet|dirty|both","color":"yellow"}
+- {"type":"sleep","summary":"Nap 11am, ~2h","when":"2026-06-26T11:00","durationMin":120}
 - {"type":"milestone","summary":"First smile","title":"First smile","note":"..."}
 - {"type":"note","summary":"Journal note","body":"..."}
 - {"type":"reminders","summary":"Feed reminder every 3h","feedHours":3,"sleepMaxHours":2,"vitdTime":"09:00","quietStart":"22:00","quietEnd":"07:00"}
 
-Rules: extract ONLY what is clearly stated. Omit any field you're unsure of. NEVER invent medication names, doses, numbers, dates or measurements — copy them exactly or leave them out. Use "when" as an ISO date (YYYY-MM-DD) or date-time when a clear date is given; otherwise omit it.
+Rules: extract ONLY what is clearly stated. Omit any field you're unsure of. NEVER invent medication names, doses, numbers, dates or measurements — copy them exactly or leave them out. Use "when" as an ISO date (YYYY-MM-DD) or date-time when a clear date is given; otherwise omit it. For feeds, nappies and sleeps, capture the TIME OF DAY in "when" (e.g. "2026-06-26T14:00") whenever the report says when it happened — "this morning"/"9am"/"after lunch" — so it lands at the right time on the timeline; for a nap also put its length in "durationMin".
 
 PROFILE — IMPORTANT: emit EXACTLY ONE "profile" action and pack EVERY baby detail that appears anywhere in the text into its "fields" — do not skim or stop early, and do not split profile details across multiple actions. Go field by field and include each one that is stated: name; birth (ISO date-time, e.g. "2026-06-24T22:54"); birthPlace (where the baby was born); parents; hospital; midwife; doctor; nhsNumber; gp; healthVisitor; allergies; birthWeightGrams; birthLengthCm; birthHeadCircCm; birthStory. Measurements MUST be plain numbers in grams/cm (e.g. "birthWeightGrams":2790, "birthLengthCm":46, "birthHeadCircCm":32.5) — never strings or other units. Only the baby's own facts go in profile (ignore a parent's NHS number / date of birth).
 

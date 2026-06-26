@@ -37,6 +37,7 @@ import type {
   NewRoutineSession,
   NewSavedRoutine,
   NewSize,
+  NewSleep,
   NewVoiceMeta,
   Experiment,
   PhotoEntry,
@@ -94,6 +95,8 @@ interface LeoState {
 
   startSleepTimer: (startedAt?: number) => Promise<void>;
   stopSleepTimer: (id: string, endedAt?: number) => Promise<void>;
+  /** Add a past/completed sleep with explicit times (e.g. filed from a report). */
+  createSleep: (input: NewSleep) => Promise<void>;
   editSleep: (id: string, patch: Partial<SleepEntry>) => Promise<void>;
   removeSleep: (id: string) => Promise<void>;
 
@@ -371,6 +374,14 @@ export const useLeoStore = create<LeoState>((set, get) => ({
   },
   stopSleepTimer: async (id, endedAt) => {
     const entry = await repo.endSleep(id, endedAt);
+    set({
+      sleeps: await repo.getRecentSleeps(RECENT_LIMIT),
+      activeSleep: await repo.getActiveSleep(),
+    });
+    sync.pushEntry('sleeps', entry);
+  },
+  createSleep: async (input) => {
+    const entry = await repo.addSleep(input);
     set({
       sleeps: await repo.getRecentSleeps(RECENT_LIMIT),
       activeSleep: await repo.getActiveSleep(),

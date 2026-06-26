@@ -77,6 +77,7 @@ export function FileReportSheet({
   const createFeed = useLeoStore((s) => s.createFeed);
   const createDiaper = useLeoStore((s) => s.createDiaper);
   const startSleepTimer = useLeoStore((s) => s.startSleepTimer);
+  const createSleep = useLeoStore((s) => s.createSleep);
   const createMilestone = useLeoStore((s) => s.createMilestone);
   const createJournal = useLeoStore((s) => s.createJournal);
 
@@ -246,7 +247,7 @@ export function FileReportSheet({
           a.feedType ?? (a.side || a.durationMin != null ? 'breast' : 'bottle');
         return createFeed({
           type,
-          startedAt: now,
+          startedAt: whenMs(a) ?? now,
           amountMl: a.amountMl,
           contents: a.contents,
           side: a.side,
@@ -255,12 +256,19 @@ export function FileReportSheet({
       }
       case 'diaper':
         return createDiaper({
-          changedAt: now,
+          changedAt: whenMs(a) ?? now,
           type: a.diaperType ?? 'wet',
           color: a.color,
         });
-      case 'sleep':
-        return startSleepTimer(now);
+      case 'sleep': {
+        // A nap from a report has a start time (and maybe a length) — record it
+        // as a completed sleep, not a running timer.
+        const when = whenMs(a);
+        if (when == null) return startSleepTimer(now);
+        const endedAt =
+          a.durationMin != null ? when + a.durationMin * 60_000 : when;
+        return createSleep({ startedAt: when, endedAt });
+      }
       case 'milestone':
         return createMilestone({
           achievedAt: whenMs(a) ?? now,
