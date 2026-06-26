@@ -26,6 +26,12 @@ export interface VoicePrefs {
   speakAi: boolean;
   /** Speak button on the monthly recap. */
   speakRecaps: boolean;
+  /** Speak the gentle daily briefing on Home. */
+  speakBriefing?: boolean;
+  /** Read Ask Leo answers aloud automatically (vs tapping "Speak"). */
+  autoSpeakAnswers?: boolean;
+  /** Playback speed multiplier (0.8–1.2; 1 = normal). */
+  rate?: number;
   /** Locked on: health/dose lines are always clear English. */
   medicalClearEnglish: boolean;
 }
@@ -36,6 +42,9 @@ export const DEFAULT_VOICE_PREFS: VoicePrefs = {
   speakReminders: true,
   speakAi: true,
   speakRecaps: true,
+  speakBriefing: true,
+  autoSpeakAnswers: false,
+  rate: 1,
   medicalClearEnglish: true,
 };
 

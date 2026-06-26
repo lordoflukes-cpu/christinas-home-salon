@@ -63,7 +63,7 @@ export function DailyBriefingCard() {
 
   if (!profile || !hydrated || dismissed) return null;
 
-  const canSpeak = !!voicePrefs?.enabled && voicePrefs.speakAi;
+  const canSpeak = !!voicePrefs?.enabled && (voicePrefs.speakBriefing ?? true);
 
   async function generate() {
     setStatus('loading');

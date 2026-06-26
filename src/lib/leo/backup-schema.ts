@@ -27,6 +27,9 @@ const voicePrefsSchema = z.object({
   speakReminders: z.boolean(),
   speakAi: z.boolean(),
   speakRecaps: z.boolean(),
+  speakBriefing: z.boolean().optional(),
+  autoSpeakAnswers: z.boolean().optional(),
+  rate: z.number().min(0.5).max(2).optional(),
   medicalClearEnglish: z.boolean(),
 });
 

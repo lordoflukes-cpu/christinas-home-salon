@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { getTtsAudio, putTtsAudio } from './repository';
+import { useLeoStore } from './store';
 
 export type SpeakStatus =
   | 'idle'
@@ -50,6 +51,9 @@ export function useSpeaker() {
     const audio = audioRef.current ?? new Audio();
     audioRef.current = audio;
     audio.src = url;
+    // Honour the chosen playback speed (read at play time — no re-render sub).
+    const rate = useLeoStore.getState().profile?.voicePrefs?.rate;
+    audio.playbackRate = rate && rate >= 0.5 && rate <= 2 ? rate : 1;
     audio.onended = () => setStatus('idle');
     audio.onerror = () => setStatus('error');
     await audio.play();

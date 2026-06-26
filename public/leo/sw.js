@@ -2,7 +2,7 @@
  * All user data lives in IndexedDB, so this only caches the static shell
  * (HTML/JS/CSS). Bump CACHE_VERSION to invalidate old caches.
  */
-const CACHE_VERSION = 'leo-v27';
+const CACHE_VERSION = 'leo-v28';
 const SHELL = [
   '/leo',
   '/leo/timeline',

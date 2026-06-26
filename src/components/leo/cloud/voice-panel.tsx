@@ -21,6 +21,12 @@ const STRENGTHS: { value: PatwahStrength; label: string }[] = [
   { value: 'heavy', label: 'Heavy' },
 ];
 
+const SPEEDS: { value: string; label: string }[] = [
+  { value: '0.85', label: 'Slower' },
+  { value: '1', label: 'Normal' },
+  { value: '1.15', label: 'Faster' },
+];
+
 export function VoicePanel() {
   const profile = useLeoStore((s) => s.profile);
   const editProfile = useLeoStore((s) => s.editProfile);
@@ -88,6 +94,17 @@ export function VoicePanel() {
             />
           </div>
 
+          <div>
+            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink-400">
+              Speed
+            </p>
+            <Segmented
+              value={String(prefs.rate ?? 1)}
+              onChange={(v) => savePrefs({ rate: Number(v) })}
+              options={SPEEDS}
+            />
+          </div>
+
           <div className="space-y-2">
             <SpeakToggle
               label="Reminders"
@@ -100,6 +117,18 @@ export function VoicePanel() {
               hint="A Speak button on AI answers & the right-now coach"
               checked={prefs.speakAi}
               onChange={(v) => savePrefs({ speakAi: v })}
+            />
+            <SpeakToggle
+              label="Read answers aloud automatically"
+              hint="Speak Ask Leo’s answer as soon as it arrives"
+              checked={prefs.autoSpeakAnswers ?? false}
+              onChange={(v) => savePrefs({ autoSpeakAnswers: v })}
+            />
+            <SpeakToggle
+              label="Daily briefing"
+              hint="A “Hear it” button on Leo’s morning briefing"
+              checked={prefs.speakBriefing ?? true}
+              onChange={(v) => savePrefs({ speakBriefing: v })}
             />
             <SpeakToggle
               label="Monthly recap"

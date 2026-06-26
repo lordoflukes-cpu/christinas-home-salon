@@ -73,7 +73,7 @@ export function AskLeo() {
       text: res.text,
       error: res.error,
       notConfigured: res.notConfigured,
-      autoSpeak: viaVoice,
+      autoSpeak: viaVoice || !!voicePrefs?.autoSpeakAnswers,
     });
   }
 
