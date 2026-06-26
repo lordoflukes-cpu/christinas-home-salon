@@ -25,8 +25,8 @@ export function TimelineRow({
   const anchor = item.anchor;
   return (
     <li className="relative flex gap-3">
-      {/* Rail */}
-      <div className="flex flex-col items-center">
+      {/* Rail — fixed width so every card starts at the same x */}
+      <div className="flex w-7 flex-col items-center">
         <span
           className={cn(
             'mt-1.5 flex shrink-0 items-center justify-center rounded-full ring-4 ring-parchment-50',
@@ -45,7 +45,7 @@ export function TimelineRow({
         onClick={onOpen}
         disabled={!onOpen}
         className={cn(
-          'mb-2.5 flex flex-1 items-start gap-3 rounded-2xl border px-3 py-2.5 text-left transition-colors',
+          'mb-2.5 flex w-full min-w-0 flex-1 items-start gap-3 rounded-2xl border px-3 py-2.5 text-left transition-colors',
           anchor
             ? 'border-gold-300 bg-gradient-to-br from-gold-50 to-parchment-50'
             : 'border-ink-300/40 bg-parchment-50/70',
