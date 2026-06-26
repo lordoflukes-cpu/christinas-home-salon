@@ -7,7 +7,12 @@ import {
   type AiSources,
   type AiTaskKey,
 } from '@/lib/leo/ai';
-import type { BabyProfile, FeedEntry, MilestoneEntry } from '@/lib/leo';
+import type {
+  BabyProfile,
+  FeedEntry,
+  MilestoneEntry,
+  RoutineSession,
+} from '@/lib/leo';
 
 const BIRTH = new Date(2026, 5, 24, 22, 54).getTime(); // 24 Jun 2026
 const DAY = 86_400_000;
@@ -56,6 +61,8 @@ function sources(over: Partial<AiSources> = {}): AiSources {
     feeds: [],
     diapers: [],
     sleeps: [],
+    activeSleep: null,
+    routineSessions: [],
     now: NOW,
     ...over,
   };
@@ -108,6 +115,26 @@ describe('buildContext', () => {
       sources({ milestones: [milestone({ title: 'First giggle' })] }),
     );
     expect(ctx).toContain('First giggle');
+  });
+
+  it('right-now: includes current state and a method that worked before', () => {
+    const sess: RoutineSession = {
+      id: 'r1',
+      type: 'settling',
+      startedAt: NOW - 60 * 60_000,
+      endedAt: NOW - 50 * 60_000,
+      contextTags: ['Overtired'],
+      methods: [{ method: 'Shoulder cuddle', result: 'worked' }],
+      createdAt: 0,
+      updatedAt: 0,
+    };
+    const ctx = buildContext(
+      'right-now',
+      sources({ feeds: [feed(NOW - 40 * 60_000)], routineSessions: [sess] }),
+    );
+    expect(ctx).toContain('Leo is');
+    expect(ctx).toContain('Right now');
+    expect(ctx).toContain('Shoulder cuddle');
   });
 
   it('enforces the length cap', () => {

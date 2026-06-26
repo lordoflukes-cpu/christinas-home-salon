@@ -30,6 +30,7 @@ import {
   type MethodResult,
 } from '@/lib/leo';
 import { cn } from '@/lib/utils';
+import { AdviserButton } from './adviser-button';
 
 /** Multi-select chip row (toggles membership of a string[]). */
 function ChipToggle({
@@ -211,6 +212,8 @@ export function SessionSheet({
         </SheetHeader>
 
         <div className="space-y-3">
+          {!isEnded && <AdviserButton compact />}
+
           {/* Context (collapsible to keep it fast) */}
           <Collapsible
             label="Before — context & cues"

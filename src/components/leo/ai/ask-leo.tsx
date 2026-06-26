@@ -29,6 +29,8 @@ export function AskLeo() {
   const feeds = useLeoStore((s) => s.feeds);
   const diapers = useLeoStore((s) => s.diapers);
   const sleeps = useLeoStore((s) => s.sleeps);
+  const activeSleep = useLeoStore((s) => s.activeSleep);
+  const routineSessions = useLeoStore((s) => s.routineSessions);
   const now = useNow(3_600_000);
 
   const [result, setResult] = useState<AiResultState | null>(null);
@@ -48,6 +50,8 @@ export function AskLeo() {
       feeds,
       diapers,
       sleeps,
+      activeSleep,
+      routineSessions,
       now,
     };
   }

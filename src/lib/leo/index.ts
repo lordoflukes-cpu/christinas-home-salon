@@ -11,6 +11,7 @@ export * from './sizes';
 export * from './routine-config';
 export * from './routine-templates';
 export * from './routine-session';
+export * from './routine-insights';
 export * from './care-tasks';
 export * from './agenda';
 export * from './recap';

@@ -19,6 +19,7 @@ import type {
   MedicalEntry,
   MilestoneEntry,
   PhotoEntry,
+  RoutineSession,
   SizeEntry,
   SleepEntry,
   VoiceEntry,
@@ -28,11 +29,18 @@ import { summariseDay } from './summary';
 import { doctorSummary } from './doctor-summary';
 import { promptOfTheDay } from './journal-prompts';
 import { buildTimeline, lifeAnchors, type TimelineSources } from './timeline';
+import {
+  currentState,
+  methodStats,
+  similarPastSessions,
+} from './routine-insights';
+import { routineTypeConfig } from './routine-templates';
 
 const DAY = 86_400_000;
 
 /** The AI tasks offered as action cards on the Ask Leo screen. */
 export type AiTaskKey =
+  | 'right-now'
   | 'summary-day'
   | 'summary-week'
   | 'patterns'
@@ -55,6 +63,12 @@ export interface AiTask {
 }
 
 export const AI_TASKS: AiTask[] = [
+  {
+    key: 'right-now',
+    label: 'What might help right now?',
+    description: 'A suggestion based on right now + what’s worked before.',
+    emoji: '🌟',
+  },
   {
     key: 'summary-day',
     label: 'Summarise the day',
@@ -134,6 +148,8 @@ export interface AiSources extends TimelineSources {
   feeds: FeedEntry[];
   diapers: DiaperEntry[];
   sleeps: SleepEntry[];
+  activeSleep: SleepEntry | null;
+  routineSessions: RoutineSession[];
   now: number;
 }
 
@@ -205,6 +221,94 @@ function clamp(text: string): string {
   return `${text.slice(0, MAX_CONTEXT_CHARS - 1)}…`;
 }
 
+function fmtMins(mins?: number): string {
+  if (mins == null) return 'not logged';
+  if (mins < 60) return `${mins} min ago`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return m ? `${h}h ${m}m ago` : `${h}h ago`;
+}
+
+/** Compact "what's true right now + what's worked before" context. */
+function rightNowContext(sources: AiSources): string {
+  const state = currentState({
+    feeds: sources.feeds,
+    diapers: sources.diapers,
+    sleeps: sources.sleeps,
+    activeSleep: sources.activeSleep,
+    events: sources.events,
+    sessions: sources.routineSessions,
+    now: sources.now,
+  });
+
+  const lines: string[] = ['Right now:'];
+  lines.push(`- Time of day: ${state.hourOfDay}:00`);
+  lines.push(`- Last feed: ${fmtMins(state.minsSinceFeed)}`);
+  lines.push(`- Last nappy: ${fmtMins(state.minsSinceNappy)}`);
+  if (state.isAsleep) {
+    lines.push('- Currently asleep');
+  } else {
+    lines.push(`- Last sleep ended: ${fmtMins(state.minsSinceSleep)}`);
+    if (state.awakeMins != null)
+      lines.push(
+        `- Awake for: ${fmtMins(state.awakeMins).replace(' ago', '')}`,
+      );
+  }
+  if (state.recentCues.length)
+    lines.push(`- Cues just logged: ${state.recentCues.join(', ')}`);
+
+  // What's worked overall, and specifically at similar moments / similar cues.
+  const overall = methodStats(sources.routineSessions, { minTried: 2 }).slice(
+    0,
+    5,
+  );
+  if (overall.length) {
+    lines.push('', 'What has worked before (success rate over times tried):');
+    for (const s of overall)
+      lines.push(
+        `- ${s.method}: ${Math.round(s.successRate * 100)}% (${s.wins}/${s.tried})`,
+      );
+  }
+
+  const contextTag = state.recentCues[0];
+  if (contextTag) {
+    const byContext = methodStats(sources.routineSessions, {
+      contextTag,
+    }).slice(0, 3);
+    if (byContext.length) {
+      lines.push('', `When Leo is "${contextTag}":`);
+      for (const s of byContext)
+        lines.push(
+          `- ${s.method}: ${Math.round(s.successRate * 100)}% (${s.wins}/${s.tried})`,
+        );
+    }
+  }
+
+  const similar = similarPastSessions(sources.routineSessions, sources.now, {
+    limit: 3,
+  });
+  const withWins = similar.filter((s) => s.worked.length);
+  if (withWins.length) {
+    lines.push('', 'Recent sessions around this time of day:');
+    for (const { session, worked } of withWins)
+      lines.push(
+        `- ${routineTypeConfig(session.type).label}: ${worked.join(', ')} worked`,
+      );
+  }
+
+  const today = summariseDay({
+    feeds: sources.feeds,
+    diapers: sources.diapers,
+    sleeps: sources.sleeps,
+    events: sources.events,
+    now: sources.now,
+    name: sources.profile?.name,
+  });
+  lines.push('', `Today so far: ${today.narrative}`);
+
+  return lines.join('\n');
+}
+
 /**
  * Build the compact text context for a task. Never includes photo bytes — only
  * captions/titles already surfaced as text by the aggregators.
@@ -218,6 +322,9 @@ export function buildContext(
   let body = '';
 
   switch (task) {
+    case 'right-now':
+      body = rightNowContext(sources);
+      break;
     case 'summary-day': {
       const day = summariseDay({
         feeds: sources.feeds,

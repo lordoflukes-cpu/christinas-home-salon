@@ -18,6 +18,7 @@ const MODEL = 'claude-sonnet-4-6';
 
 const requestSchema = z.object({
   task: z.enum([
+    'right-now',
     'summary-day',
     'summary-week',
     'patterns',
@@ -41,6 +42,8 @@ You are working only from the text the parents provide; you cannot see photos an
 IMPORTANT — this is non-negotiable: you do NOT give medical advice and you do NOT diagnose. You organise observations, you do not interpret them as medical conclusions. If the notes suggest a possible health concern, gently suggest they speak to their GP, health visitor, or call 111 — and never imply what any symptom "means".`;
 
 const TASK_INSTRUCTIONS: Record<string, string> = {
+  'right-now':
+    'Given the current situation and what has settled Leo before, name the single most likely thing he needs right now, then 2–3 things to try — ranked by what has actually worked for him at similar times or with similar cues. Be brief, warm and practical (a few short lines or bullets a tired parent can act on at a glance). Lean on his own logged wins. Organise the observations; do NOT diagnose. If anything looks like it could be a health concern, gently suggest contacting a GP, health visitor, or 111.',
   'summary-day':
     'Write a short, warm paragraph (2–4 sentences) summarising how the day went for the baby, in the parents’ voice. Start naturally, e.g. "Leo had a settled day…".',
   'summary-week':

@@ -21,6 +21,7 @@ import { RoutineBuilder } from './routine-builder';
 import { SessionSheet } from './session-sheet';
 import { SessionDetail } from './session-detail';
 import { HandoverSheet } from './handover-sheet';
+import { AdviserButton } from './adviser-button';
 
 function outcomeBadge(s: RoutineSession): { text: string; cls: string } | null {
   if (s.endedAt == null)
@@ -92,6 +93,9 @@ export function RoutineHome() {
           </span>
         </span>
       </motion.button>
+
+      {/* AI adviser */}
+      <AdviserButton />
 
       {/* On now */}
       {openSession && (
