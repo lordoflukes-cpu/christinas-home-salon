@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -41,6 +41,29 @@ type FormValues = z.infer<typeof schema>;
 
 const trim = (v?: string) => v?.trim() || undefined;
 
+type Profile = ReturnType<typeof useLeoStore.getState>['profile'];
+
+/** Map the stored profile to the form's field values. */
+function toFormValues(profile: Profile): FormValues {
+  return {
+    name: profile?.name ?? 'Leo',
+    birthLocal: toDatetimeLocal(profile?.birth ?? DEFAULT_BIRTH),
+    birthPlace: profile?.birthPlace,
+    birthWeightGrams: profile?.birthWeightGrams,
+    birthLengthCm: profile?.birthLengthCm,
+    birthHeadCircCm: profile?.birthHeadCircCm,
+    hospital: profile?.hospital,
+    midwife: profile?.midwife,
+    doctor: profile?.doctor,
+    parents: profile?.parents,
+    nhsNumber: profile?.nhsNumber,
+    gp: profile?.gp,
+    healthVisitor: profile?.healthVisitor,
+    allergies: profile?.allergies,
+    birthStory: profile?.birthStory,
+  };
+}
+
 export function ProfileEditor() {
   const profile = useLeoStore((s) => s.profile);
   const editProfile = useLeoStore((s) => s.editProfile);
@@ -51,27 +74,21 @@ export function ProfileEditor() {
     register,
     handleSubmit,
     watch,
+    reset,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: {
-      name: profile?.name ?? 'Leo',
-      birthLocal: toDatetimeLocal(profile?.birth ?? DEFAULT_BIRTH),
-      birthPlace: profile?.birthPlace,
-      birthWeightGrams: profile?.birthWeightGrams,
-      birthLengthCm: profile?.birthLengthCm,
-      birthHeadCircCm: profile?.birthHeadCircCm,
-      hospital: profile?.hospital,
-      midwife: profile?.midwife,
-      doctor: profile?.doctor,
-      parents: profile?.parents,
-      nhsNumber: profile?.nhsNumber,
-      gp: profile?.gp,
-      healthVisitor: profile?.healthVisitor,
-      allergies: profile?.allergies,
-      birthStory: profile?.birthStory,
-    },
+    defaultValues: toFormValues(profile),
   });
+
+  // Re-fill the form whenever the stored profile changes — after the initial
+  // async hydration, an AI "file a report" save, or a sync from another phone.
+  // `defaultValues` are only read once at mount, so without this the form would
+  // keep showing stale values even though the data was saved.
+  useEffect(() => {
+    if (profile) reset(toFormValues(profile));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.updatedAt]);
 
   const birthWeight = watch('birthWeightGrams');
 
