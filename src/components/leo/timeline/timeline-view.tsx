@@ -91,7 +91,6 @@ export function TimelineView() {
     DEFAULT_FILTER[initialSegment],
   );
   const [playing, setPlaying] = useState(false);
-  const hasPhotos = photos.length > 0;
 
   function chooseSegment(next: TimelineSegment) {
     setSegment(next);
@@ -182,7 +181,7 @@ export function TimelineView() {
         options={SEGMENT_OPTS}
       />
 
-      {segment === 'story' && hasPhotos && (
+      {segment === 'story' && (
         <button
           type="button"
           onClick={() => setPlaying(true)}

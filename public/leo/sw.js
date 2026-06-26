@@ -2,7 +2,7 @@
  * All user data lives in IndexedDB, so this only caches the static shell
  * (HTML/JS/CSS). Bump CACHE_VERSION to invalidate old caches.
  */
-const CACHE_VERSION = 'leo-v45';
+const CACHE_VERSION = 'leo-v47';
 const SHELL = [
   '/leo',
   '/leo/timeline',
@@ -93,6 +93,9 @@ self.addEventListener('fetch', (event) => {
   const inScope =
     url.pathname.startsWith('/leo') || url.pathname.startsWith('/_next/static');
   if (!inScope) return;
+
+  // Don't cache the slideshow music (large MP3s; stream from network instead).
+  if (url.pathname.startsWith('/leo/music/')) return;
 
   // Stale-while-revalidate.
   event.respondWith(

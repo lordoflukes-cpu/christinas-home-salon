@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   X,
@@ -10,6 +10,9 @@ import {
   ChevronRight,
   Heart,
   Images,
+  Music,
+  VolumeX,
+  Check,
 } from 'lucide-react';
 import {
   useLeoStore,
@@ -23,6 +26,20 @@ import { SlideImage } from './slide-image';
 import { StarryStage } from './starry-stage';
 
 const SLIDE_MS = 5200;
+
+/** Suno tracks Luke made for Leo, bundled under public/leo/music. */
+interface Track {
+  title: string;
+  file: string;
+}
+const TRACKS: Track[] = [
+  { title: 'Leo Brings the Light', file: 'leo-brings-the-light.mp3' },
+  { title: 'Leo Came with the Summer', file: 'leo-came-with-the-summer.mp3' },
+  { title: 'Grow With You', file: 'grow-with-you.mp3' },
+  { title: 'Leo, Summer', file: 'leo-summer.mp3' },
+  { title: 'Leo Time', file: 'leo-time.mp3' },
+];
+const MUSIC_VOLUME = 0.6;
 
 function prefersReducedMotion(): boolean {
   return (
@@ -62,6 +79,12 @@ export function SlideshowPlayer({ onClose }: { onClose: () => void }) {
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(true);
   const reduceMotion = useMemo(() => prefersReducedMotion(), []);
+
+  // Background music.
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [musicOn, setMusicOn] = useState(true);
+  const [trackIndex, setTrackIndex] = useState(0);
+  const [showTracks, setShowTracks] = useState(false);
 
   const photoById = useMemo(() => {
     const m = new Map<string, (typeof photos)[number]>();
@@ -150,6 +173,23 @@ export function SlideshowPlayer({ onClose }: { onClose: () => void }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [go, onClose]);
 
+  // Keep a gentle, fixed volume.
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.volume = MUSIC_VOLUME;
+  }, []);
+
+  // Drive music from the slideshow's own play/pause + the music toggle.
+  // The overlay opens on a tap, so autoplay is allowed; swallow any rejection.
+  useEffect(() => {
+    const el = audioRef.current;
+    if (!el) return;
+    if (musicOn && playing && count > 0) {
+      void el.play().catch(() => {});
+    } else {
+      el.pause();
+    }
+  }, [musicOn, playing, count, trackIndex]);
+
   const photo = slide ? photoById.get(slide.photoId) : undefined;
 
   return (
@@ -159,6 +199,14 @@ export function SlideshowPlayer({ onClose }: { onClose: () => void }) {
       className="fixed inset-0 z-[60] select-none overflow-hidden bg-ink-950 text-parchment-50"
     >
       <StarryStage />
+
+      {/* Background music (loops a single track; user-picked). */}
+      <audio
+        ref={audioRef}
+        src={`/leo/music/${TRACKS[trackIndex].file}`}
+        loop
+        preload="none"
+      />
 
       {count === 0 ? (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-8 text-center">
@@ -323,6 +371,67 @@ export function SlideshowPlayer({ onClose }: { onClose: () => void }) {
           {profile?.name ?? 'Leo'}’s story
         </span>
         <div className="flex items-center gap-1.5">
+          {/* Music: tap to open the track picker / mute */}
+          <div className="relative">
+            <button
+              type="button"
+              aria-label="Music"
+              aria-pressed={musicOn}
+              onClick={() => setShowTracks((v) => !v)}
+              className={cn(
+                'flex h-9 w-9 items-center justify-center rounded-full bg-ink-950/40 backdrop-blur-sm active:scale-90',
+                musicOn ? 'text-gold-300' : 'text-parchment-100/70',
+              )}
+            >
+              {musicOn ? (
+                <Music className="h-5 w-5" />
+              ) : (
+                <VolumeX className="h-5 w-5" />
+              )}
+            </button>
+
+            {showTracks && (
+              <div className="absolute right-0 top-11 z-40 w-60 overflow-hidden rounded-2xl border border-parchment-50/15 bg-ink-950/90 p-1.5 shadow-xl backdrop-blur-md">
+                <button
+                  type="button"
+                  onClick={() => setMusicOn((v) => !v)}
+                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-parchment-100 active:scale-[0.99]"
+                >
+                  {musicOn ? (
+                    <VolumeX className="h-4 w-4 shrink-0" />
+                  ) : (
+                    <Music className="h-4 w-4 shrink-0 text-gold-300" />
+                  )}
+                  {musicOn ? 'Mute music' : 'Play music'}
+                </button>
+                <div className="my-1 h-px bg-parchment-50/10" />
+                {TRACKS.map((t, i) => (
+                  <button
+                    key={t.file}
+                    type="button"
+                    onClick={() => {
+                      setTrackIndex(i);
+                      setMusicOn(true);
+                    }}
+                    className={cn(
+                      'flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm active:scale-[0.99]',
+                      i === trackIndex
+                        ? 'bg-parchment-50/10 text-gold-200'
+                        : 'text-parchment-100',
+                    )}
+                  >
+                    <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+                      {i === trackIndex && musicOn && (
+                        <Check className="h-4 w-4" />
+                      )}
+                    </span>
+                    <span className="truncate">{t.title}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           <button
             type="button"
             aria-label="Favourites only"
