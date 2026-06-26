@@ -44,12 +44,17 @@ export function LeoProvider({ children }: { children: React.ReactNode }) {
     const recompute = () => {
       const s = useLeoStore.getState();
       if (!s.hydrated) return;
-      const prefs = s.profile?.reminders ?? DEFAULT_REMINDER_PREFS;
+      const prefs = {
+        ...DEFAULT_REMINDER_PREFS,
+        ...(s.profile?.reminders ?? {}),
+      };
       const reminders = computeReminders({
         prefs,
         feeds: s.feeds,
         medical: s.medical,
         activeSleep: s.activeSleep,
+        sleeps: s.sleeps,
+        diapers: s.diapers,
         now: Date.now(),
       });
       void pushScheduledReminders(reminders);
@@ -75,7 +80,10 @@ export function LeoProvider({ children }: { children: React.ReactNode }) {
     const recompute = () => {
       const s = useLeoStore.getState();
       if (!s.hydrated) return;
-      const prefs = s.profile?.reminders ?? DEFAULT_REMINDER_PREFS;
+      const prefs = {
+        ...DEFAULT_REMINDER_PREFS,
+        ...(s.profile?.reminders ?? {}),
+      };
       cancel?.();
       cancel = null;
       if (!prefs.enabled || notificationPermission() !== 'granted') return;
@@ -84,6 +92,8 @@ export function LeoProvider({ children }: { children: React.ReactNode }) {
         feeds: s.feeds,
         medical: s.medical,
         activeSleep: s.activeSleep,
+        sleeps: s.sleeps,
+        diapers: s.diapers,
         now: Date.now(),
       });
       cancel = scheduleLocalNotifications(reminders, Date.now());

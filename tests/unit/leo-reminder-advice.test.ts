@@ -32,6 +32,19 @@ describe('parseAdvice', () => {
     expect(a?.feedHours).toBe(12);
   });
 
+  it('parses and clamps wake window + bedtime advice', () => {
+    const a = parseAdvice(
+      '{"wakeWindowMinutes":77.6,"bedtime":"19:00","rationale":"~75 min awake."}',
+    );
+    expect(a?.wakeWindowMinutes).toBe(78); // rounded
+    expect(a?.bedtime).toBe('19:00');
+  });
+
+  it('clamps an over-long wake window down to the panel max', () => {
+    const a = parseAdvice('{"wakeWindowMinutes":999,"rationale":"x"}');
+    expect(a?.wakeWindowMinutes).toBe(240);
+  });
+
   it('returns null without a rationale or on bad JSON', () => {
     expect(parseAdvice('{"feedHours":3}')).toBeNull();
     expect(parseAdvice('not json')).toBeNull();

@@ -8,7 +8,7 @@
  * Each reminder has a stable `key` so it can be upserted/replaced rather than
  * duplicated, and a `fireAt` epoch-ms timestamp.
  */
-import type { FeedEntry, MedicalEntry, SleepEntry } from './types';
+import type { DiaperEntry, FeedEntry, MedicalEntry, SleepEntry } from './types';
 
 export interface ReminderPrefs {
   /** Master switch — when false, no reminders are scheduled. */
@@ -25,6 +25,18 @@ export interface ReminderPrefs {
   sleep: boolean;
   /** Nudge if a sleep timer has run longer than this many hours. */
   sleepMaxHours: number;
+  /** "Might be getting tired" nudge once Leo's been awake a while. */
+  wakeWindow: boolean;
+  /** Minutes awake (since the last sleep ended) before the nap nudge fires. */
+  wakeWindowMinutes: number;
+  /** A daily reminder to start the bedtime routine. */
+  bedtime: boolean;
+  /** Bedtime-routine time, 'HH:MM' (local). */
+  bedtimeTime: string;
+  /** Nudge a while after the last nappy change. */
+  nappy: boolean;
+  /** Hours after the last nappy change to nudge. */
+  nappyHours: number;
   /** Hold non-urgent nudges (feed/Vitamin D/nap) during an overnight window. */
   quiet: boolean;
   /** Quiet window start, 'HH:MM' (local). */
@@ -43,6 +55,12 @@ export const DEFAULT_REMINDER_PREFS: ReminderPrefs = {
   vitdTime: '09:00',
   sleep: true,
   sleepMaxHours: 3,
+  wakeWindow: false,
+  wakeWindowMinutes: 90,
+  bedtime: false,
+  bedtimeTime: '19:00',
+  nappy: false,
+  nappyHours: 3,
   quiet: false,
   quietStart: '22:00',
   quietEnd: '07:00',
@@ -60,6 +78,10 @@ export interface ReminderInputs {
   feeds: FeedEntry[];
   medical: MedicalEntry[];
   activeSleep: SleepEntry | null;
+  /** Recent sleeps — used for the wake-window ("time for a nap?") nudge. */
+  sleeps?: SleepEntry[];
+  /** Recent nappy changes — used for the nappy nudge. */
+  diapers?: DiaperEntry[];
   now: number;
 }
 
@@ -105,6 +127,8 @@ export function inQuietHours(
 /** The future reminders that should currently be scheduled. */
 export function computeReminders(input: ReminderInputs): ScheduledReminder[] {
   const { prefs, feeds, medical, activeSleep, now } = input;
+  const sleeps = input.sleeps ?? [];
+  const diapers = input.diapers ?? [];
   if (!prefs.enabled) return [];
   const out: ScheduledReminder[] = [];
 
@@ -159,6 +183,52 @@ export function computeReminders(input: ReminderInputs): ScheduledReminder[] {
       fireAt: activeSleep.startedAt + prefs.sleepMaxHours * HOUR,
       title: 'Still napping? 🌙',
       body: `Leo's sleep timer has been running over ${prefs.sleepMaxHours} hours.`,
+    });
+  }
+
+  // --- Wake-window nudge: "time for a nap?" once awake a while -------------
+  // Only when not currently asleep — fired from when the last sleep ended.
+  if (prefs.wakeWindow && (!activeSleep || activeSleep.endedAt != null)) {
+    const lastEnded = sleeps
+      .filter((s) => s.endedAt != null)
+      .reduce<SleepEntry | null>(
+        (a, b) => (a == null || (b.endedAt ?? 0) > (a.endedAt ?? 0) ? b : a),
+        null,
+      );
+    if (lastEnded?.endedAt != null) {
+      const mins = prefs.wakeWindowMinutes;
+      const h = Math.floor(mins / 60);
+      const m = mins % 60;
+      const awake = h ? (m ? `${h}h ${m}m` : `${h}h`) : `${m} min`;
+      out.push({
+        key: 'wake',
+        fireAt: lastEnded.endedAt + mins * 60_000,
+        title: 'Nap time soon? 😴',
+        body: `Leo will have been awake about ${awake} — he may be getting tired.`,
+      });
+    }
+  }
+
+  // --- Bedtime routine: a daily nudge at a set time ------------------------
+  if (prefs.bedtime) {
+    out.push({
+      key: 'bedtime',
+      fireAt: nextDailyTime(prefs.bedtimeTime, now),
+      title: 'Bedtime routine 🛁',
+      body: 'Time to start winding Leo down for the night.',
+    });
+  }
+
+  // --- Nappy nudge: a while after the last change -------------------------
+  if (prefs.nappy && diapers.length) {
+    const last = diapers.reduce((a, b) => (b.changedAt > a.changedAt ? b : a));
+    out.push({
+      key: 'nappy',
+      fireAt: last.changedAt + prefs.nappyHours * HOUR,
+      title: 'Nappy check? 👶',
+      body: `It's been about ${prefs.nappyHours} ${
+        prefs.nappyHours === 1 ? 'hour' : 'hours'
+      } since the last change.`,
     });
   }
 
