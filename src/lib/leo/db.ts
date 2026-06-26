@@ -26,7 +26,15 @@ import type {
 } from './types';
 
 export const DB_NAME = 'leo-tracker';
-export const DB_VERSION = 10;
+export const DB_VERSION = 11;
+
+/** Cached TTS audio (regenerable — never synced or backed up). */
+export interface TtsCacheEntry {
+  key: string;
+  bytes: ArrayBuffer;
+  type: string;
+  createdAt: number;
+}
 
 export interface LeoDB extends DBSchema {
   profile: { key: string; value: BabyProfile };
@@ -109,6 +117,10 @@ export interface LeoDB extends DBSchema {
     key: string;
     value: MonthlyRecap;
     indexes: { 'by-monthIndex': number };
+  };
+  ttsCache: {
+    key: string;
+    value: TtsCacheEntry;
   };
 }
 
@@ -211,6 +223,10 @@ export function getDB(): Promise<IDBPDatabase<LeoDB>> {
             keyPath: 'id',
           });
           sessions.createIndex('by-startedAt', 'startedAt');
+        }
+        // v11 store (additive) — regenerable TTS audio cache
+        if (!db.objectStoreNames.contains('ttsCache')) {
+          db.createObjectStore('ttsCache', { keyPath: 'key' });
         }
       },
     });

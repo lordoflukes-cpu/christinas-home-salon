@@ -10,6 +10,7 @@ import {
   Frown,
   HeartHandshake,
   Images,
+  Mic,
   Milk,
   Pill,
   Smile,
@@ -17,6 +18,7 @@ import {
   Thermometer,
 } from 'lucide-react';
 import type { QuickAddKind } from './quick-add-sheet';
+import { QuickLogSheet } from './ai/quick-log-sheet';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -75,6 +77,7 @@ export function Dashboard() {
   const photos = useLeoStore((s) => s.photos);
   const now = useNow(60_000);
   const [quickAdd, setQuickAdd] = useState<QuickAddState | null>(null);
+  const [quickLog, setQuickLog] = useState(false);
 
   if (!hydrated) {
     return (
@@ -201,6 +204,14 @@ export function Dashboard() {
               </button>
             ))}
           </div>
+          <button
+            type="button"
+            onClick={() => setQuickLog(true)}
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-ink-300/60 py-2.5 text-sm font-medium text-ink-600 transition-colors hover:bg-parchment-100"
+          >
+            <Mic className="h-4 w-4 text-gold-600" />
+            Say what happened
+          </button>
         </Card>
       </motion.div>
 
@@ -268,6 +279,7 @@ export function Dashboard() {
       )}
 
       <QuickAddSheet state={quickAdd} onClose={() => setQuickAdd(null)} />
+      <QuickLogSheet open={quickLog} onClose={() => setQuickLog(false)} />
     </div>
   );
 }

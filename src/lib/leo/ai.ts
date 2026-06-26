@@ -479,3 +479,64 @@ export async function askLeo(
     return { error: 'Couldn’t reach Ask Leo. Check your connection.' };
   }
 }
+
+/**
+ * One proposed log entry parsed from a spoken/typed note. Mirrors the server's
+ * `logEntrySchema`. Nothing is written until the parent confirms it.
+ */
+export interface ParsedLogEntry {
+  kind: 'feed' | 'diaper' | 'sleep' | 'event' | 'milestone' | 'note';
+  summary: string;
+  feedType?: 'breast' | 'bottle';
+  amountMl?: number;
+  contents?: 'formula' | 'breastmilk';
+  side?: 'L' | 'R';
+  durationMin?: number;
+  diaperType?: 'wet' | 'dirty' | 'both';
+  color?: string;
+  eventKind?: 'cry' | 'temperature' | 'medication' | 'symptom' | 'mood';
+  tempC?: number;
+  medName?: string;
+  dose?: string;
+  symptom?: string;
+  mood?: 'calm' | 'content' | 'alert' | 'sleepy' | 'unsettled' | 'fussy';
+  note?: string;
+  title?: string;
+  body?: string;
+}
+
+export interface ParseLogResult {
+  entries?: ParsedLogEntry[];
+  error?: string;
+  /** True when the server has no ANTHROPIC_API_KEY configured. */
+  notConfigured?: boolean;
+}
+
+/**
+ * Send a free-text/spoken note to the server and get back structured log
+ * proposals. The caller shows them for confirmation — this never writes.
+ */
+export async function parseLog(text: string): Promise<ParseLogResult> {
+  const trimmed = text.trim();
+  if (!trimmed) return { entries: [] };
+  try {
+    const res = await fetch('/api/leo/ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ task: 'parse-log', context: trimmed }),
+    });
+    const data = (await res.json().catch(() => ({}))) as {
+      entries?: ParsedLogEntry[];
+      error?: string;
+    };
+    if (res.status === 503) {
+      return { notConfigured: true, error: data.error };
+    }
+    if (!res.ok) {
+      return { error: data.error || 'Couldn’t understand that. Try again.' };
+    }
+    return { entries: data.entries ?? [] };
+  } catch {
+    return { error: 'Couldn’t reach Leo. Check your connection.' };
+  }
+}

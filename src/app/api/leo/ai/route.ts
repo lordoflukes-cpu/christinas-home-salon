@@ -3,6 +3,7 @@ import { z } from 'zod';
 import Anthropic from '@anthropic-ai/sdk';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { patwahStyleInstruction } from '@/lib/leo/patwah';
+import { LOG_SYSTEM, parseEntries } from '@/lib/leo/log-parse';
 
 /**
  * "Ask Leo" — the only server-side touchpoint for the AI helper.
@@ -30,6 +31,7 @@ const requestSchema = z.object({
     'baby-book',
     'question',
     'yearly-recap',
+    'parse-log',
   ]),
   context: z.string().min(1).max(20000),
   question: z.string().max(500).optional(),
@@ -99,6 +101,32 @@ export async function POST(request: NextRequest) {
     }
 
     const { task, context, question, patwah } = parsed.data;
+
+    // Voice → auto-log: convert a free-text/spoken note into structured entries
+    // (JSON only). Returns proposals the client confirms before anything writes.
+    if (task === 'parse-log') {
+      const client = new Anthropic({ apiKey });
+      const message = await client.messages.create({
+        model: MODEL,
+        max_tokens: 1024,
+        system: LOG_SYSTEM,
+        messages: [{ role: 'user', content: context }],
+      });
+      const raw = message.content
+        .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+        .map((b) => b.text)
+        .join('\n')
+        .trim();
+      const parsedEntries = parseEntries(raw);
+      if (!parsedEntries) {
+        return NextResponse.json(
+          { error: 'Couldn’t quite catch that — try saying it another way.' },
+          { status: 502 },
+        );
+      }
+      return NextResponse.json({ entries: parsedEntries.entries });
+    }
+
     const instruction = TASK_INSTRUCTIONS[task];
 
     // Patois generation — never for clinical doctor notes.

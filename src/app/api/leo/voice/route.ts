@@ -11,7 +11,9 @@ import { checkRateLimit } from '@/lib/rate-limit';
  * Only text is ever sent.
  */
 
-const MODEL = 'eleven_flash_v2_5'; // low-latency; good for short prompts
+// High-quality model so the read matches the rich Denzel preview (not robotic).
+// Override with ELEVENLABS_MODEL (e.g. 'eleven_flash_v2_5' for lower latency).
+const DEFAULT_MODEL = 'eleven_multilingual_v2';
 
 const requestSchema = z.object({
   text: z.string().min(1).max(600),
@@ -60,7 +62,7 @@ export async function POST(request: NextRequest) {
         },
         body: JSON.stringify({
           text: parsed.data.text,
-          model_id: MODEL,
+          model_id: process.env.ELEVENLABS_MODEL || DEFAULT_MODEL,
           voice_settings: {
             stability: 0.5,
             similarity_boost: 0.8,

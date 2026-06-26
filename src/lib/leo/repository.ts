@@ -5,7 +5,7 @@
  * reimplement these functions against a new backend — the UI never changes.
  */
 import { now } from '@/lib/time/clock';
-import { getDB, DB_VERSION } from './db';
+import { getDB, DB_VERSION, type TtsCacheEntry } from './db';
 import type {
   BabyProfile,
   BreastSide,
@@ -1000,6 +1000,20 @@ export async function putDocumentRaw(entry: DocumentEntry): Promise<void> {
 export async function putVoiceRaw(entry: VoiceEntry): Promise<void> {
   const db = await getDB();
   await db.put('voices', entry);
+}
+
+// --- TTS audio cache (regenerable; not synced, not backed up) --------------
+
+export async function getTtsAudio(
+  key: string,
+): Promise<TtsCacheEntry | undefined> {
+  const db = await getDB();
+  return db.get('ttsCache', key);
+}
+
+export async function putTtsAudio(entry: TtsCacheEntry): Promise<void> {
+  const db = await getDB();
+  await db.put('ttsCache', entry);
 }
 
 /** Every row in a store (for the two-way sync reconcile). */
