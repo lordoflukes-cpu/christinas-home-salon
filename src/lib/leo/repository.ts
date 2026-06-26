@@ -20,6 +20,7 @@ import type {
   LeoEvent,
   MedicalEntry,
   MilestoneEntry,
+  MonthlyRecap,
   NewCareTask,
   NewDiaper,
   NewDocumentMeta,
@@ -36,6 +37,7 @@ import type {
   NewVoiceMeta,
   PhotoEntry,
   ProfileInput,
+  RecapInput,
   RoutineItem,
   SizeEntry,
   SleepEntry,
@@ -726,6 +728,43 @@ export async function getAllCareTasks(): Promise<CareTask[]> {
 }
 
 // ---------------------------------------------------------------------------
+// Monthly recaps (one record per month, deterministic id `m{monthIndex}`)
+// ---------------------------------------------------------------------------
+
+const recapId = (monthIndex: number) => `m${monthIndex}`;
+
+/** Create or update the recap for a month, merging the given edits. */
+export async function saveRecap(
+  monthIndex: number,
+  patch: RecapInput,
+): Promise<MonthlyRecap> {
+  const db = await getDB();
+  const id = recapId(monthIndex);
+  const existing = await db.get('recaps', id);
+  const time = ts();
+  const entry: MonthlyRecap = {
+    ...(existing ?? { id, monthIndex, createdAt: time }),
+    ...patch,
+    id,
+    monthIndex,
+    updatedAt: time,
+  };
+  await db.put('recaps', entry);
+  return entry;
+}
+
+export async function deleteRecap(id: string): Promise<void> {
+  const db = await getDB();
+  await db.delete('recaps', id);
+}
+
+/** All saved recap edits (auto-derived fields are computed live in the UI). */
+export async function getAllRecaps(): Promise<MonthlyRecap[]> {
+  const db = await getDB();
+  return db.getAll('recaps');
+}
+
+// ---------------------------------------------------------------------------
 // Documents (letters, prescriptions, reports — images or PDFs)
 // ---------------------------------------------------------------------------
 
@@ -860,7 +899,8 @@ export type PlainStore =
   | 'events'
   | 'sizes'
   | 'routines'
-  | 'careTasks';
+  | 'careTasks'
+  | 'recaps';
 
 /** Write an entry exactly as given, preserving its id/updatedAt (no stamping). */
 export async function putRaw(store: PlainStore, value: unknown): Promise<void> {
@@ -959,6 +999,7 @@ const ALL_STORES = [
   'sizes',
   'routines',
   'careTasks',
+  'recaps',
   'voices',
   'photos',
   'documents',
@@ -979,6 +1020,7 @@ export async function exportAll(): Promise<LeoBackup> {
     sizes,
     routines,
     careTasks,
+    recaps,
     voices,
     photos,
     documents,
@@ -995,6 +1037,7 @@ export async function exportAll(): Promise<LeoBackup> {
     db.getAll('sizes'),
     db.getAll('routines'),
     db.getAll('careTasks'),
+    db.getAll('recaps'),
     db.getAll('voices'),
     db.getAll('photos'),
     db.getAll('documents'),
@@ -1032,6 +1075,7 @@ export async function exportAll(): Promise<LeoBackup> {
     sizes,
     routines,
     careTasks,
+    recaps,
     voices: voiceBackups,
     photos: photoBackups,
     documents: documentBackups,
@@ -1104,6 +1148,7 @@ export async function importAll(
     await tx.objectStore('routines').put(r);
   for (const c of backup.careTasks ?? [])
     await tx.objectStore('careTasks').put(c);
+  for (const r of backup.recaps ?? []) await tx.objectStore('recaps').put(r);
   for (const v of voiceEntries) await tx.objectStore('voices').put(v);
   for (const p of photoEntries) await tx.objectStore('photos').put(p);
   for (const d of documentEntries) await tx.objectStore('documents').put(d);

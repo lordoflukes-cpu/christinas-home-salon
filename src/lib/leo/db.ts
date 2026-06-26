@@ -16,6 +16,7 @@ import type {
   LeoEvent,
   MedicalEntry,
   MilestoneEntry,
+  MonthlyRecap,
   PhotoEntry,
   RoutineItem,
   SizeEntry,
@@ -24,7 +25,7 @@ import type {
 } from './types';
 
 export const DB_NAME = 'leo-tracker';
-export const DB_VERSION = 8;
+export const DB_VERSION = 9;
 
 export interface LeoDB extends DBSchema {
   profile: { key: string; value: BabyProfile };
@@ -97,6 +98,11 @@ export interface LeoDB extends DBSchema {
     key: string;
     value: CareTask;
     indexes: { 'by-kind': string };
+  };
+  recaps: {
+    key: string;
+    value: MonthlyRecap;
+    indexes: { 'by-monthIndex': number };
   };
 }
 
@@ -187,6 +193,11 @@ export function getDB(): Promise<IDBPDatabase<LeoDB>> {
             keyPath: 'id',
           });
           careTasks.createIndex('by-kind', 'kind');
+        }
+        // v9 store (additive)
+        if (!db.objectStoreNames.contains('recaps')) {
+          const recaps = db.createObjectStore('recaps', { keyPath: 'id' });
+          recaps.createIndex('by-monthIndex', 'monthIndex');
         }
       },
     });

@@ -218,6 +218,34 @@ export interface CareTask {
 }
 
 // ---------------------------------------------------------------------------
+// Monthly recap — a keepsake page per month (auto-filled, editable)
+// ---------------------------------------------------------------------------
+
+/**
+ * The owner's edits/overrides for a given month. Auto-derived values (weight,
+ * new skills, funniest/hardest, best photo, parent messages, places/people)
+ * are computed live from the other stores; any field set here takes precedence.
+ * `id` is deterministic (`m{monthIndex}`) so both phones edit the same record.
+ */
+export interface MonthlyRecap {
+  id: string;
+  /** 1-based month of life (Month 1 = first month after birth). */
+  monthIndex: number;
+  favouriteThing?: string;
+  newSkill?: string;
+  funniest?: string;
+  hardest?: string;
+  bestPhotoId?: string;
+  messageFromDad?: string;
+  messageFromMum?: string;
+  placesVisited?: string;
+  peopleMet?: string;
+  neverForget?: string;
+  createdAt: Millis;
+  updatedAt: Millis;
+}
+
+// ---------------------------------------------------------------------------
 // Sizes — clothing / nappy / shoe over time
 // ---------------------------------------------------------------------------
 
@@ -457,6 +485,10 @@ export type NewEvent = Omit<LeoEvent, 'id' | 'createdAt' | 'updatedAt'>;
 export type NewSize = Omit<SizeEntry, 'id' | 'createdAt' | 'updatedAt'>;
 export type NewRoutine = Omit<RoutineItem, 'id' | 'createdAt' | 'updatedAt'>;
 export type NewCareTask = Omit<CareTask, 'id' | 'createdAt' | 'updatedAt'>;
+/** Editable fields of a monthly recap (id/monthIndex/timestamps are managed). */
+export type RecapInput = Partial<
+  Omit<MonthlyRecap, 'id' | 'monthIndex' | 'createdAt' | 'updatedAt'>
+>;
 export type NewPhotoMeta = Omit<
   PhotoEntry,
   'id' | 'bytes' | 'type' | 'createdAt' | 'updatedAt'
@@ -488,6 +520,7 @@ export interface LeoBackup {
   sizes?: SizeEntry[];
   routines?: RoutineItem[];
   careTasks?: CareTask[];
+  recaps?: MonthlyRecap[];
   voices?: VoiceBackup[];
   photos?: PhotoBackup[];
   documents?: DocumentBackup[];

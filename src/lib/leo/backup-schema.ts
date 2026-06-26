@@ -247,6 +247,23 @@ const careTaskSchema = z.object({
   updatedAt: millis,
 });
 
+const recapSchema = z.object({
+  id: z.string(),
+  monthIndex: z.number().int().positive(),
+  favouriteThing: z.string().optional(),
+  newSkill: z.string().optional(),
+  funniest: z.string().optional(),
+  hardest: z.string().optional(),
+  bestPhotoId: z.string().optional(),
+  messageFromDad: z.string().optional(),
+  messageFromMum: z.string().optional(),
+  placesVisited: z.string().optional(),
+  peopleMet: z.string().optional(),
+  neverForget: z.string().optional(),
+  createdAt: millis,
+  updatedAt: millis,
+});
+
 export const leoBackupSchema = z.object({
   schemaVersion: z.number().int().positive(),
   exportedAt: millis,
@@ -262,6 +279,7 @@ export const leoBackupSchema = z.object({
   sizes: z.array(sizeSchema).optional(),
   routines: z.array(routineSchema).optional(),
   careTasks: z.array(careTaskSchema).optional(),
+  recaps: z.array(recapSchema).optional(),
   voices: z.array(voiceBackupSchema).optional(),
   photos: z.array(photoBackupSchema).optional(),
   documents: z.array(documentBackupSchema).optional(),

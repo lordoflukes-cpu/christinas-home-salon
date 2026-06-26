@@ -1,7 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
+import type { Route } from 'next';
 import { AnimatePresence, motion } from 'framer-motion';
+import { BookOpen, ChevronRight } from 'lucide-react';
+import { Card } from '@/components/ui/card';
 import { SectionBanner } from '@/components/leo';
 import { Segmented } from '@/components/leo/forms/feed-form';
 import { PhotoGallery } from '@/components/leo/photos/photo-gallery';
@@ -20,6 +24,22 @@ export default function LeoMemoriesPage() {
         subtitle="Photos, firsts & letters"
         index={2}
       />
+
+      <Link href={'/leo/recap' as Route}>
+        <Card className="flex items-center gap-3 border-gold-200 bg-gradient-to-br from-gold-50 to-parchment-50 p-4 transition-colors hover:from-gold-100">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gold-100 text-gold-700">
+            <BookOpen className="h-5 w-5" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="font-display text-lg text-ink-900">Monthly recap</p>
+            <p className="text-xs text-ink-500">
+              Leo, month by month — a keepsake book in the making
+            </p>
+          </div>
+          <ChevronRight className="h-5 w-5 shrink-0 text-gold-500" />
+        </Card>
+      </Link>
+
       <Segmented
         value={tab}
         onChange={(v) => setTab(v as Tab)}
