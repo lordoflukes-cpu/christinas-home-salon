@@ -10,6 +10,7 @@ import type {
   BabyProfile,
   BreastSide,
   CareTask,
+  ChatTurn,
   DiaperEntry,
   DocumentEntry,
   FeedEntry,
@@ -19,9 +20,11 @@ import type {
   LeoBackup,
   LeoEvent,
   MedicalEntry,
+  Memory,
   MilestoneEntry,
   MonthlyRecap,
   NewCareTask,
+  NewChatTurn,
   NewDiaper,
   NewDocumentMeta,
   NewEvent,
@@ -30,6 +33,7 @@ import type {
   NewGrowth,
   NewJournal,
   NewMedical,
+  NewMemory,
   NewMilestone,
   NewPhotoMeta,
   NewRoutine,
@@ -850,6 +854,102 @@ export async function getAllExperiments(): Promise<Experiment[]> {
 }
 
 // ---------------------------------------------------------------------------
+// Memories (the Second Brain — durable AI facts about Leo)
+// ---------------------------------------------------------------------------
+
+export async function addMemory(input: NewMemory): Promise<Memory> {
+  const db = await getDB();
+  const time = ts();
+  const entry: Memory = {
+    ...input,
+    id: newId(),
+    createdAt: time,
+    updatedAt: time,
+  };
+  await db.put('memories', entry);
+  return entry;
+}
+
+export async function updateMemory(
+  id: string,
+  patch: Partial<Memory>,
+): Promise<Memory> {
+  const db = await getDB();
+  const existing = await db.get('memories', id);
+  if (!existing) throw new Error(`Memory ${id} not found`);
+  const updated: Memory = { ...existing, ...patch, id, updatedAt: ts() };
+  await db.put('memories', updated);
+  return updated;
+}
+
+export async function deleteMemory(id: string): Promise<void> {
+  const db = await getDB();
+  await db.delete('memories', id);
+}
+
+/** All memories, newest-first by creation. */
+export async function getAllMemories(): Promise<Memory[]> {
+  const db = await getDB();
+  const results: Memory[] = [];
+  let cursor = await db
+    .transaction('memories')
+    .store.index('by-createdAt')
+    .openCursor(null, 'prev');
+  while (cursor) {
+    results.push(cursor.value);
+    cursor = await cursor.continue();
+  }
+  return results;
+}
+
+// ---------------------------------------------------------------------------
+// Chat messages (persistent, synced conversation history)
+// ---------------------------------------------------------------------------
+
+export async function addChatTurn(input: NewChatTurn): Promise<ChatTurn> {
+  const db = await getDB();
+  const time = ts();
+  const entry: ChatTurn = {
+    ...input,
+    id: newId(),
+    createdAt: time,
+    updatedAt: time,
+  };
+  await db.put('chatMessages', entry);
+  return entry;
+}
+
+export async function deleteChatTurn(id: string): Promise<void> {
+  const db = await getDB();
+  await db.delete('chatMessages', id);
+}
+
+/** Wipe the whole conversation (the "clear" button). */
+export async function clearChat(): Promise<string[]> {
+  const db = await getDB();
+  const all = await db.getAllKeys('chatMessages');
+  const tx = db.transaction('chatMessages', 'readwrite');
+  await Promise.all(all.map((k) => tx.store.delete(k)));
+  await tx.done;
+  return all.map(String);
+}
+
+/** All chat turns, oldest → newest (chronological for display). */
+export async function getAllChatTurns(): Promise<ChatTurn[]> {
+  const db = await getDB();
+  const results: ChatTurn[] = [];
+  let cursor = await db
+    .transaction('chatMessages')
+    .store.index('by-createdAt')
+    .openCursor(null, 'next');
+  while (cursor) {
+    results.push(cursor.value);
+    cursor = await cursor.continue();
+  }
+  return results;
+}
+
+// ---------------------------------------------------------------------------
 // Care tasks (recurring household nudges — in-app agenda only)
 // ---------------------------------------------------------------------------
 
@@ -1065,7 +1165,9 @@ export type PlainStore =
   | 'savedRoutines'
   | 'experiments'
   | 'careTasks'
-  | 'recaps';
+  | 'recaps'
+  | 'memories'
+  | 'chatMessages';
 
 /** Write an entry exactly as given, preserving its id/updatedAt (no stamping). */
 export async function putRaw(store: PlainStore, value: unknown): Promise<void> {
@@ -1182,6 +1284,8 @@ const ALL_STORES = [
   'experiments',
   'careTasks',
   'recaps',
+  'memories',
+  'chatMessages',
   'voices',
   'photos',
   'documents',
@@ -1206,6 +1310,8 @@ export async function exportAll(): Promise<LeoBackup> {
     experiments,
     careTasks,
     recaps,
+    memories,
+    chatMessages,
     voices,
     photos,
     documents,
@@ -1226,6 +1332,8 @@ export async function exportAll(): Promise<LeoBackup> {
     db.getAll('experiments'),
     db.getAll('careTasks'),
     db.getAll('recaps'),
+    db.getAll('memories'),
+    db.getAll('chatMessages'),
     db.getAll('voices'),
     db.getAll('photos'),
     db.getAll('documents'),
@@ -1267,6 +1375,8 @@ export async function exportAll(): Promise<LeoBackup> {
     experiments,
     careTasks,
     recaps,
+    memories,
+    chatMessages,
     voices: voiceBackups,
     photos: photoBackups,
     documents: documentBackups,
@@ -1346,6 +1456,10 @@ export async function importAll(
   for (const c of backup.careTasks ?? [])
     await tx.objectStore('careTasks').put(c);
   for (const r of backup.recaps ?? []) await tx.objectStore('recaps').put(r);
+  for (const m of backup.memories ?? [])
+    await tx.objectStore('memories').put(m);
+  for (const c of backup.chatMessages ?? [])
+    await tx.objectStore('chatMessages').put(c);
   for (const v of voiceEntries) await tx.objectStore('voices').put(v);
   for (const p of photoEntries) await tx.objectStore('photos').put(p);
   for (const d of documentEntries) await tx.objectStore('documents').put(d);

@@ -378,6 +378,41 @@ const experimentSchema = z.object({
   updatedAt: millis,
 });
 
+const memorySchema = z.object({
+  id: z.string(),
+  text: z.string(),
+  category: z.enum([
+    'health',
+    'allergy',
+    'preference',
+    'routine',
+    'person',
+    'milestone',
+    'fact',
+    'note',
+  ]),
+  tags: z.array(z.string()),
+  importance: z.number(),
+  trust: z.number(),
+  source: z.enum(['ai', 'user', 'chat']),
+  pinned: z.boolean(),
+  supersededBy: z.string().optional(),
+  useCount: z.number(),
+  lastUsedAt: millis.optional(),
+  createdAt: millis,
+  updatedAt: millis,
+});
+
+const chatTurnSchema = z.object({
+  id: z.string(),
+  threadId: z.string(),
+  role: z.enum(['user', 'assistant']),
+  content: z.string(),
+  summary: z.boolean().optional(),
+  createdAt: millis,
+  updatedAt: millis,
+});
+
 export const leoBackupSchema = z.object({
   schemaVersion: z.number().int().positive(),
   exportedAt: millis,
@@ -397,6 +432,8 @@ export const leoBackupSchema = z.object({
   experiments: z.array(experimentSchema).optional(),
   careTasks: z.array(careTaskSchema).optional(),
   recaps: z.array(recapSchema).optional(),
+  memories: z.array(memorySchema).optional(),
+  chatMessages: z.array(chatTurnSchema).optional(),
   voices: z.array(voiceBackupSchema).optional(),
   photos: z.array(photoBackupSchema).optional(),
   documents: z.array(documentBackupSchema).optional(),

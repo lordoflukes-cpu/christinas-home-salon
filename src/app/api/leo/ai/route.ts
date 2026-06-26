@@ -6,6 +6,7 @@ import { patwahStyleInstruction } from '@/lib/leo/patwah';
 import { LOG_SYSTEM, parseEntries } from '@/lib/leo/log-parse';
 import { REMINDER_ADVICE_SYSTEM, parseAdvice } from '@/lib/leo/reminder-advice';
 import { EXTRACT_SYSTEM, parseActions } from '@/lib/leo/report-actions';
+import { DISTIL_SYSTEM, parseMemoryOps } from '@/lib/leo/memory';
 
 /**
  * "Ask Leo" — the only server-side touchpoint for the AI helper.
@@ -37,9 +38,13 @@ const requestSchema = z.object({
     'chat',
     'reminder-advice',
     'extract-actions',
+    'distil-memories',
+    'research',
   ]),
   context: z.string().min(1).max(20000),
   question: z.string().max(500).optional(),
+  /** Recalled Second-Brain memories injected into the chat system prompt. */
+  memories: z.string().max(4000).optional(),
   /** Conversation history for the `chat` task (oldest → newest). */
   messages: z
     .array(
@@ -53,6 +58,13 @@ const requestSchema = z.object({
   /** When set, generate the reply in Jamaican Patois at this strength. */
   patwah: z.enum(['light', 'medium', 'heavy']).optional(),
 });
+
+const RESEARCH_INSTRUCTION = `You are doing a deeper "research" pass for the parent — thinking carefully across everything provided (your remembered facts about Leo, the day/week summaries, health snapshot, routines and growth). Work out what matters most right now and organise your answer under clear, short headings:
+- "What's important" — the few things that genuinely stand out (lead with any health/allergy facts).
+- "Going well" — what's positive and worth keeping up.
+- "Worth keeping an eye on" — gentle, tentative observations (never alarming, never a diagnosis).
+- "What might help" — 2–4 practical, kind suggestions grounded in what's actually worked for Leo.
+Be thorough but readable. You ORGANISE observations; you do NOT diagnose or give medical advice. For anything health-related, suggest the GP, health visitor or 111. Write in warm British English.`;
 
 const CHAT_INSTRUCTION = `You are now in a back-and-forth conversation with the parent. Reply to their latest message naturally and concisely, like a kind, knowledgeable friend — not a report. Use the snapshot of Leo's logged data below for facts; if something isn't there, say so rather than inventing it. When they ask how Leo is doing or to "review" things, organise your answer as what's going WELL and what's worth GENTLY keeping an eye on. Never diagnose or give medical advice; for anything health-related, suggest their GP, health visitor or 111.`;
 
@@ -117,7 +129,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { task, context, question, patwah } = parsed.data;
+    const { task, context, question, patwah, memories: recalled } = parsed.data;
 
     // Voice → auto-log: convert a free-text/spoken note into structured entries
     // (JSON only). Returns proposals the client confirms before anything writes.
@@ -158,6 +170,7 @@ export async function POST(request: NextRequest) {
       const chatSystem =
         `${SYSTEM_PROMPT}\n\n${CHAT_INSTRUCTION}` +
         (patwah ? `\n\n${patwahStyleInstruction(patwah)}` : '') +
+        (recalled ? `\n\n${recalled}` : '') +
         `\n\nSnapshot of what's been logged about Leo:\n\n${context}`;
       const client = new Anthropic({ apiKey });
       const message = await client.messages.create({
@@ -227,6 +240,60 @@ export async function POST(request: NextRequest) {
         );
       }
       return NextResponse.json({ actions: parsedActions.actions });
+    }
+
+    // Distil durable memories from the recent conversation (JSON only). The
+    // client auto-saves non-health ops and confirms health-critical ones.
+    if (task === 'distil-memories') {
+      const client = new Anthropic({ apiKey });
+      const message = await client.messages.create({
+        model: MODEL,
+        max_tokens: 1024,
+        system: DISTIL_SYSTEM,
+        messages: [{ role: 'user', content: context }],
+      });
+      const raw = message.content
+        .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+        .map((b) => b.text)
+        .join('\n')
+        .trim();
+      const ops = parseMemoryOps(raw);
+      // Distillation is best-effort: on a parse miss, just return nothing.
+      return NextResponse.json({ memories: ops?.memories ?? [] });
+    }
+
+    // Deep research — a thorough reasoning pass over everything we know.
+    if (task === 'research') {
+      const researchSystem =
+        `${SYSTEM_PROMPT}\n\n${RESEARCH_INSTRUCTION}` +
+        (patwah ? `\n\n${patwahStyleInstruction(patwah)}` : '') +
+        (recalled ? `\n\n${recalled}` : '');
+      const client = new Anthropic({ apiKey });
+      const message = await client.messages.create({
+        model: MODEL,
+        max_tokens: 2000,
+        system: researchSystem,
+        messages: [
+          {
+            role: 'user',
+            content:
+              (question ? `The parent asked: ${question}\n\n` : '') +
+              `Here is everything to work from:\n\n${context}`,
+          },
+        ],
+      });
+      const text = message.content
+        .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+        .map((b) => b.text)
+        .join('\n')
+        .trim();
+      if (!text) {
+        return NextResponse.json(
+          { error: 'Couldn’t pull a research read together just now.' },
+          { status: 502 },
+        );
+      }
+      return NextResponse.json({ text });
     }
 
     const instruction = TASK_INSTRUCTIONS[task];
