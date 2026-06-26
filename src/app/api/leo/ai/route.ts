@@ -20,6 +20,7 @@ const MODEL = 'claude-sonnet-4-6';
 const requestSchema = z.object({
   task: z.enum([
     'right-now',
+    'daily-briefing',
     'summary-day',
     'summary-week',
     'patterns',
@@ -47,6 +48,8 @@ IMPORTANT — this is non-negotiable: you do NOT give medical advice and you do 
 const TASK_INSTRUCTIONS: Record<string, string> = {
   'right-now':
     'Given the current situation and what has settled Leo before, name the single most likely thing he needs right now, then 2–3 things to try — ranked by what has actually worked for him at similar times or with similar cues. Be brief, warm and practical (a few short lines or bullets a tired parent can act on at a glance). Lean on his own logged wins. Organise the observations; do NOT diagnose. If anything looks like it could be a health concern, gently suggest contacting a GP, health visitor, or 111.',
+  'daily-briefing':
+    'Write a short, warm daily briefing (3–5 sentences) on how Leo has been — today so far and the last few days. Gently note 1–2 patterns you genuinely notice (timing of fussiness, what’s settling him best, sleep or feed rhythm), framed as soft observations, never as anything medical or worrying. End on a kind, encouraging note for the parents. Keep it calm and brief — this is a glance, not a report.',
   'summary-day':
     'Write a short, warm paragraph (2–4 sentences) summarising how the day went for the baby, in the parents’ voice. Start naturally, e.g. "Leo had a settled day…".',
   'summary-week':

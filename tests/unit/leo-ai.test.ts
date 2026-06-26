@@ -137,6 +137,28 @@ describe('buildContext', () => {
     expect(ctx).toContain('Shoulder cuddle');
   });
 
+  it('daily-briefing: includes today + recent days and worked methods', () => {
+    const sess: RoutineSession = {
+      id: 'r1',
+      type: 'settling',
+      startedAt: NOW - 26 * 60 * 60_000,
+      endedAt: NOW - 25 * 60 * 60_000,
+      methods: [
+        { method: 'White noise', result: 'worked' },
+        { method: 'White noise', result: 'worked' },
+      ],
+      createdAt: 0,
+      updatedAt: 0,
+    };
+    const ctx = buildContext(
+      'daily-briefing',
+      sources({ feeds: [feed(NOW)], routineSessions: [sess] }),
+    );
+    expect(ctx).toContain('Leo is');
+    expect(ctx).toContain('Today so far');
+    expect(ctx).toContain('White noise');
+  });
+
   it('enforces the length cap', () => {
     // Flood with milestones to exceed the cap.
     const many = Array.from({ length: 4000 }, (_, i) =>

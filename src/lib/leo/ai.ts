@@ -41,6 +41,7 @@ const DAY = 86_400_000;
 /** The AI tasks offered as action cards on the Ask Leo screen. */
 export type AiTaskKey =
   | 'right-now'
+  | 'daily-briefing'
   | 'summary-day'
   | 'summary-week'
   | 'patterns'
@@ -68,6 +69,12 @@ export const AI_TASKS: AiTask[] = [
     label: 'What might help right now?',
     description: 'A suggestion based on right now + what’s worked before.',
     emoji: '🌟',
+  },
+  {
+    key: 'daily-briefing',
+    label: 'Today’s briefing',
+    description: 'How Leo’s doing + a gentle pattern or two.',
+    emoji: '🌅',
   },
   {
     key: 'summary-day',
@@ -309,6 +316,34 @@ function rightNowContext(sources: AiSources): string {
   return lines.join('\n');
 }
 
+/** Context for the once-a-day briefing: today + recent days + what's worked. */
+function dailyBriefingContext(sources: AiSources): string {
+  const today = summariseDay({
+    feeds: sources.feeds,
+    diapers: sources.diapers,
+    sleeps: sources.sleeps,
+    events: sources.events,
+    now: sources.now,
+    name: sources.profile?.name,
+  });
+
+  const lines: string[] = [`Today so far: ${today.narrative}`];
+  lines.push('', 'The last few days, one line each:', weekLines(sources, 4));
+
+  const stats = methodStats(sources.routineSessions, { minTried: 2 }).slice(
+    0,
+    4,
+  );
+  if (stats.length) {
+    lines.push('', 'Settling methods that have worked recently:');
+    for (const s of stats)
+      lines.push(
+        `- ${s.method}: ${Math.round(s.successRate * 100)}% (${s.wins}/${s.tried})`,
+      );
+  }
+  return lines.join('\n');
+}
+
 /**
  * Build the compact text context for a task. Never includes photo bytes — only
  * captions/titles already surfaced as text by the aggregators.
@@ -324,6 +359,9 @@ export function buildContext(
   switch (task) {
     case 'right-now':
       body = rightNowContext(sources);
+      break;
+    case 'daily-briefing':
+      body = dailyBriefingContext(sources);
       break;
     case 'summary-day': {
       const day = summariseDay({

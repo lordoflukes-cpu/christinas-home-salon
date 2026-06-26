@@ -34,6 +34,7 @@ import { FeedStatusCard } from './cards/feed-status-card';
 import { SleepStatusCard } from './cards/sleep-status-card';
 import { TodayGlance } from './home/today-glance';
 import { AgendaCard } from './home/agenda-card';
+import { DailyBriefingCard } from './home/daily-briefing-card';
 import { PhotoImage } from './photos/photo-image';
 import { VoiceRecordButton } from './voice/voice-record-button';
 import { QuickAddSheet, type QuickAddState } from './quick-add-sheet';
@@ -125,6 +126,7 @@ export function Dashboard() {
         ))}
       </div>
 
+      <DailyBriefingCard />
       <AgendaCard />
       <TodayGlance />
 
