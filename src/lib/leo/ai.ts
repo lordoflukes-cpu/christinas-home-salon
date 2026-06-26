@@ -35,6 +35,7 @@ import {
   similarPastSessions,
 } from './routine-insights';
 import { routineTypeConfig } from './routine-templates';
+import type { ReminderAdvice } from './reminder-advice';
 
 const DAY = 86_400_000;
 
@@ -536,6 +537,124 @@ export async function parseLog(text: string): Promise<ParseLogResult> {
       return { error: data.error || 'Couldn’t understand that. Try again.' };
     }
     return { entries: data.entries ?? [] };
+  } catch {
+    return { error: 'Couldn’t reach Leo. Check your connection.' };
+  }
+}
+
+// --- Conversational chat ----------------------------------------------------
+
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface ChatResult {
+  text?: string;
+  error?: string;
+  notConfigured?: boolean;
+}
+
+/**
+ * A compact snapshot the chat assistant reasons over: age, today + the week,
+ * what settles Leo, and a health summary. Pure — no photos, capped in size.
+ */
+export function chatContext(sources: AiSources): string {
+  const today = summariseDay({
+    feeds: sources.feeds,
+    diapers: sources.diapers,
+    sleeps: sources.sleeps,
+    events: sources.events,
+    now: sources.now,
+    name: sources.profile?.name,
+  });
+  const methods = methodStats(sources.routineSessions, { minTried: 2 })
+    .slice(0, 5)
+    .map(
+      (s) =>
+        `- ${s.method}: ${Math.round(s.successRate * 100)}% (${s.wins}/${s.tried})`,
+    )
+    .join('\n');
+  const health = doctorSummary({
+    events: sources.events,
+    feeds: sources.feeds,
+    diapers: sources.diapers,
+    sleeps: sources.sleeps,
+    now: sources.now,
+    days: 7,
+    name: sources.profile?.name,
+  });
+  const parts = [
+    ageLine(sources),
+    `Today so far: ${today.narrative}`,
+    `The last 7 days, one line each:\n${weekLines(sources, 7)}`,
+    methods ? `Settling methods that have worked:\n${methods}` : '',
+    `Health snapshot (last 7 days):\n${health}`,
+    sources.profile?.allergies
+      ? `Known allergies/notes: ${sources.profile.allergies}`
+      : '',
+  ];
+  return clamp(parts.filter(Boolean).join('\n\n'));
+}
+
+/** Send the conversation + snapshot and get Leo's reply. */
+export async function chatWithLeo(
+  messages: ChatMessage[],
+  context: string,
+  patwah?: 'light' | 'medium' | 'heavy',
+): Promise<ChatResult> {
+  try {
+    const res = await fetch('/api/leo/ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ task: 'chat', context, messages, patwah }),
+    });
+    const data = (await res.json().catch(() => ({}))) as {
+      text?: string;
+      error?: string;
+      detail?: string;
+    };
+    if (res.status === 503) return { notConfigured: true, error: data.error };
+    if (!res.ok) {
+      return {
+        error: data.detail
+          ? `${data.error} (${data.detail})`
+          : data.error || 'Leo had trouble replying. Please try again.',
+      };
+    }
+    return { text: data.text };
+  } catch {
+    return { error: 'Couldn’t reach Leo. Check your connection.' };
+  }
+}
+
+// --- Notification-timing advice --------------------------------------------
+
+export interface ReminderAdviceResult {
+  advice?: ReminderAdvice;
+  error?: string;
+  notConfigured?: boolean;
+}
+
+/** Ask the server for suggested reminder timings from a cadence snapshot. */
+export async function getReminderAdvice(
+  context: string,
+): Promise<ReminderAdviceResult> {
+  try {
+    const res = await fetch('/api/leo/ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ task: 'reminder-advice', context }),
+    });
+    const data = (await res.json().catch(() => ({}))) as {
+      advice?: ReminderAdvice;
+      error?: string;
+    };
+    if (res.status === 503) return { notConfigured: true, error: data.error };
+    if (!res.ok) {
+      return { error: data.error || 'Couldn’t get a suggestion right now.' };
+    }
+    return { advice: data.advice };
   } catch {
     return { error: 'Couldn’t reach Leo. Check your connection.' };
   }
