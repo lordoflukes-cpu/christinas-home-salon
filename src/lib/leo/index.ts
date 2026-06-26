@@ -15,6 +15,7 @@ export * from './routine-insights';
 export * from './routine-review';
 export * from './everyday-trends';
 export * from './reminder-advice';
+export * from './report-actions';
 export * from './care-tasks';
 export * from './agenda';
 export * from './recap';

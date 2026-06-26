@@ -5,6 +5,7 @@ import { checkRateLimit } from '@/lib/rate-limit';
 import { patwahStyleInstruction } from '@/lib/leo/patwah';
 import { LOG_SYSTEM, parseEntries } from '@/lib/leo/log-parse';
 import { REMINDER_ADVICE_SYSTEM, parseAdvice } from '@/lib/leo/reminder-advice';
+import { EXTRACT_SYSTEM, parseActions } from '@/lib/leo/report-actions';
 
 /**
  * "Ask Leo" — the only server-side touchpoint for the AI helper.
@@ -35,6 +36,7 @@ const requestSchema = z.object({
     'parse-log',
     'chat',
     'reminder-advice',
+    'extract-actions',
   ]),
   context: z.string().min(1).max(20000),
   question: z.string().max(500).optional(),
@@ -200,6 +202,31 @@ export async function POST(request: NextRequest) {
         );
       }
       return NextResponse.json({ advice });
+    }
+
+    // "File this for me" — turn a pasted report/notes into proposed actions
+    // across the app (JSON only). The client confirms each before writing.
+    if (task === 'extract-actions') {
+      const client = new Anthropic({ apiKey });
+      const message = await client.messages.create({
+        model: MODEL,
+        max_tokens: 2000,
+        system: EXTRACT_SYSTEM,
+        messages: [{ role: 'user', content: context }],
+      });
+      const raw = message.content
+        .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+        .map((b) => b.text)
+        .join('\n')
+        .trim();
+      const parsedActions = parseActions(raw);
+      if (!parsedActions) {
+        return NextResponse.json(
+          { error: 'Couldn’t make sense of that — try rephrasing it.' },
+          { status: 502 },
+        );
+      }
+      return NextResponse.json({ actions: parsedActions.actions });
     }
 
     const instruction = TASK_INSTRUCTIONS[task];
