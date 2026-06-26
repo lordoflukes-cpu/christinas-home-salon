@@ -15,6 +15,10 @@ const reminderPrefsSchema = z.object({
   vitdTime: z.string(),
   sleep: z.boolean(),
   sleepMaxHours: z.number().positive(),
+  // Quiet hours — defaulted so older backups (which predate these) still parse.
+  quiet: z.boolean().default(false),
+  quietStart: z.string().default('22:00'),
+  quietEnd: z.string().default('07:00'),
 });
 
 const voicePrefsSchema = z.object({

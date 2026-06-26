@@ -177,5 +177,16 @@ select cron.schedule(
 
 On each phone: add Leo to the Home Screen, open it, go to **Settings →
 Reminders & notifications → Turn on notifications**, and allow when prompted.
-Choose which reminders you want and their timings. Done — a test notification
-confirms it's working, and reminders will arrive even with the app closed.
+Choose which reminders you want and their timings. Done — reminders will arrive
+even with the app closed.
+
+**Quiet hours (optional):** switch on _Quiet hours_ to hold non-urgent nudges
+(feed, Vitamin D, long-nap) during an overnight window you choose. Appointment
+and jab reminders always come through, day or night.
+
+**Confirm the full path works:** tap **Send a real test to all phones**. Unlike
+the on-screen test, this goes through Supabase and the scheduler, so it proves
+the whole chain (subscription → cron → Edge Function → device) is live. It
+should arrive on every signed-in phone within about a minute — even with the app
+closed. If it doesn't, re-check the Edge Function secrets (step C) and the cron
+job (step D).

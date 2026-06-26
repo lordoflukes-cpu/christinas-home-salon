@@ -133,7 +133,9 @@ export async function pushScheduledReminders(
   const owner = userData.user?.id;
   if (!owner) return;
 
-  await sb.from(SCHED_TABLE).delete().eq('owner', owner);
+  // Replace this owner's computed reminders, but never touch a pending 'test'
+  // row — that one is awaiting the next scheduler tick (see sendTestPush).
+  await sb.from(SCHED_TABLE).delete().eq('owner', owner).neq('key', 'test');
   if (!reminders.length) return;
   await sb.from(SCHED_TABLE).insert(
     reminders.map((r) => ({
@@ -144,6 +146,33 @@ export async function pushScheduledReminders(
       body: r.body,
     })),
   );
+}
+
+/**
+ * Send a REAL end-to-end test push to every signed-in device on this account.
+ *
+ * Unlike `showTestNotification` (which only shows a local notification on this
+ * phone), this writes a due row to `leo_scheduled` so the Supabase scheduler
+ * delivers it as an actual Web Push within ~a minute — exercising the whole
+ * chain (stored subscription → cron → Edge Function → VAPID → device). It's the
+ * honest way to confirm reminders will arrive when the app is closed.
+ */
+export async function sendTestPush(): Promise<{ ok: boolean; error?: string }> {
+  const sb = getSupabase();
+  if (!sb) return { ok: false, error: 'Cloud sync is not configured.' };
+  const { data: userData } = await sb.auth.getUser();
+  const owner = userData.user?.id;
+  if (!owner) return { ok: false, error: 'Please sign in first.' };
+
+  const { error } = await sb.from(SCHED_TABLE).upsert({
+    owner,
+    key: 'test',
+    fire_at: Date.now(),
+    title: 'Leo 🦁',
+    body: 'Test notification — reminders will reach you like this.',
+  });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
 }
 
 /** Show a notification immediately (used to confirm the toggle works). */

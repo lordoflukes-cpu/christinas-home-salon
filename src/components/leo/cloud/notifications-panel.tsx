@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Bell, BellOff, Smartphone } from 'lucide-react';
+import { Bell, BellOff, Smartphone, Moon, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -20,6 +20,7 @@ import {
   isPushSupported,
   isPushEnabled,
   showTestNotification,
+  sendTestPush,
   notificationPermission,
 } from '@/lib/leo/notifications';
 
@@ -79,6 +80,28 @@ export function NotificationsPanel() {
       await disablePush();
       setEnabledHere(false);
       toast({ title: 'Notifications off on this phone' });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function realTest() {
+    setBusy(true);
+    try {
+      const res = await sendTestPush();
+      if (!res.ok) {
+        toast({
+          title: 'Couldn’t send the test',
+          description: res.error,
+          variant: 'destructive',
+        });
+        return;
+      }
+      toast({
+        title: 'Test on its way 🦁',
+        description:
+          'It should arrive on every signed-in phone within a minute — even with the app closed.',
+      });
     } finally {
       setBusy(false);
     }
@@ -193,6 +216,50 @@ export function NotificationsPanel() {
                   onCommit={(n) => savePrefs({ sleepMaxHours: n })}
                 />
               </ToggleRow>
+
+              <ToggleRow
+                label="Quiet hours"
+                hint={
+                  prefs.quiet
+                    ? `Hold non-urgent nudges ${prefs.quietStart}–${prefs.quietEnd}`
+                    : 'Hold non-urgent nudges overnight'
+                }
+                checked={prefs.quiet}
+                onChange={(v) => savePrefs({ quiet: v })}
+              >
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Moon className="h-4 w-4 text-aegean-500" />
+                    <Label className="text-xs text-ink-500">From</Label>
+                    <Input
+                      type="time"
+                      defaultValue={prefs.quietStart}
+                      onBlur={(e) => savePrefs({ quietStart: e.target.value })}
+                      className="h-9 w-28"
+                    />
+                    <Label className="text-xs text-ink-500">to</Label>
+                    <Input
+                      type="time"
+                      defaultValue={prefs.quietEnd}
+                      onBlur={(e) => savePrefs({ quietEnd: e.target.value })}
+                      className="h-9 w-28"
+                    />
+                  </div>
+                  <p className="text-xs text-ink-500">
+                    Feed, Vitamin D and nap nudges wait until morning.
+                    Appointment &amp; jab reminders always come through.
+                  </p>
+                </div>
+              </ToggleRow>
+
+              <Button
+                onClick={realTest}
+                disabled={busy}
+                variant="outline"
+                className="min-h-11 w-full border-ink-300 bg-parchment-50 text-ink-700 hover:bg-parchment-100"
+              >
+                <Send className="mr-2 h-4 w-4" /> Send a real test to all phones
+              </Button>
 
               <Button
                 onClick={turnOff}

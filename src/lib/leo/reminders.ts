@@ -25,6 +25,12 @@ export interface ReminderPrefs {
   sleep: boolean;
   /** Nudge if a sleep timer has run longer than this many hours. */
   sleepMaxHours: number;
+  /** Hold non-urgent nudges (feed/Vitamin D/nap) during an overnight window. */
+  quiet: boolean;
+  /** Quiet window start, 'HH:MM' (local). */
+  quietStart: string;
+  /** Quiet window end, 'HH:MM' (local). May wrap past midnight. */
+  quietEnd: string;
 }
 
 export const DEFAULT_REMINDER_PREFS: ReminderPrefs = {
@@ -37,6 +43,9 @@ export const DEFAULT_REMINDER_PREFS: ReminderPrefs = {
   vitdTime: '09:00',
   sleep: true,
   sleepMaxHours: 3,
+  quiet: false,
+  quietStart: '22:00',
+  quietEnd: '07:00',
 };
 
 export interface ScheduledReminder {
@@ -65,6 +74,32 @@ export function nextDailyTime(timeHHMM: string, now: number): number {
   let t = d.getTime();
   if (t <= now) t += DAY;
   return t;
+}
+
+/** Minutes-past-midnight (local) for an 'HH:MM' string. */
+function hhmmToMinutes(timeHHMM: string): number {
+  const [h, m] = timeHHMM.split(':').map((n) => parseInt(n, 10));
+  return (h || 0) * 60 + (m || 0);
+}
+
+/**
+ * Is the local time of `ms` inside the quiet window [start, end)?
+ * Handles windows that wrap past midnight (e.g. 22:00 → 07:00). An empty or
+ * zero-length window (start === end) is never quiet.
+ */
+export function inQuietHours(
+  ms: number,
+  startHHMM: string,
+  endHHMM: string,
+): boolean {
+  const start = hhmmToMinutes(startHHMM);
+  const end = hhmmToMinutes(endHHMM);
+  if (start === end) return false;
+  const d = new Date(ms);
+  const t = d.getHours() * 60 + d.getMinutes();
+  return start < end
+    ? t >= start && t < end // same-day window
+    : t >= start || t < end; // wraps past midnight
 }
 
 /** The future reminders that should currently be scheduled. */
@@ -130,5 +165,14 @@ export function computeReminders(input: ReminderInputs): ScheduledReminder[] {
   // Only schedule reminders that are still in the future; once one has fired
   // (and the scheduler deletes it) its time is in the past, so it is not
   // recreated — which prevents duplicate sends.
-  return out.filter((r) => r.fireAt > now);
+  const future = out.filter((r) => r.fireAt > now);
+
+  // Quiet hours: hold back non-urgent nudges (feed/Vitamin D/nap) that would
+  // land overnight. Appointment & jab reminders (med-*) are time-critical and
+  // always come through.
+  if (!prefs.quiet) return future;
+  return future.filter((r) => {
+    if (r.key.startsWith('med-')) return true;
+    return !inQuietHours(r.fireAt, prefs.quietStart, prefs.quietEnd);
+  });
 }
