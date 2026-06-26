@@ -12,6 +12,7 @@ export * from './routine-config';
 export * from './care-tasks';
 export * from './agenda';
 export * from './recap';
+export * from './timeline';
 export * from './growth-insights';
 export * from './units';
 export * from './growth';
