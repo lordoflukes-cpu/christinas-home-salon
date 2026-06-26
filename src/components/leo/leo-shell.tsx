@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { Route } from 'next';
@@ -32,10 +33,17 @@ export function LeoShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const profile = useLeoStore((s) => s.profile);
   const now = useNow(60_000);
+  const mainRef = useRef<HTMLElement>(null);
+
+  // `main` is the scroll container (app-shell layout), so reset it to the top
+  // on navigation — otherwise a new tab opens at the previous scroll position.
+  useEffect(() => {
+    mainRef.current?.scrollTo({ top: 0 });
+  }, [pathname]);
 
   return (
-    <div className="leo-theme relative mx-auto flex min-h-[100dvh] w-full max-w-md flex-col text-ink-900">
-      <header className="relative z-20">
+    <div className="leo-theme relative mx-auto flex h-[100dvh] w-full max-w-md flex-col overflow-hidden text-ink-900">
+      <header className="relative z-20 shrink-0">
         <div className="flex items-center gap-3 px-5 py-4">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink-950/40 text-gold-300 ring-1 ring-gold-400/30 backdrop-blur-sm">
             <PawMark className="h-6 w-6" />
@@ -53,11 +61,14 @@ export function LeoShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="relative z-10 flex-1 px-5 pt-5 pb-[calc(7rem+env(safe-area-inset-bottom))]">
+      <main
+        ref={mainRef}
+        className="relative z-10 min-h-0 flex-1 overflow-y-auto px-5 pb-8 pt-5"
+      >
         {children}
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-20 mx-auto w-full max-w-md border-t border-gold-400/15 bg-ink-950/90 px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] backdrop-blur-md">
+      <nav className="relative z-20 shrink-0 border-t border-gold-400/15 bg-ink-950/90 px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] backdrop-blur-md">
         <div className="flex items-stretch gap-1">
           {NAV.map(({ href, label, icon: Icon }) => {
             const active = pathname === href;
