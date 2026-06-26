@@ -38,7 +38,7 @@ export const actionSchema = z.object({
     'note',
     'reminders',
   ]),
-  summary: z.string().min(1).max(140),
+  summary: z.string().min(1).max(300),
   /** ISO date / date-time when the thing happened (medical/event). */
   when: z.string().max(40).optional(),
 
@@ -54,8 +54,8 @@ export const actionSchema = z.object({
       nhsNumber: z.string().max(40).optional(),
       gp: z.string().max(120).optional(),
       healthVisitor: z.string().max(120).optional(),
-      allergies: z.string().max(500).optional(),
-      birthStory: z.string().max(1000).optional(),
+      allergies: z.string().max(1000).optional(),
+      birthStory: z.string().max(3000).optional(),
       birthWeightGrams: z.number().positive().max(10000).optional(),
       birthLengthCm: z.number().positive().max(120).optional(),
       birthHeadCircCm: z.number().positive().max(80).optional(),
@@ -66,10 +66,10 @@ export const actionSchema = z.object({
   medicalKind: z
     .enum(['appointment', 'vaccination', 'medication', 'note'])
     .optional(),
-  title: z.string().max(120).optional(),
+  title: z.string().max(200).optional(),
   category: z.string().max(60).optional(),
   batch: z.string().max(60).optional(),
-  reaction: z.string().max(200).optional(),
+  reaction: z.string().max(500).optional(),
 
   // event
   eventKind: z
@@ -83,7 +83,7 @@ export const actionSchema = z.object({
   mood: z
     .enum(['calm', 'content', 'alert', 'sleepy', 'unsettled', 'fussy'])
     .optional(),
-  note: z.string().max(500).optional(),
+  note: z.string().max(2000).optional(),
 
   // feed
   feedType: z.enum(['breast', 'bottle']).optional(),
@@ -97,7 +97,7 @@ export const actionSchema = z.object({
   color: z.string().max(40).optional(),
 
   // milestone / journal
-  body: z.string().max(1000).optional(),
+  body: z.string().max(2000).optional(),
 
   // reminders
   feedHours: z.number().positive().max(24).optional(),
@@ -118,21 +118,62 @@ export const actionSchema = z.object({
 
 export type ProposedAction = z.infer<typeof actionSchema>;
 
-const actionsSchema = z.object({ actions: z.array(actionSchema).max(20) });
-export type ProposedActions = z.infer<typeof actionsSchema>;
+export interface ProposedActions {
+  actions: ProposedAction[];
+}
 
-/** Strip ```json fences, parse + validate the actions, or null on any failure. */
-export function parseActions(text: string): ProposedActions | null {
-  const cleaned = text
-    .replace(/^```(?:json)?/i, '')
-    .replace(/```$/, '')
-    .trim();
-  try {
-    const res = actionsSchema.safeParse(JSON.parse(cleaned));
-    return res.success ? res.data : null;
-  } catch {
-    return null;
+const MAX_ACTIONS = 30;
+
+/**
+ * Pull the JSON payload out of a model reply, tolerating ```json fences and any
+ * stray prose around it (tries the whole string, a fenced block, then the
+ * widest `{…}` / `[…]` span). Returns the parsed value or null.
+ */
+function extractJson(text: string): unknown {
+  const candidates: string[] = [];
+  const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fence) candidates.push(fence[1].trim());
+  candidates.push(text.trim());
+  const objStart = text.indexOf('{');
+  const objEnd = text.lastIndexOf('}');
+  if (objStart !== -1 && objEnd > objStart)
+    candidates.push(text.slice(objStart, objEnd + 1));
+  const arrStart = text.indexOf('[');
+  const arrEnd = text.lastIndexOf(']');
+  if (arrStart !== -1 && arrEnd > arrStart)
+    candidates.push(text.slice(arrStart, arrEnd + 1));
+  for (const c of candidates) {
+    try {
+      return JSON.parse(c);
+    } catch {
+      /* try the next candidate */
+    }
   }
+  return null;
+}
+
+/**
+ * Parse the model's reply into proposed actions. Resilient on purpose: accepts
+ * `{"actions":[…]}` or a bare `[…]`, copes with prose/fences around the JSON,
+ * and validates each action INDIVIDUALLY so one malformed entry never discards
+ * the whole batch. Returns null only when no JSON at all can be found.
+ */
+export function parseActions(text: string): ProposedActions | null {
+  const data = extractJson(text);
+  if (data == null) return null;
+  const list = Array.isArray(data)
+    ? data
+    : Array.isArray((data as { actions?: unknown }).actions)
+      ? (data as { actions: unknown[] }).actions
+      : null;
+  if (!list) return null;
+  const actions: ProposedAction[] = [];
+  for (const item of list) {
+    const res = actionSchema.safeParse(item);
+    if (res.success) actions.push(res.data);
+    if (actions.length >= MAX_ACTIONS) break;
+  }
+  return { actions };
 }
 
 /** Which area an action writes to — for grouping/labelling the confirm list. */
