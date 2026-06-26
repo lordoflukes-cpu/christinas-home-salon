@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { Route } from 'next';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Clapperboard } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import {
   useLeoStore,
@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils';
 import { Segmented } from '../forms/feed-form';
 import { TimelineRow } from './timeline-item';
 import { EverydayView } from './everyday-view';
+import { SlideshowPlayer } from '../slideshow/slideshow-player';
 
 function monthKey(ts: number): string {
   const d = new Date(ts);
@@ -89,6 +90,8 @@ export function TimelineView() {
   const [filter, setFilter] = useState<TimelineFilter>(
     DEFAULT_FILTER[initialSegment],
   );
+  const [playing, setPlaying] = useState(false);
+  const hasPhotos = photos.length > 0;
 
   function chooseSegment(next: TimelineSegment) {
     setSegment(next);
@@ -178,6 +181,20 @@ export function TimelineView() {
         onChange={(v) => chooseSegment(v as TimelineSegment)}
         options={SEGMENT_OPTS}
       />
+
+      {segment === 'story' && hasPhotos && (
+        <button
+          type="button"
+          onClick={() => setPlaying(true)}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-gold-300/60 bg-gradient-to-br from-ink-900 to-ink-800 px-4 py-3 text-sm font-medium text-gold-100 shadow-sm transition-transform active:scale-[0.99]"
+        >
+          <Clapperboard className="h-5 w-5 text-gold-300" />
+          Play slideshow
+          <Sparkles className="h-4 w-4 text-gold-300/80" />
+        </button>
+      )}
+
+      {playing && <SlideshowPlayer onClose={() => setPlaying(false)} />}
 
       {segment === 'everyday' ? (
         <EverydayView />
