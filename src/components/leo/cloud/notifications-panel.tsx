@@ -96,7 +96,16 @@ export function NotificationsPanel() {
         return;
       }
       await savePrefs({ enabled: true });
-      await showTestNotification();
+      const shown = await showTestNotification();
+      if (!shown) {
+        toast({
+          title: 'Allowed, but nothing showed',
+          description:
+            'Leo can’t display notifications yet. On Android: Settings → Apps → Leo → Notifications and turn them on. On iPhone: open Leo from the Home Screen (not Safari).',
+          variant: 'destructive',
+        });
+        return;
+      }
       toast({
         title: 'Notifications on 🦁',
         description:
@@ -121,7 +130,15 @@ export function NotificationsPanel() {
   }
 
   async function localTest() {
-    await showTestNotification();
+    const shown = await showTestNotification();
+    if (!shown) {
+      toast({
+        title: 'Couldn’t show a notification',
+        description:
+          'Check Leo is allowed to notify: Android → Settings → Apps → Leo → Notifications; iPhone → open from the Home Screen.',
+        variant: 'destructive',
+      });
+    }
   }
 
   async function realTest() {

@@ -55,7 +55,12 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 }
 
 async function swRegistration(): Promise<ServiceWorkerRegistration | null> {
-  if (!isPushSupported()) return null;
+  // Only needs a service worker — NOT PushManager. Local notifications work
+  // without push support; gating this on isPushSupported() made the whole
+  // toggle (and the test notification) silently fail on devices that lack
+  // PushManager, even though plain notifications would have shown fine.
+  if (typeof navigator === 'undefined' || !('serviceWorker' in navigator))
+    return null;
   try {
     return (
       (await navigator.serviceWorker.getRegistration('/leo')) ??
@@ -296,16 +301,26 @@ export async function pushAccountStatus(): Promise<PushAccountStatus | null> {
   }
 }
 
-/** Show a notification immediately (used to confirm the toggle works). */
-export async function showTestNotification(): Promise<void> {
+/**
+ * Show a notification immediately (used to confirm the toggle works).
+ * Returns true if it was actually shown, so the UI can flag a silent failure
+ * (e.g. notifications blocked for the app at the OS level).
+ */
+export async function showTestNotification(): Promise<boolean> {
+  if (notificationPermission() !== 'granted') return false;
   const reg = await swRegistration();
-  if (!reg) return;
-  await reg.showNotification('Leo 🦁', {
-    body: 'Notifications are on — you’ll get reminders here.',
-    icon: '/leo/icon-192.png',
-    badge: '/leo/icon-192.png',
-    tag: 'leo-test',
-  });
+  if (!reg) return false;
+  try {
+    await reg.showNotification('Leo 🦁', {
+      body: 'Notifications are on — you’ll get reminders here.',
+      icon: '/leo/icon-192.png',
+      badge: '/leo/icon-192.png',
+      tag: 'leo-test',
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export type NotificationMode = 'push' | 'local';
