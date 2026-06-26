@@ -14,7 +14,7 @@ import { z } from 'zod';
 export const EXTRACT_SYSTEM = `You convert a parent's pasted report, red-book notes, or instruction about their baby Leo into structured actions for a baby-tracking app.
 
 Return ONLY a JSON object {"actions": [ ... ]} and nothing else (no prose, no markdown). Each action has a "type", a short human "summary", and the relevant fields:
-- {"type":"profile","summary":"Set GP to Dr Patel","fields":{"gp":"Dr Patel","healthVisitor":"...","allergies":"...","birthWeightGrams":3400,"birthLengthCm":51,"birthHeadCircCm":35,"hospital":"...","nhsNumber":"...","parents":"...","birthStory":"..."}}
+- {"type":"profile","summary":"Set GP to Dr Patel","fields":{"name":"Leo","birth":"2026-06-24T22:54","birthPlace":"...","gp":"Dr Patel","healthVisitor":"...","allergies":"...","birthWeightGrams":3400,"birthLengthCm":51,"birthHeadCircCm":35,"hospital":"...","midwife":"...","doctor":"...","nhsNumber":"...","parents":"...","birthStory":"..."}}
 - {"type":"medical","summary":"Red-book: 8-week check","medicalKind":"note|appointment|vaccination|medication","title":"...","when":"2026-06-20","category":"GP|Health visitor|Hospital|Midwife","note":"...","batch":"...","reaction":"..."}
 - {"type":"event","summary":"Rash, mild","eventKind":"symptom|temperature|medication|mood|cry","when":"2026-06-26T09:00","symptom":"runny nose","severity":"mild|moderate|severe","tempC":38,"medName":"Calpol","dose":"2.5ml","mood":"unsettled","note":"..."}
 - {"type":"feed","summary":"Bottle 90ml","feedType":"breast|bottle","amountMl":90,"contents":"formula|breastmilk","side":"L|R","durationMin":12}
@@ -24,7 +24,7 @@ Return ONLY a JSON object {"actions": [ ... ]} and nothing else (no prose, no ma
 - {"type":"note","summary":"Journal note","body":"..."}
 - {"type":"reminders","summary":"Feed reminder every 3h","feedHours":3,"sleepMaxHours":2,"vitdTime":"09:00","quietStart":"22:00","quietEnd":"07:00"}
 
-Rules: extract ONLY what is clearly stated. Omit any field you're unsure of. NEVER invent medication names, doses, numbers, dates or measurements — copy them exactly or leave them out. Use "when" as an ISO date (YYYY-MM-DD) or date-time when a clear date is given; otherwise omit it. Put red-book / health-visitor / check-up notes as type "medical" with medicalKind "note". If nothing is loggable, return {"actions": []}. Keep each "summary" short and human.`;
+Rules: extract ONLY what is clearly stated. Omit any field you're unsure of. NEVER invent medication names, doses, numbers, dates or measurements — copy them exactly or leave them out. Use "when" as an ISO date (YYYY-MM-DD) or date-time when a clear date is given; otherwise omit it. For the baby's own date & time of birth, set fields.birth as an ISO date-time (e.g. "2026-06-24T22:54"). Put all baby profile details (name, birth, place of birth, parents, hospital, midwife, doctor, NHS number, GP, health visitor, allergies, measurements, birth story) into a single "profile" action's fields. Put red-book / health-visitor / check-up notes as type "medical" with medicalKind "note". If nothing is loggable, return {"actions": []}. Keep each "summary" short and human.`;
 
 export const actionSchema = z.object({
   type: z.enum([
@@ -46,6 +46,8 @@ export const actionSchema = z.object({
   fields: z
     .object({
       name: z.string().max(80).optional(),
+      /** Date & time of birth as an ISO string (YYYY-MM-DD or with time). */
+      birth: z.string().max(40).optional(),
       birthPlace: z.string().max(120).optional(),
       parents: z.string().max(160).optional(),
       hospital: z.string().max(120).optional(),
