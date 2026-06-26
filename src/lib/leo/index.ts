@@ -13,6 +13,7 @@ export * from './routine-templates';
 export * from './routine-session';
 export * from './routine-insights';
 export * from './routine-review';
+export * from './everyday-trends';
 export * from './care-tasks';
 export * from './agenda';
 export * from './recap';

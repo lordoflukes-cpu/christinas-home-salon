@@ -1,10 +1,21 @@
 'use client';
 
-import { Droplets, Milk, Moon } from 'lucide-react';
+import Link from 'next/link';
+import type { Route } from 'next';
+import { Droplets, Milk, Moon, ChevronRight } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { useLeoStore, useNow, summariseDay, formatElapsed } from '@/lib/leo';
 
-export function TodayGlance() {
+/**
+ * Today-at-a-glance. By default it links through to the Timeline's "Everyday"
+ * section (trends + the full feeds/nappies/sleep log). Pass `linkToEveryday=
+ * {false}` when it's already rendered inside that section.
+ */
+export function TodayGlance({
+  linkToEveryday = true,
+}: {
+  linkToEveryday?: boolean;
+}) {
   const feeds = useLeoStore((s) => s.feeds);
   const diapers = useLeoStore((s) => s.diapers);
   const sleeps = useLeoStore((s) => s.sleeps);
@@ -43,10 +54,15 @@ export function TodayGlance() {
     },
   ];
 
-  return (
-    <Card className="border-ink-300/40 p-4">
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-400">
+  const body = (
+    <>
+      <p className="mb-2 flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-ink-400">
         Today at a glance
+        {linkToEveryday && (
+          <span className="ml-auto flex items-center gap-0.5 text-[11px] font-medium normal-case text-gold-700">
+            See trends <ChevronRight className="h-3.5 w-3.5" />
+          </span>
+        )}
       </p>
 
       <p className="mb-3 font-serif text-[15px] leading-relaxed text-ink-800">
@@ -64,6 +80,21 @@ export function TodayGlance() {
           </div>
         ))}
       </div>
+    </>
+  );
+
+  if (!linkToEveryday) {
+    return <Card className="border-ink-300/40 p-4">{body}</Card>;
+  }
+
+  return (
+    <Card className="border-ink-300/40 p-0 transition-colors hover:bg-parchment-50">
+      <Link
+        href={'/leo/timeline?view=everyday' as Route}
+        className="block p-4 active:scale-[0.99]"
+      >
+        {body}
+      </Link>
     </Card>
   );
 }

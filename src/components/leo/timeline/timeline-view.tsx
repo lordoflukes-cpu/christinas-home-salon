@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import type { Route } from 'next';
 import { Sparkles } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -10,12 +10,15 @@ import {
   useNow,
   buildTimeline,
   ageInMonthsCalendar,
-  TIMELINE_FILTERS,
+  TIMELINE_GROUPS,
   type TimelineFilter,
+  type TimelineSegment,
   type TimelineItem,
 } from '@/lib/leo';
 import { cn } from '@/lib/utils';
+import { Segmented } from '../forms/feed-form';
 import { TimelineRow } from './timeline-item';
+import { EverydayView } from './everyday-view';
 
 function monthKey(ts: number): string {
   const d = new Date(ts);
@@ -46,6 +49,18 @@ interface Group {
   items: TimelineItem[];
 }
 
+const SEGMENT_OPTS = TIMELINE_GROUPS.map((g) => ({
+  value: g.segment,
+  label: g.label,
+}));
+
+/** Default sub-filter for each segment (first in its list). */
+const DEFAULT_FILTER: Record<TimelineSegment, TimelineFilter> = {
+  story: 'highlights',
+  everyday: 'everyday',
+  health: 'health',
+};
+
 export function TimelineView() {
   const profile = useLeoStore((s) => s.profile);
   const milestones = useLeoStore((s) => s.milestones);
@@ -61,30 +76,52 @@ export function TimelineView() {
   const sleeps = useLeoStore((s) => s.sleeps);
   const now = useNow(3_600_000);
   const router = useRouter();
+  const params = useSearchParams();
 
-  const [filter, setFilter] = useState<TimelineFilter>('highlights');
+  const initialSegment: TimelineSegment =
+    params.get('view') === 'everyday'
+      ? 'everyday'
+      : params.get('view') === 'health'
+        ? 'health'
+        : 'story';
+
+  const [segment, setSegment] = useState<TimelineSegment>(initialSegment);
+  const [filter, setFilter] = useState<TimelineFilter>(
+    DEFAULT_FILTER[initialSegment],
+  );
+
+  function chooseSegment(next: TimelineSegment) {
+    setSegment(next);
+    setFilter(DEFAULT_FILTER[next]);
+  }
+
+  const subFilters =
+    TIMELINE_GROUPS.find((g) => g.segment === segment)?.filters ?? [];
 
   const items = useMemo(
     () =>
-      buildTimeline(
-        {
-          profile,
-          milestones,
-          journal,
-          voices,
-          photos,
-          growth,
-          sizes,
-          medical,
-          events,
-          feeds,
-          diapers,
-          sleeps,
-          now,
-        },
-        filter,
-      ),
+      segment === 'everyday'
+        ? []
+        : buildTimeline(
+            {
+              profile,
+              milestones,
+              journal,
+              voices,
+              photos,
+              growth,
+              sizes,
+              medical,
+              events,
+              feeds,
+              diapers,
+              sleeps,
+              now,
+            },
+            filter,
+          ),
     [
+      segment,
       profile,
       milestones,
       journal,
@@ -130,71 +167,87 @@ export function TimelineView() {
     );
   }
 
-  // Flat index to know the last row overall (for the connecting rail).
   let rendered = 0;
   const total = items.length;
 
   return (
     <div className="space-y-4">
-      {/* Filters */}
-      <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
-        {TIMELINE_FILTERS.map((f) => (
-          <button
-            key={f.key}
-            type="button"
-            onClick={() => setFilter(f.key)}
-            className={cn(
-              'shrink-0 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors',
-              filter === f.key
-                ? 'border-ink-700 bg-ink-700 text-parchment-50'
-                : 'border-ink-300 bg-parchment-50 text-ink-700 hover:bg-parchment-100',
-            )}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
+      {/* Top-level segments */}
+      <Segmented
+        value={segment}
+        onChange={(v) => chooseSegment(v as TimelineSegment)}
+        options={SEGMENT_OPTS}
+      />
 
-      {total === 0 ? (
-        <Card className="flex flex-col items-center gap-2 border-gold-200 bg-parchment-50 p-8 text-center">
-          <Sparkles className="h-8 w-8 text-gold-500" />
-          <p className="text-sm text-ink-600">
-            Nothing here yet for this filter. Log a milestone, photo or memory
-            and it&apos;ll appear on Leo&apos;s timeline.
-          </p>
-        </Card>
+      {segment === 'everyday' ? (
+        <EverydayView />
       ) : (
-        groups.map((g) => (
-          <section key={g.key}>
-            <div className="mb-2 flex items-baseline gap-2">
-              <h2 className="font-display text-xl text-ink-900">{g.label}</h2>
-              <span className="rounded-full bg-parchment-100 px-2 py-0.5 text-xs font-medium text-ink-500">
-                {g.age}
-              </span>
+        <>
+          {/* Slim secondary filters for the chosen segment */}
+          {subFilters.length > 1 && (
+            <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+              {subFilters.map((f) => (
+                <button
+                  key={f.key}
+                  type="button"
+                  onClick={() => setFilter(f.key)}
+                  className={cn(
+                    'shrink-0 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors',
+                    filter === f.key
+                      ? 'border-ink-700 bg-ink-700 text-parchment-50'
+                      : 'border-ink-300 bg-parchment-50 text-ink-700 hover:bg-parchment-100',
+                  )}
+                >
+                  {f.label}
+                </button>
+              ))}
             </div>
-            <ul>
-              {g.items.map((item) => {
-                rendered += 1;
-                const photo = item.photoId
-                  ? photos.find((p) => p.id === item.photoId)
-                  : undefined;
-                return (
-                  <TimelineRow
-                    key={item.id}
-                    item={item}
-                    photo={photo}
-                    isLast={rendered === total}
-                    onOpen={
-                      item.href
-                        ? () => router.push(item.href as Route)
-                        : undefined
-                    }
-                  />
-                );
-              })}
-            </ul>
-          </section>
-        ))
+          )}
+
+          {total === 0 ? (
+            <Card className="flex flex-col items-center gap-2 border-gold-200 bg-parchment-50 p-8 text-center">
+              <Sparkles className="h-8 w-8 text-gold-500" />
+              <p className="text-sm text-ink-600">
+                Nothing here yet for this filter. Log a milestone, photo or
+                memory and it&apos;ll appear on Leo&apos;s timeline.
+              </p>
+            </Card>
+          ) : (
+            groups.map((g) => (
+              <section key={g.key}>
+                <div className="mb-2 flex items-baseline gap-2">
+                  <h2 className="font-display text-xl text-ink-900">
+                    {g.label}
+                  </h2>
+                  <span className="rounded-full bg-parchment-100 px-2 py-0.5 text-xs font-medium text-ink-500">
+                    {g.age}
+                  </span>
+                </div>
+                <ul>
+                  {g.items.map((item) => {
+                    rendered += 1;
+                    const photo = item.photoId
+                      ? photos.find((p) => p.id === item.photoId)
+                      : undefined;
+                    return (
+                      <TimelineRow
+                        key={item.id}
+                        item={item}
+                        photo={photo}
+                        isLast={rendered === total}
+                        onOpen={
+                          item.href
+                            ? () => router.push(item.href as Route)
+                            : undefined
+                        }
+                      />
+                    );
+                  })}
+                </ul>
+              </section>
+            ))
+          )}
+        </>
       )}
     </div>
   );

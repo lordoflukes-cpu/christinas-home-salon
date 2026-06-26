@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { SectionBanner } from '@/components/leo';
 import { TimelineView } from '@/components/leo/timeline/timeline-view';
 
@@ -9,7 +10,9 @@ export default function LeoTimelinePage() {
         subtitle="Leo's story, moment by moment"
         index={0}
       />
-      <TimelineView />
+      <Suspense fallback={null}>
+        <TimelineView />
+      </Suspense>
     </div>
   );
 }
