@@ -33,7 +33,7 @@ export function voiceCategory(
 // ---------------------------------------------------------------------------
 
 /** Format a millisecond duration as `m:ss` (e.g. 42_000 → "0:42"). */
-export function formatDuration(ms: number | undefined): string {
+export function formatAudioDuration(ms: number | undefined): string {
   const total = Math.max(0, Math.round((ms ?? 0) / 1000));
   const mins = Math.floor(total / 60);
   const secs = total % 60;

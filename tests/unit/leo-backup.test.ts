@@ -29,6 +29,14 @@ describe('backup round-trip', () => {
       position: 0,
       rating: 'works',
     });
+    await repo.addCareTask({
+      kind: 'binDay',
+      label: 'Bin day',
+      cadence: 'weekly',
+      weekday: 2,
+      enabled: true,
+      anchorAt: 6600,
+    });
     await repo.addVoice(
       new Blob([new Uint8Array([9, 8, 7, 6])], { type: 'audio/webm' }),
       { recordedAt: 6800, title: 'First coo', category: 'firstSound' },
@@ -46,6 +54,7 @@ describe('backup round-trip', () => {
     expect(backup.events).toHaveLength(1);
     expect(backup.sizes).toHaveLength(1);
     expect(backup.routines).toHaveLength(1);
+    expect(backup.careTasks).toHaveLength(1);
     expect(backup.voices).toHaveLength(1);
     expect(backup.documents).toHaveLength(1);
 

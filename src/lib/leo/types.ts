@@ -183,6 +183,41 @@ export interface RoutineItem {
 }
 
 // ---------------------------------------------------------------------------
+// Care tasks — recurring household nudges (in-app agenda only, never pushed)
+// ---------------------------------------------------------------------------
+
+export type CareTaskKind =
+  | 'nappies'
+  | 'sterilise'
+  | 'weeklyPhoto'
+  | 'dailyMemory'
+  | 'binDay'
+  | 'bathNight'
+  | 'custom';
+
+export type CareCadence = 'daily' | 'weekly' | 'everyN';
+
+export interface CareTask {
+  id: string;
+  kind: CareTaskKind;
+  label: string;
+  cadence: CareCadence;
+  /** For 'everyN': repeat every this many days. */
+  intervalDays?: number;
+  /** For 'weekly': 0 = Sunday … 6 = Saturday. */
+  weekday?: number;
+  /** Optional time of day, 'HH:MM' local. */
+  timeHHMM?: string;
+  enabled: boolean;
+  /** When the schedule starts counting (epoch ms). */
+  anchorAt: Millis;
+  /** When it was last marked done (advances the next occurrence). */
+  lastDoneAt?: Millis;
+  createdAt: Millis;
+  updatedAt: Millis;
+}
+
+// ---------------------------------------------------------------------------
 // Sizes — clothing / nappy / shoe over time
 // ---------------------------------------------------------------------------
 
@@ -421,6 +456,7 @@ export type NewJournal = Omit<JournalEntry, 'id' | 'createdAt' | 'updatedAt'>;
 export type NewEvent = Omit<LeoEvent, 'id' | 'createdAt' | 'updatedAt'>;
 export type NewSize = Omit<SizeEntry, 'id' | 'createdAt' | 'updatedAt'>;
 export type NewRoutine = Omit<RoutineItem, 'id' | 'createdAt' | 'updatedAt'>;
+export type NewCareTask = Omit<CareTask, 'id' | 'createdAt' | 'updatedAt'>;
 export type NewPhotoMeta = Omit<
   PhotoEntry,
   'id' | 'bytes' | 'type' | 'createdAt' | 'updatedAt'
@@ -451,6 +487,7 @@ export interface LeoBackup {
   events?: LeoEvent[];
   sizes?: SizeEntry[];
   routines?: RoutineItem[];
+  careTasks?: CareTask[];
   voices?: VoiceBackup[];
   photos?: PhotoBackup[];
   documents?: DocumentBackup[];

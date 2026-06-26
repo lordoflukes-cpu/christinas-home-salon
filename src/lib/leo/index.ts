@@ -9,6 +9,8 @@ export * from './journal-prompts';
 export * from './photo-albums';
 export * from './sizes';
 export * from './routine-config';
+export * from './care-tasks';
+export * from './agenda';
 export * from './growth-insights';
 export * from './units';
 export * from './growth';
@@ -17,7 +19,7 @@ export { downscaleImage, usePhotoUrl } from './photo';
 export {
   VOICE_CATEGORIES,
   voiceCategory,
-  formatDuration,
+  formatAudioDuration,
   useVoiceUrl,
   useVoiceRecorder,
   isSpeechRecognitionSupported,

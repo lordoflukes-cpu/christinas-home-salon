@@ -10,7 +10,7 @@ import {
   useLeoStore,
   useVoiceRecorder,
   useVoiceUrl,
-  formatDuration,
+  formatAudioDuration,
   toDatetimeLocal,
   fromDatetimeLocal,
   VOICE_CATEGORIES,
@@ -133,7 +133,7 @@ export function VoiceEditor({
                 <Square className="h-8 w-8 fill-current" />
               </button>
               <p className="mt-3 font-display text-2xl tabular-nums text-ink-900">
-                {formatDuration(recorder.durationMs)}
+                {formatAudioDuration(recorder.durationMs)}
               </p>
               <p className="text-xs text-rose-600">Recording… tap to stop</p>
               {overLimit && (
@@ -148,7 +148,7 @@ export function VoiceEditor({
           {recorder.state === 'recorded' && (
             <>
               <p className="font-display text-lg text-ink-900">
-                {formatDuration(recorder.durationMs)} recorded ✨
+                {formatAudioDuration(recorder.durationMs)} recorded ✨
               </p>
               {audioUrl && (
                 <audio controls src={audioUrl} className="mt-2 w-full" />
@@ -175,7 +175,7 @@ export function VoiceEditor({
       {editing && audioUrl && (
         <div className="rounded-2xl border border-ink-300/40 bg-parchment-50 p-3 text-center">
           <p className="text-xs text-ink-500">
-            {formatDuration(entry?.durationMs)}
+            {formatAudioDuration(entry?.durationMs)}
           </p>
           <audio controls src={audioUrl} className="mt-1 w-full" />
         </div>

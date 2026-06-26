@@ -184,6 +184,36 @@ describe('voices', () => {
   });
 });
 
+describe('care tasks', () => {
+  it('adds, updates, marks done and deletes', async () => {
+    const a = await repo.addCareTask({
+      kind: 'binDay',
+      label: 'Bin day',
+      cadence: 'weekly',
+      weekday: 2,
+      enabled: true,
+      anchorAt: 1000,
+    });
+    const b = await repo.addCareTask({
+      kind: 'dailyMemory',
+      label: 'Add a memory',
+      cadence: 'daily',
+      enabled: false,
+      anchorAt: 1000,
+    });
+
+    expect(await repo.getAllCareTasks()).toHaveLength(2);
+
+    await repo.updateCareTask(b.id, { enabled: true, lastDoneAt: 5000 });
+    const saved = (await repo.getAllCareTasks()).find((t) => t.id === b.id);
+    expect(saved?.enabled).toBe(true);
+    expect(saved?.lastDoneAt).toBe(5000);
+
+    await repo.deleteCareTask(a.id);
+    expect(await repo.getAllCareTasks()).toHaveLength(1);
+  });
+});
+
 describe('routines', () => {
   it('adds routines ordered by position, updates rating and deletes', async () => {
     const a = await repo.addRoutine({
