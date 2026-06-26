@@ -38,6 +38,16 @@ const TRACKS: Track[] = [
   { title: 'Grow With You', file: 'grow-with-you.mp3' },
   { title: 'Leo, Summer', file: 'leo-summer.mp3' },
   { title: 'Leo Time', file: 'leo-time.mp3' },
+  { title: 'Little Leo Rise (Liquid DnB)', file: 'little-leo-rise-dnb.mp3' },
+  { title: 'Leo In The Light (DnB Remix)', file: 'leo-in-the-light-dnb.mp3' },
+  {
+    title: 'Christina’s Smile (Jungle Mix)',
+    file: 'christinas-smile-jungle.mp3',
+  },
+  {
+    title: 'Leo Came with the Summer (II)',
+    file: 'leo-came-with-the-summer-2.mp3',
+  },
 ];
 const MUSIC_VOLUME = 0.6;
 
