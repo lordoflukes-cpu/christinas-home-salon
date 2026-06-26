@@ -31,7 +31,7 @@ import { SinceLastCard } from './cards/since-last-card';
 import { FeedStatusCard } from './cards/feed-status-card';
 import { SleepStatusCard } from './cards/sleep-status-card';
 import { TodayGlance } from './home/today-glance';
-import { NextUp } from './home/next-up';
+import { AgendaCard } from './home/agenda-card';
 import { PhotoImage } from './photos/photo-image';
 import { VoiceRecordButton } from './voice/voice-record-button';
 import { QuickAddSheet, type QuickAddState } from './quick-add-sheet';
@@ -123,7 +123,7 @@ export function Dashboard() {
         ))}
       </div>
 
-      <NextUp />
+      <AgendaCard />
       <TodayGlance />
 
       <div className="grid grid-cols-2 gap-3">

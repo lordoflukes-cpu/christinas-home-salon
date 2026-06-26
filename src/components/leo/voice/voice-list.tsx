@@ -24,7 +24,7 @@ import {
   useLeoStore,
   useVoiceUrl,
   formatDateTime,
-  formatDuration,
+  formatAudioDuration,
   voiceCategory,
   VOICE_CATEGORIES,
 } from '@/lib/leo';
@@ -70,7 +70,9 @@ function VoiceCard({
           </div>
           <p className="text-xs text-gold-700">
             {formatDateTime(voice.recordedAt)}
-            {voice.durationMs ? ` · ${formatDuration(voice.durationMs)}` : ''}
+            {voice.durationMs
+              ? ` · ${formatAudioDuration(voice.durationMs)}`
+              : ''}
             {voice.author ? ` · ${voice.author}` : ''}
           </p>
         </div>

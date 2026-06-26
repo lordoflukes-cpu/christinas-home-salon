@@ -1,26 +1,26 @@
 import { describe, it, expect } from 'vitest';
 import {
-  formatDuration,
+  formatAudioDuration,
   VOICE_CATEGORIES,
   voiceCategory,
 } from '@/lib/leo/voice';
 import type { VoiceCategory } from '@/lib/leo/types';
 
-describe('formatDuration', () => {
+describe('formatAudioDuration', () => {
   it('formats milliseconds as m:ss', () => {
-    expect(formatDuration(0)).toBe('0:00');
-    expect(formatDuration(5_000)).toBe('0:05');
-    expect(formatDuration(42_000)).toBe('0:42');
-    expect(formatDuration(75_000)).toBe('1:15');
-    expect(formatDuration(600_000)).toBe('10:00');
+    expect(formatAudioDuration(0)).toBe('0:00');
+    expect(formatAudioDuration(5_000)).toBe('0:05');
+    expect(formatAudioDuration(42_000)).toBe('0:42');
+    expect(formatAudioDuration(75_000)).toBe('1:15');
+    expect(formatAudioDuration(600_000)).toBe('10:00');
   });
   it('handles undefined / negative gracefully', () => {
-    expect(formatDuration(undefined)).toBe('0:00');
-    expect(formatDuration(-5_000)).toBe('0:00');
+    expect(formatAudioDuration(undefined)).toBe('0:00');
+    expect(formatAudioDuration(-5_000)).toBe('0:00');
   });
   it('rounds to the nearest second', () => {
-    expect(formatDuration(1_400)).toBe('0:01');
-    expect(formatDuration(1_600)).toBe('0:02');
+    expect(formatAudioDuration(1_400)).toBe('0:01');
+    expect(formatAudioDuration(1_600)).toBe('0:02');
   });
 });
 

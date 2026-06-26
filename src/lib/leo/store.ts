@@ -6,6 +6,7 @@ import * as sync from './sync';
 import type {
   BabyProfile,
   BreastSide,
+  CareTask,
   DiaperEntry,
   DocumentEntry,
   FeedEntry,
@@ -23,6 +24,7 @@ import type {
   NewGrowth,
   NewJournal,
   NewMedical,
+  NewCareTask,
   NewMilestone,
   NewPhotoMeta,
   NewRoutine,
@@ -53,6 +55,7 @@ interface LeoState {
   events: LeoEvent[];
   sizes: SizeEntry[];
   routines: RoutineItem[];
+  careTasks: CareTask[];
   voices: VoiceEntry[];
   photos: PhotoEntry[];
   documents: DocumentEntry[];
@@ -100,6 +103,11 @@ interface LeoState {
   editRoutine: (id: string, patch: Partial<RoutineItem>) => Promise<void>;
   removeRoutine: (id: string) => Promise<void>;
 
+  createCareTask: (input: NewCareTask) => Promise<void>;
+  editCareTask: (id: string, patch: Partial<CareTask>) => Promise<void>;
+  removeCareTask: (id: string) => Promise<void>;
+  markCareDone: (id: string) => Promise<void>;
+
   createEvent: (input: NewEvent) => Promise<void>;
   editEvent: (id: string, patch: Partial<LeoEvent>) => Promise<void>;
   removeEvent: (id: string) => Promise<void>;
@@ -135,6 +143,7 @@ async function refresh() {
     events,
     sizes,
     routines,
+    careTasks,
     voices,
     photos,
     documents,
@@ -152,6 +161,7 @@ async function refresh() {
     repo.getRecentEvents(RECENT_LIMIT),
     repo.getAllSizes(),
     repo.getAllRoutines(),
+    repo.getAllCareTasks(),
     repo.getAllVoices(),
     repo.getAllPhotos(),
     repo.getAllDocuments(),
@@ -170,6 +180,7 @@ async function refresh() {
     events,
     sizes,
     routines,
+    careTasks,
     voices,
     photos,
     documents,
@@ -210,6 +221,7 @@ export const useLeoStore = create<LeoState>((set, get) => ({
   events: [],
   sizes: [],
   routines: [],
+  careTasks: [],
   voices: [],
   photos: [],
   documents: [],
@@ -408,6 +420,27 @@ export const useLeoStore = create<LeoState>((set, get) => ({
     await repo.deleteRoutine(id);
     set({ routines: await repo.getAllRoutines() });
     sync.pushDelete('routines', id);
+  },
+
+  createCareTask: async (input) => {
+    const entry = await repo.addCareTask(input);
+    set({ careTasks: await repo.getAllCareTasks() });
+    sync.pushEntry('careTasks', entry);
+  },
+  editCareTask: async (id, patch) => {
+    const entry = await repo.updateCareTask(id, patch);
+    set({ careTasks: await repo.getAllCareTasks() });
+    sync.pushEntry('careTasks', entry);
+  },
+  removeCareTask: async (id) => {
+    await repo.deleteCareTask(id);
+    set({ careTasks: await repo.getAllCareTasks() });
+    sync.pushDelete('careTasks', id);
+  },
+  markCareDone: async (id) => {
+    const entry = await repo.updateCareTask(id, { lastDoneAt: Date.now() });
+    set({ careTasks: await repo.getAllCareTasks() });
+    sync.pushEntry('careTasks', entry);
   },
 
   createEvent: async (input) => {

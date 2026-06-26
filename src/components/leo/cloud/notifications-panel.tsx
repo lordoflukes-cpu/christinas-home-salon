@@ -110,8 +110,8 @@ export function NotificationsPanel() {
       ) : (
         <>
           <p className="mb-4 text-sm text-ink-600">
-            Get gentle nudges for feeds, appointments, Vitamin D and long naps —
-            delivered even when Leo is closed.
+            Off by default — only what you switch on here will ever buzz your
+            phone. Everything else stays a quiet list in your Home agenda.
             {denied && (
               <span className="mt-1 block text-rose-600">
                 Notifications are blocked in your phone’s settings — allow them

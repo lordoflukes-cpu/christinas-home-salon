@@ -224,6 +224,29 @@ const routineSchema = z.object({
   updatedAt: millis,
 });
 
+const careTaskSchema = z.object({
+  id: z.string(),
+  kind: z.enum([
+    'nappies',
+    'sterilise',
+    'weeklyPhoto',
+    'dailyMemory',
+    'binDay',
+    'bathNight',
+    'custom',
+  ]),
+  label: z.string(),
+  cadence: z.enum(['daily', 'weekly', 'everyN']),
+  intervalDays: z.number().positive().optional(),
+  weekday: z.number().min(0).max(6).optional(),
+  timeHHMM: z.string().optional(),
+  enabled: z.boolean(),
+  anchorAt: millis,
+  lastDoneAt: millis.optional(),
+  createdAt: millis,
+  updatedAt: millis,
+});
+
 export const leoBackupSchema = z.object({
   schemaVersion: z.number().int().positive(),
   exportedAt: millis,
@@ -238,6 +261,7 @@ export const leoBackupSchema = z.object({
   events: z.array(eventSchema).optional(),
   sizes: z.array(sizeSchema).optional(),
   routines: z.array(routineSchema).optional(),
+  careTasks: z.array(careTaskSchema).optional(),
   voices: z.array(voiceBackupSchema).optional(),
   photos: z.array(photoBackupSchema).optional(),
   documents: z.array(documentBackupSchema).optional(),

@@ -9,6 +9,7 @@ import { getDB, DB_VERSION } from './db';
 import type {
   BabyProfile,
   BreastSide,
+  CareTask,
   DiaperEntry,
   DocumentEntry,
   FeedEntry,
@@ -19,6 +20,7 @@ import type {
   LeoEvent,
   MedicalEntry,
   MilestoneEntry,
+  NewCareTask,
   NewDiaper,
   NewDocumentMeta,
   NewEvent,
@@ -684,6 +686,46 @@ export async function getAllRoutines(): Promise<RoutineItem[]> {
 }
 
 // ---------------------------------------------------------------------------
+// Care tasks (recurring household nudges — in-app agenda only)
+// ---------------------------------------------------------------------------
+
+export async function addCareTask(input: NewCareTask): Promise<CareTask> {
+  const db = await getDB();
+  const time = ts();
+  const entry: CareTask = {
+    ...input,
+    id: newId(),
+    createdAt: time,
+    updatedAt: time,
+  };
+  await db.put('careTasks', entry);
+  return entry;
+}
+
+export async function updateCareTask(
+  id: string,
+  patch: Partial<CareTask>,
+): Promise<CareTask> {
+  const db = await getDB();
+  const existing = await db.get('careTasks', id);
+  if (!existing) throw new Error(`Care task ${id} not found`);
+  const updated: CareTask = { ...existing, ...patch, id, updatedAt: ts() };
+  await db.put('careTasks', updated);
+  return updated;
+}
+
+export async function deleteCareTask(id: string): Promise<void> {
+  const db = await getDB();
+  await db.delete('careTasks', id);
+}
+
+/** All care tasks (order is not significant; the agenda sorts by due time). */
+export async function getAllCareTasks(): Promise<CareTask[]> {
+  const db = await getDB();
+  return db.getAll('careTasks');
+}
+
+// ---------------------------------------------------------------------------
 // Documents (letters, prescriptions, reports — images or PDFs)
 // ---------------------------------------------------------------------------
 
@@ -817,7 +859,8 @@ export type PlainStore =
   | 'journal'
   | 'events'
   | 'sizes'
-  | 'routines';
+  | 'routines'
+  | 'careTasks';
 
 /** Write an entry exactly as given, preserving its id/updatedAt (no stamping). */
 export async function putRaw(store: PlainStore, value: unknown): Promise<void> {
@@ -915,6 +958,7 @@ const ALL_STORES = [
   'events',
   'sizes',
   'routines',
+  'careTasks',
   'voices',
   'photos',
   'documents',
@@ -934,6 +978,7 @@ export async function exportAll(): Promise<LeoBackup> {
     events,
     sizes,
     routines,
+    careTasks,
     voices,
     photos,
     documents,
@@ -949,6 +994,7 @@ export async function exportAll(): Promise<LeoBackup> {
     db.getAll('events'),
     db.getAll('sizes'),
     db.getAll('routines'),
+    db.getAll('careTasks'),
     db.getAll('voices'),
     db.getAll('photos'),
     db.getAll('documents'),
@@ -985,6 +1031,7 @@ export async function exportAll(): Promise<LeoBackup> {
     events,
     sizes,
     routines,
+    careTasks,
     voices: voiceBackups,
     photos: photoBackups,
     documents: documentBackups,
@@ -1055,6 +1102,8 @@ export async function importAll(
   for (const s of backup.sizes ?? []) await tx.objectStore('sizes').put(s);
   for (const r of backup.routines ?? [])
     await tx.objectStore('routines').put(r);
+  for (const c of backup.careTasks ?? [])
+    await tx.objectStore('careTasks').put(c);
   for (const v of voiceEntries) await tx.objectStore('voices').put(v);
   for (const p of photoEntries) await tx.objectStore('photos').put(p);
   for (const d of documentEntries) await tx.objectStore('documents').put(d);
