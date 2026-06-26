@@ -69,6 +69,43 @@ export const TIMELINE_FILTERS: { key: TimelineFilter; label: string }[] = [
   { key: 'everyday', label: 'Everyday' },
 ];
 
+/**
+ * Top-level timeline segments — three clear groups instead of one long pill
+ * row. "everyday" has no sub-filters (it gets its own trends-led view). The
+ * other two carry a slim secondary filter row drawn from `TIMELINE_FILTERS`.
+ */
+export type TimelineSegment = 'story' | 'everyday' | 'health';
+
+export const TIMELINE_GROUPS: {
+  segment: TimelineSegment;
+  label: string;
+  /** Secondary sub-filters shown for this segment (empty for everyday). */
+  filters: { key: TimelineFilter; label: string }[];
+}[] = [
+  {
+    segment: 'story',
+    label: 'Story',
+    filters: [
+      { key: 'highlights', label: 'Highlights' },
+      { key: 'milestones', label: 'Milestones' },
+      { key: 'memories', label: 'Memories' },
+      { key: 'photos', label: 'Photos' },
+      { key: 'family', label: 'Family' },
+      { key: 'funny', label: 'Funny' },
+    ],
+  },
+  { segment: 'everyday', label: 'Everyday', filters: [] },
+  {
+    segment: 'health',
+    label: 'Health',
+    filters: [
+      { key: 'health', label: 'All health' },
+      { key: 'appointments', label: 'Appointments' },
+      { key: 'growth', label: 'Growth' },
+    ],
+  },
+];
+
 const DAY = 86_400_000;
 
 function addMonths(ms: number, n: number): number {
