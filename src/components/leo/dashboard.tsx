@@ -12,6 +12,7 @@ import {
   Milk,
   Pill,
   Smile,
+  Sparkles,
   Thermometer,
 } from 'lucide-react';
 import type { QuickAddKind } from './quick-add-sheet';
@@ -202,6 +203,22 @@ export function Dashboard() {
 
       <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.3 }}>
         <VoiceRecordButton />
+      </motion.div>
+
+      <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.32 }}>
+        <Link href={'/leo/ask' as Route}>
+          <Card className="flex items-center gap-3 border-gold-300/60 bg-gradient-to-br from-gold-50 to-parchment-50 p-3 transition-colors hover:from-gold-100">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gold-100 text-gold-600">
+              <Sparkles className="h-5 w-5" />
+            </span>
+            <div className="flex-1">
+              <p className="font-display text-base text-ink-900">Ask Leo</p>
+              <p className="text-xs text-ink-500">
+                Make sense of the day · summaries, notes &amp; more
+              </p>
+            </div>
+          </Card>
+        </Link>
       </motion.div>
 
       {photos.length > 0 && (

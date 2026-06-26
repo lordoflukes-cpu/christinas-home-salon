@@ -1,3 +1,6 @@
+import Link from 'next/link';
+import type { Route } from 'next';
+import { Sparkles } from 'lucide-react';
 import {
   ProfileEditor,
   BackupPanel,
@@ -23,6 +26,22 @@ export default function LeoSettingsPage() {
       <SyncPanel />
       <NotificationsPanel />
       <RemindersPanel />
+
+      <Link
+        href={'/leo/ask' as Route}
+        className="flex items-center gap-3 rounded-2xl border border-gold-300/40 bg-parchment-50/90 p-4 transition-colors hover:bg-parchment-100"
+      >
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gold-100 text-gold-600">
+          <Sparkles className="h-5 w-5" />
+        </span>
+        <div className="flex-1">
+          <p className="font-display text-base text-ink-900">Ask Leo</p>
+          <p className="text-xs text-ink-500">
+            AI summaries, doctor notes &amp; family updates from your logs
+          </p>
+        </div>
+      </Link>
+
       <BackdropsPanel />
       <BackupPanel />
 
