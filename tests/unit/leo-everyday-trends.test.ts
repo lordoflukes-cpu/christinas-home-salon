@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   dailySeries,
+  hourlySeries,
   rangeSummary,
   nappyTotal,
   dayMetricValue,
@@ -109,6 +110,76 @@ describe('dailySeries', () => {
       NOW,
     );
     expect(series.reduce((a, d) => a + d.feeds, 0)).toBe(0);
+  });
+});
+
+describe('dailySeries — night/day sleep split', () => {
+  it('splits a midnight-spanning sleep into night and (later) day', () => {
+    // 22:00 today → 08:00 tomorrow. But we only have up to NOW(15:00) today,
+    // so use a fully-past night: 22:00 two days ago → 08:00 yesterday.
+    const twoNightsAgo = startOfNow - 2 * DAY + 22 * HOUR; // 22:00
+    const endNextMorning = startOfNow - 1 * DAY + 8 * HOUR; // 08:00 yesterday
+    const series = dailySeries(
+      { feeds: [], diapers: [], sleeps: [sleep(twoNightsAgo, endNextMorning)] },
+      7,
+      NOW,
+    );
+    const yesterday = series[5];
+    // Yesterday 00:00–08:00: night [00:00,07:00)=7h, day [07:00,08:00)=1h.
+    expect(yesterday.nightSleepMs).toBe(7 * HOUR);
+    expect(yesterday.daySleepMs).toBe(1 * HOUR);
+    expect(yesterday.sleepMs).toBe(8 * HOUR);
+  });
+
+  it('classifies an afternoon nap entirely as day sleep', () => {
+    const napStart = startOfNow + 13 * HOUR; // 13:00 today
+    const series = dailySeries(
+      { feeds: [], diapers: [], sleeps: [sleep(napStart, napStart + HOUR)] },
+      7,
+      NOW,
+    );
+    expect(series[6].daySleepMs).toBe(HOUR);
+    expect(series[6].nightSleepMs).toBe(0);
+  });
+});
+
+describe('hourlySeries', () => {
+  it('returns 24 zeroed buckets for an empty day', () => {
+    const hours = hourlySeries(
+      { feeds: [], diapers: [], sleeps: [] },
+      startOfNow,
+      NOW,
+    );
+    expect(hours).toHaveLength(24);
+    expect(hours.every((h, i) => h.hour === i && h.sleepMs === 0)).toBe(true);
+  });
+
+  it('buckets feeds and nappies by their local hour', () => {
+    const hours = hourlySeries(
+      {
+        feeds: [feed(startOfNow + 9 * HOUR)],
+        diapers: [diaper(startOfNow + 9 * HOUR + 600_000, 'both')],
+        sleeps: [],
+      },
+      startOfNow,
+      NOW,
+    );
+    expect(hours[9].feeds).toBe(1);
+    expect(hours[9].wet).toBe(1);
+    expect(hours[9].dirty).toBe(1);
+  });
+
+  it('spreads a sleep across the hours it covers', () => {
+    const start = startOfNow + 1 * HOUR + 30 * 60_000; // 01:30
+    const end = startOfNow + 3 * HOUR; // 03:00
+    const hours = hourlySeries(
+      { feeds: [], diapers: [], sleeps: [sleep(start, end)] },
+      startOfNow,
+      NOW,
+    );
+    expect(hours[1].sleepMs).toBe(30 * 60_000); // 01:30–02:00
+    expect(hours[2].sleepMs).toBe(HOUR); // 02:00–03:00
+    expect(hours[3].sleepMs).toBe(0);
   });
 });
 

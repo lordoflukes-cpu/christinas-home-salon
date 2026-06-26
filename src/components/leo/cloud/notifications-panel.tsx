@@ -1,14 +1,29 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Bell, BellOff, Smartphone, Moon, Check, Cloud } from 'lucide-react';
+import {
+  Bell,
+  BellOff,
+  Smartphone,
+  Moon,
+  Check,
+  Cloud,
+  Sparkles,
+  Loader2,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
-import { useLeoStore } from '@/lib/leo';
+import {
+  useLeoStore,
+  useNow,
+  cadenceSnapshot,
+  getReminderAdvice,
+  type ReminderAdvice,
+} from '@/lib/leo';
 import { cn } from '@/lib/utils';
 import {
   DEFAULT_REMINDER_PREFS,
@@ -277,6 +292,8 @@ export function NotificationsPanel() {
                 </div>
               </ToggleRow>
 
+              <AiTimingSuggestions onApply={savePrefs} />
+
               <Button
                 onClick={localTest}
                 disabled={busy}
@@ -311,6 +328,142 @@ export function NotificationsPanel() {
         </>
       )}
     </Card>
+  );
+}
+
+/**
+ * AI-suggested reminder timings from Leo's age/weight/feed type and recent
+ * feed & sleep rhythm. The AI only suggests — the parent taps "Use these" to
+ * apply. Hidden gracefully when the AI key isn't configured.
+ */
+function AiTimingSuggestions({
+  onApply,
+}: {
+  onApply: (patch: Partial<ReminderPrefs>) => void;
+}) {
+  const profile = useLeoStore((s) => s.profile);
+  const feeds = useLeoStore((s) => s.feeds);
+  const sleeps = useLeoStore((s) => s.sleeps);
+  const growth = useLeoStore((s) => s.growth);
+  const now = useNow(3_600_000);
+  const { toast } = useToast();
+
+  const [loading, setLoading] = useState(false);
+  const [advice, setAdvice] = useState<ReminderAdvice | null>(null);
+  const [unavailable, setUnavailable] = useState<string | null>(null);
+
+  async function fetchAdvice() {
+    setLoading(true);
+    setUnavailable(null);
+    const context = cadenceSnapshot({ profile, feeds, sleeps, growth, now });
+    const res = await getReminderAdvice(context);
+    setLoading(false);
+    if (res.notConfigured) {
+      setUnavailable('Set up the AI key on the server to get suggestions.');
+      return;
+    }
+    if (res.error || !res.advice) {
+      setUnavailable(res.error ?? 'Couldn’t get a suggestion right now.');
+      return;
+    }
+    setAdvice(res.advice);
+  }
+
+  function apply() {
+    if (!advice) return;
+    const patch: Partial<ReminderPrefs> = {};
+    if (advice.feedHours != null) {
+      patch.feed = true;
+      patch.feedHours = advice.feedHours;
+    }
+    if (advice.sleepMaxHours != null) {
+      patch.sleep = true;
+      patch.sleepMaxHours = advice.sleepMaxHours;
+    }
+    if (advice.vitdTime) {
+      patch.vitd = true;
+      patch.vitdTime = advice.vitdTime;
+    }
+    if (advice.quietStart && advice.quietEnd) {
+      patch.quiet = true;
+      patch.quietStart = advice.quietStart;
+      patch.quietEnd = advice.quietEnd;
+    }
+    onApply(patch);
+    setAdvice(null);
+    toast({
+      title: 'Timings updated 🦁',
+      description: 'Leo’s suggestions applied — tweak any of them above.',
+    });
+  }
+
+  return (
+    <div className="rounded-xl border border-gold-200 bg-gradient-to-br from-gold-50 to-parchment-50 p-3">
+      <p className="mb-2 flex items-center gap-1.5 text-sm font-medium text-ink-800">
+        <Sparkles className="h-4 w-4 text-gold-600" /> AI timing suggestions
+      </p>
+
+      {advice ? (
+        <div className="space-y-2">
+          <ul className="space-y-1 text-sm text-ink-700">
+            {advice.feedHours != null && (
+              <li>• Feed reminder every {advice.feedHours}h</li>
+            )}
+            {advice.sleepMaxHours != null && (
+              <li>• Long-nap nudge after {advice.sleepMaxHours}h</li>
+            )}
+            {advice.vitdTime && <li>• Vitamin D at {advice.vitdTime}</li>}
+            {advice.quietStart && advice.quietEnd && (
+              <li>
+                • Quiet hours {advice.quietStart}–{advice.quietEnd}
+              </li>
+            )}
+          </ul>
+          <p className="text-xs italic text-ink-500">{advice.rationale}</p>
+          <div className="flex gap-2">
+            <Button
+              onClick={apply}
+              className="min-h-10 flex-1 bg-ink-700 hover:bg-ink-800"
+            >
+              Use these
+            </Button>
+            <Button
+              onClick={() => setAdvice(null)}
+              variant="ghost"
+              className="min-h-10 text-ink-500"
+            >
+              Dismiss
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <p className="mb-2 text-xs text-ink-500">
+            Suggested feed/sleep/Vitamin-D timings from Leo’s age, weight and
+            recent rhythm. Just a starting point — not medical advice.
+          </p>
+          <Button
+            onClick={fetchAdvice}
+            disabled={loading}
+            variant="outline"
+            className="min-h-10 w-full border-gold-300 bg-parchment-50 text-ink-700 hover:bg-gold-100"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Thinking…
+              </>
+            ) : (
+              <>
+                <Sparkles className="mr-2 h-4 w-4" /> Get AI timing suggestions
+              </>
+            )}
+          </Button>
+          {unavailable && (
+            <p className="mt-1.5 text-xs text-ink-400">{unavailable}</p>
+          )}
+        </>
+      )}
+    </div>
   );
 }
 

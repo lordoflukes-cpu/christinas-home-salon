@@ -4,6 +4,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { patwahStyleInstruction } from '@/lib/leo/patwah';
 import { LOG_SYSTEM, parseEntries } from '@/lib/leo/log-parse';
+import { REMINDER_ADVICE_SYSTEM, parseAdvice } from '@/lib/leo/reminder-advice';
 
 /**
  * "Ask Leo" — the only server-side touchpoint for the AI helper.
@@ -32,12 +33,26 @@ const requestSchema = z.object({
     'question',
     'yearly-recap',
     'parse-log',
+    'chat',
+    'reminder-advice',
   ]),
   context: z.string().min(1).max(20000),
   question: z.string().max(500).optional(),
+  /** Conversation history for the `chat` task (oldest → newest). */
+  messages: z
+    .array(
+      z.object({
+        role: z.enum(['user', 'assistant']),
+        content: z.string().min(1).max(2000),
+      }),
+    )
+    .max(16)
+    .optional(),
   /** When set, generate the reply in Jamaican Patois at this strength. */
   patwah: z.enum(['light', 'medium', 'heavy']).optional(),
 });
+
+const CHAT_INSTRUCTION = `You are now in a back-and-forth conversation with the parent. Reply to their latest message naturally and concisely, like a kind, knowledgeable friend — not a report. Use the snapshot of Leo's logged data below for facts; if something isn't there, say so rather than inventing it. When they ask how Leo is doing or to "review" things, organise your answer as what's going WELL and what's worth GENTLY keeping an eye on. Never diagnose or give medical advice; for anything health-related, suggest their GP, health visitor or 111.`;
 
 const SYSTEM_PROMPT = `You are "Ask Leo", a warm, gentle assistant inside a private baby-tracking app used by Leo's parents. You help them make sense of what they have already logged about their baby — feeds, nappies, sleep, health events, milestones, journal notes and growth.
 
@@ -127,6 +142,66 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ entries: parsedEntries.entries });
     }
 
+    const { messages } = parsed.data;
+
+    // Conversational chat — multi-turn. The snapshot + guardrail live in the
+    // system prompt; the turns are the actual conversation.
+    if (task === 'chat') {
+      if (!messages || messages.length === 0) {
+        return NextResponse.json(
+          { error: 'No message to reply to.' },
+          { status: 400 },
+        );
+      }
+      const chatSystem =
+        `${SYSTEM_PROMPT}\n\n${CHAT_INSTRUCTION}` +
+        (patwah ? `\n\n${patwahStyleInstruction(patwah)}` : '') +
+        `\n\nSnapshot of what's been logged about Leo:\n\n${context}`;
+      const client = new Anthropic({ apiKey });
+      const message = await client.messages.create({
+        model: MODEL,
+        max_tokens: 1200,
+        system: chatSystem,
+        messages: messages.map((m) => ({ role: m.role, content: m.content })),
+      });
+      const text = message.content
+        .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+        .map((b) => b.text)
+        .join('\n')
+        .trim();
+      if (!text) {
+        return NextResponse.json(
+          { error: 'Leo didn’t have anything to say. Please try again.' },
+          { status: 502 },
+        );
+      }
+      return NextResponse.json({ text });
+    }
+
+    // Notification-timing recommendation — structured JSON the panel applies.
+    if (task === 'reminder-advice') {
+      const client = new Anthropic({ apiKey });
+      const message = await client.messages.create({
+        model: MODEL,
+        max_tokens: 700,
+        system: REMINDER_ADVICE_SYSTEM,
+        messages: [{ role: 'user', content: context }],
+      });
+      const raw = message.content
+        .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+        .map((b) => b.text)
+        .join('\n')
+        .trim();
+      const advice = parseAdvice(raw);
+      if (!advice) {
+        return NextResponse.json(
+          { error: 'Couldn’t work out a suggestion just now.' },
+          { status: 502 },
+        );
+      }
+      return NextResponse.json({ advice });
+    }
+
     const instruction = TASK_INSTRUCTIONS[task];
 
     // Patois generation — never for clinical doctor notes.
@@ -145,7 +220,6 @@ export async function POST(request: NextRequest) {
     const message = await client.messages.create({
       model: MODEL,
       max_tokens: 1500,
-      thinking: { type: 'adaptive' },
       system,
       messages: [{ role: 'user', content: userContent }],
     });
@@ -181,8 +255,16 @@ export async function POST(request: NextRequest) {
       );
     }
     console.error('Leo AI error:', error);
+    // Surface the underlying reason (it never contains the API key) so a
+    // failure is diagnosable instead of an opaque "something went wrong".
+    const detail =
+      error instanceof Anthropic.APIError
+        ? `${error.status ?? ''} ${error.message}`.trim()
+        : error instanceof Error
+          ? error.message
+          : undefined;
     return NextResponse.json(
-      { error: 'Something went wrong. Please try again.' },
+      { error: 'Something went wrong. Please try again.', detail },
       { status: 500 },
     );
   }

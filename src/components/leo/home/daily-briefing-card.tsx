@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { Sunrise, Volume2, X, Loader2, RefreshCw } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { useToast } from '@/components/ui/use-toast';
 import {
   useLeoStore,
   useNow,
@@ -41,12 +40,12 @@ export function DailyBriefingCard() {
   const now = useNow(3_600_000);
 
   const { speak, status: speakStatus } = useSpeaker();
-  const { toast } = useToast();
 
   const [hydrated, setHydrated] = useState(false);
   const [text, setText] = useState<string | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const [status, setStatus] = useState<Status>('idle');
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Read today's cached briefing / dismissal once on mount.
   useEffect(() => {
@@ -93,14 +92,11 @@ export function DailyBriefingCard() {
     }
     if (res.error || !res.text) {
       setStatus('error');
-      toast({
-        title: 'Couldn’t load the briefing',
-        description: res.error,
-        variant: 'destructive',
-      });
+      setErrorMsg(res.error ?? 'Something went wrong.');
       return;
     }
     setText(res.text);
+    setErrorMsg(null);
     setStatus('idle');
     try {
       localStorage.setItem(briefingCacheKey(Date.now()), res.text);
@@ -139,6 +135,20 @@ export function DailyBriefingCard() {
         <p className="text-sm text-ink-500">
           Set up Ask Leo to get a gentle daily briefing here.
         </p>
+      ) : status === 'error' ? (
+        <div className="space-y-2">
+          <p className="text-sm text-ink-600">
+            Couldn’t load the briefing just now.
+          </p>
+          {errorMsg && <p className="text-xs text-ink-400">{errorMsg}</p>}
+          <button
+            type="button"
+            onClick={() => void generate()}
+            className="flex items-center gap-1 text-sm font-medium text-gold-700 hover:text-gold-800"
+          >
+            <RefreshCw className="h-3.5 w-3.5" /> Try again
+          </button>
+        </div>
       ) : text ? (
         <>
           <p className="whitespace-pre-wrap font-serif text-[15px] leading-relaxed text-ink-800">
