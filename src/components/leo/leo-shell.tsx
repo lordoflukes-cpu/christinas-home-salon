@@ -34,7 +34,7 @@ export function LeoShell({ children }: { children: React.ReactNode }) {
   const now = useNow(60_000);
 
   return (
-    <div className="leo-theme relative mx-auto flex min-h-screen w-full max-w-md flex-col text-ink-900">
+    <div className="leo-theme relative mx-auto flex min-h-[100dvh] w-full max-w-md flex-col text-ink-900">
       <header className="relative z-20">
         <div className="flex items-center gap-3 px-5 py-4">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink-950/40 text-gold-300 ring-1 ring-gold-400/30 backdrop-blur-sm">
@@ -53,9 +53,11 @@ export function LeoShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="relative z-10 flex-1 px-5 pb-28 pt-5">{children}</main>
+      <main className="relative z-10 flex-1 px-5 pt-5 pb-[calc(7rem+env(safe-area-inset-bottom))]">
+        {children}
+      </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-20 mx-auto w-full max-w-md border-t border-gold-400/15 bg-ink-950/75 px-2 py-2 backdrop-blur-md">
+      <nav className="fixed inset-x-0 bottom-0 z-20 mx-auto w-full max-w-md border-t border-gold-400/15 bg-ink-950/90 px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] backdrop-blur-md">
         <div className="flex items-stretch gap-1">
           {NAV.map(({ href, label, icon: Icon }) => {
             const active = pathname === href;

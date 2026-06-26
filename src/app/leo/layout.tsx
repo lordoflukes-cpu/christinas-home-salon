@@ -25,6 +25,9 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  // Extend under the home indicator so the fixed bottom nav can use the
+  // safe-area inset and sit comfortably above it (esp. installed to Home Screen).
+  viewportFit: 'cover',
 };
 
 export default function LeoLayout({ children }: { children: React.ReactNode }) {
