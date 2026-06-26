@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Pencil } from 'lucide-react';
+import { Pencil, Volume2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,6 +14,8 @@ import {
   deriveRecap,
   effectiveRecap,
   monthWindow,
+  useLeoStore,
+  useSpeaker,
   RECAP_FIELDS,
   type RecapSources,
 } from '@/lib/leo';
@@ -47,6 +49,9 @@ export function MonthCard({
   photos: PhotoEntry[];
 }) {
   const [open, setOpen] = useState(false);
+  const voicePrefs = useLeoStore((s) => s.profile?.voicePrefs);
+  const { speak } = useSpeaker();
+  const canSpeak = !!voicePrefs?.enabled && voicePrefs.speakRecaps;
 
   const auto = useMemo(
     () => deriveRecap(monthIndex, sources),
@@ -54,6 +59,15 @@ export function MonthCard({
   );
   const eff = useMemo(() => effectiveRecap(auto, saved), [auto, saved]);
   const { start, end } = monthWindow(sources.birth, monthIndex);
+
+  function speakRecap() {
+    const parts = [`${babyName}, Month ${monthIndex}.`];
+    for (const f of RECAP_FIELDS) {
+      const value = eff[f.key];
+      if (value) parts.push(`${f.label}: ${value}.`);
+    }
+    void speak(parts.join(' '));
+  }
 
   const bestPhoto = eff.bestPhotoId
     ? photos.find((p) => p.id === eff.bestPhotoId)
@@ -73,15 +87,26 @@ export function MonthCard({
             {monthRangeLabel(start, end)}
           </p>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setOpen(true)}
-          aria-label={`Edit Month ${monthIndex}`}
-          className="recap-print-hide shrink-0"
-        >
-          <Pencil className="h-4 w-4 text-ink-500" />
-        </Button>
+        <div className="recap-print-hide flex shrink-0 items-center">
+          {canSpeak && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={speakRecap}
+              aria-label={`Hear Month ${monthIndex} recap`}
+            >
+              <Volume2 className="h-4 w-4 text-gold-600" />
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setOpen(true)}
+            aria-label={`Edit Month ${monthIndex}`}
+          >
+            <Pencil className="h-4 w-4 text-ink-500" />
+          </Button>
+        </div>
       </div>
 
       <GreekKey className="mx-4 h-2 w-24 text-gold-400" />

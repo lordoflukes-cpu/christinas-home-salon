@@ -17,6 +17,8 @@ export * from './agenda';
 export * from './recap';
 export * from './timeline';
 export * from './ai';
+export * from './patwah';
+export { useSpeaker, type SpeakStatus } from './tts';
 export * from './growth-insights';
 export * from './units';
 export * from './growth';

@@ -2,13 +2,16 @@
 
 import { useRouter } from 'next/navigation';
 import type { Route } from 'next';
-import { Check, ListChecks } from 'lucide-react';
+import { Check, ListChecks, Volume2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import {
   useLeoStore,
   useNow,
+  useSpeaker,
   buildAgenda,
   relativeDue,
+  agendaSpeech,
+  DEFAULT_VOICE_PREFS,
   type AgendaItem,
 } from '@/lib/leo';
 import { DEFAULT_REMINDER_PREFS } from '@/lib/leo/reminders';
@@ -26,6 +29,10 @@ export function AgendaCard() {
   const markCareDone = useLeoStore((s) => s.markCareDone);
   const now = useNow(60_000);
   const router = useRouter();
+  const { speak } = useSpeaker();
+
+  const voicePrefs = profile?.voicePrefs ?? DEFAULT_VOICE_PREFS;
+  const canSpeak = voicePrefs.enabled && voicePrefs.speakReminders;
 
   const items = buildAgenda({
     prefs: profile?.reminders ?? DEFAULT_REMINDER_PREFS,
@@ -67,6 +74,12 @@ export function AgendaCard() {
               onOpen={
                 item.href ? () => router.push(item.href as Route) : undefined
               }
+              onSpeak={
+                canSpeak
+                  ? () =>
+                      void speak(agendaSpeech(item, voicePrefs.patwahStrength))
+                  : undefined
+              }
             />
           ))}
         </ul>
@@ -88,11 +101,13 @@ function AgendaRow({
   now,
   onTick,
   onOpen,
+  onSpeak,
 }: {
   item: AgendaItem;
   now: number;
   onTick?: () => void;
   onOpen?: () => void;
+  onSpeak?: () => void;
 }) {
   const due = relativeDue(item.dueAt, now);
   return (
@@ -126,6 +141,17 @@ function AgendaRow({
           {due}
         </span>
       </button>
+
+      {onSpeak && (
+        <button
+          type="button"
+          onClick={onSpeak}
+          aria-label={`Hear ${item.title}`}
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gold-300 text-gold-600 transition-colors hover:bg-gold-50 active:scale-90"
+        >
+          <Volume2 className="h-4 w-4" />
+        </button>
+      )}
 
       {onTick && (
         <button

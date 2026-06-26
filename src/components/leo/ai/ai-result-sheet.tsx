@@ -8,6 +8,7 @@ import {
   Sparkles,
   Loader2,
   AlertTriangle,
+  Volume2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,7 +19,7 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet';
 import { useToast } from '@/components/ui/use-toast';
-import { useLeoStore, type AiTask } from '@/lib/leo';
+import { useLeoStore, useSpeaker, type AiTask } from '@/lib/leo';
 
 export interface AiResultState {
   task: AiTask;
@@ -37,9 +38,13 @@ export function AiResultSheet({
   onClose: () => void;
 }) {
   const createJournal = useLeoStore((s) => s.createJournal);
+  const voicePrefs = useLeoStore((s) => s.profile?.voicePrefs);
+  const { speak, status: speakStatus } = useSpeaker();
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  const canSpeak = !!voicePrefs?.enabled && voicePrefs.speakAi;
 
   const open = state !== null;
 
@@ -126,6 +131,22 @@ export function AiResultSheet({
 
         {state && !state.loading && state.text && (
           <div className="mt-4 flex gap-2">
+            {canSpeak && (
+              <Button
+                onClick={() => void speak(state.text!)}
+                size="lg"
+                variant="outline"
+                aria-label="Speak"
+                disabled={speakStatus === 'loading'}
+                className="min-h-12 shrink-0 border-gold-300 bg-gold-50 text-gold-800 hover:bg-gold-100"
+              >
+                {speakStatus === 'loading' ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Volume2 className="h-5 w-5" />
+                )}
+              </Button>
+            )}
             <Button
               onClick={copy}
               size="lg"

@@ -17,6 +17,15 @@ const reminderPrefsSchema = z.object({
   sleepMaxHours: z.number().positive(),
 });
 
+const voicePrefsSchema = z.object({
+  enabled: z.boolean(),
+  patwahStrength: z.enum(['light', 'medium', 'heavy']),
+  speakReminders: z.boolean(),
+  speakAi: z.boolean(),
+  speakRecaps: z.boolean(),
+  medicalClearEnglish: z.boolean(),
+});
+
 const babyProfileSchema = z.object({
   id: z.literal('leo'),
   name: z.string(),
@@ -36,6 +45,7 @@ const babyProfileSchema = z.object({
   birthStory: z.string().optional(),
   heroPhotoId: z.string().optional(),
   reminders: reminderPrefsSchema.optional(),
+  voicePrefs: voicePrefsSchema.optional(),
   updatedAt: millis,
 });
 

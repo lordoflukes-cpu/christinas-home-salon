@@ -11,6 +11,7 @@ import { BackdropsPanel } from '@/components/leo/backdrops-panel';
 import { SyncPanel } from '@/components/leo/cloud/sync-panel';
 import { NotificationsPanel } from '@/components/leo/cloud/notifications-panel';
 import { RemindersPanel } from '@/components/leo/cloud/reminders-panel';
+import { VoicePanel } from '@/components/leo/cloud/voice-panel';
 import { HeritageThread } from '@/components/leo/decor/heritage-thread';
 
 export default function LeoSettingsPage() {
@@ -26,6 +27,7 @@ export default function LeoSettingsPage() {
       <SyncPanel />
       <NotificationsPanel />
       <RemindersPanel />
+      <VoicePanel />
 
       <Link
         href={'/leo/ask' as Route}

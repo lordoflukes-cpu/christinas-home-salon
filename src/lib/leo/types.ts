@@ -6,6 +6,7 @@
  */
 
 import type { ReminderPrefs } from './reminders';
+import type { VoicePrefs } from './patwah';
 
 /** Epoch milliseconds (e.g. `Date.now()` / `now().getTime()`). */
 export type Millis = number;
@@ -44,6 +45,8 @@ export interface BabyProfile {
   heroPhotoId?: string;
   /** Notification/reminder preferences (shared across phones). */
   reminders?: ReminderPrefs;
+  /** Jamaican-Patois voice (ElevenLabs) preferences. */
+  voicePrefs?: VoicePrefs;
   updatedAt: Millis;
 }
 
