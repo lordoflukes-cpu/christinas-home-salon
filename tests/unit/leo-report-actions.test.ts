@@ -30,6 +30,22 @@ describe('parseActions', () => {
     expect(out?.actions[3].feedHours).toBe(3);
   });
 
+  it('keeps a profile date & time of birth (ISO string)', () => {
+    const out = parseActions(
+      JSON.stringify({
+        actions: [
+          {
+            type: 'profile',
+            summary: 'Set date of birth',
+            fields: { name: 'Leo', birth: '2026-06-24T22:54' },
+          },
+        ],
+      }),
+    );
+    expect(out?.actions[0].fields?.birth).toBe('2026-06-24T22:54');
+    expect(out?.actions[0].fields?.name).toBe('Leo');
+  });
+
   it('strips ```json fences', () => {
     const out = parseActions(
       '```json\n{"actions":[{"type":"note","summary":"Note","body":"hi"}]}\n```',

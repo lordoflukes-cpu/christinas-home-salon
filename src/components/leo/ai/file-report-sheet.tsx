@@ -134,11 +134,22 @@ export function FileReportSheet({
 
     try {
       // Profile + reminder edits merge into ONE editProfile (avoids overwrite).
-      const profileFields = keep
+      const merged = keep
         .filter((a) => a.type === 'profile')
-        .reduce((acc, a) => ({ ...acc, ...(a.fields ?? {}) }), {});
+        .reduce(
+          (acc, a) => ({ ...acc, ...(a.fields ?? {}) }),
+          {} as NonNullable<ProposedAction['fields']>,
+        );
+      // `birth` arrives as an ISO string but the profile stores epoch-ms.
+      const { birth: birthStr, ...profileFields } = merged;
+      let birthMs: number | undefined;
+      if (typeof birthStr === 'string') {
+        const t = Date.parse(birthStr);
+        if (!Number.isNaN(t)) birthMs = t;
+      }
       const reminderActions = keep.filter((a) => a.type === 'reminders');
-      const hasProfile = Object.keys(profileFields).length > 0;
+      const hasProfile =
+        Object.keys(profileFields).length > 0 || birthMs != null;
       const hasReminders = reminderActions.length > 0;
 
       if (hasProfile || hasReminders) {
@@ -168,7 +179,12 @@ export function FileReportSheet({
           }
           reminders = { ...base, ...patch };
         }
-        await editProfile({ ...rest, ...profileFields, reminders });
+        await editProfile({
+          ...rest,
+          ...profileFields,
+          ...(birthMs != null ? { birth: birthMs } : {}),
+          reminders,
+        });
       }
 
       // Everything else, one create per action.
