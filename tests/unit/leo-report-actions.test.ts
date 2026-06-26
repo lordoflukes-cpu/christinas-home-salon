@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { parseActions, actionArea } from '@/lib/leo/report-actions';
+import {
+  parseActions,
+  actionArea,
+  profileFieldSummary,
+} from '@/lib/leo/report-actions';
 
 describe('parseActions', () => {
   it('parses a mixed batch of actions', () => {
@@ -28,6 +32,53 @@ describe('parseActions', () => {
     expect(out?.actions).toHaveLength(4);
     expect(out?.actions[0].fields?.gp).toBe('Dr Patel');
     expect(out?.actions[3].feedHours).toBe(3);
+  });
+
+  it('keeps the rest of a profile when one field is malformed, and coerces numeric strings', () => {
+    const out = parseActions(
+      JSON.stringify({
+        actions: [
+          {
+            type: 'profile',
+            summary: 'Set up Leo',
+            fields: {
+              name: 'Leo',
+              birthPlace: 'St Helier Hospital',
+              parents: 'Luke & Christina',
+              birthWeightGrams: '2790', // string → coerced to number
+              birthLengthCm: 46,
+              birthHeadCircCm: 'not a number', // junk → dropped, not fatal
+              gp: 'Old Court House Surgery',
+            },
+          },
+        ],
+      }),
+    );
+    expect(out?.actions).toHaveLength(1);
+    const f = out!.actions[0].fields!;
+    expect(f.name).toBe('Leo');
+    expect(f.birthPlace).toBe('St Helier Hospital');
+    expect(f.parents).toBe('Luke & Christina');
+    expect(f.birthWeightGrams).toBe(2790);
+    expect(f.birthLengthCm).toBe(46);
+    expect(f.birthHeadCircCm).toBeUndefined();
+    expect(f.gp).toBe('Old Court House Surgery');
+  });
+
+  it('profileFieldSummary lists set fields with labels and units', () => {
+    const rows = profileFieldSummary({
+      name: 'Leo',
+      birthPlace: 'St Helier Hospital',
+      birthWeightGrams: 2790,
+      birthLengthCm: 46,
+    });
+    expect(rows).toEqual([
+      { label: 'Name', value: 'Leo' },
+      { label: 'Place of birth', value: 'St Helier Hospital' },
+      { label: 'Birth weight', value: '2790 g' },
+      { label: 'Length', value: '46 cm' },
+    ]);
+    expect(profileFieldSummary(undefined)).toEqual([]);
   });
 
   it('keeps a profile date & time of birth (ISO string)', () => {

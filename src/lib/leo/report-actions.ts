@@ -24,7 +24,11 @@ Return ONLY a JSON object {"actions": [ ... ]} and nothing else (no prose, no ma
 - {"type":"note","summary":"Journal note","body":"..."}
 - {"type":"reminders","summary":"Feed reminder every 3h","feedHours":3,"sleepMaxHours":2,"vitdTime":"09:00","quietStart":"22:00","quietEnd":"07:00"}
 
-Rules: extract ONLY what is clearly stated. Omit any field you're unsure of. NEVER invent medication names, doses, numbers, dates or measurements — copy them exactly or leave them out. Use "when" as an ISO date (YYYY-MM-DD) or date-time when a clear date is given; otherwise omit it. For the baby's own date & time of birth, set fields.birth as an ISO date-time (e.g. "2026-06-24T22:54"). Put all baby profile details (name, birth, place of birth, parents, hospital, midwife, doctor, NHS number, GP, health visitor, allergies, measurements, birth story) into a single "profile" action's fields. Put red-book / health-visitor / check-up notes as type "medical" with medicalKind "note". If nothing is loggable, return {"actions": []}. Keep each "summary" short and human.`;
+Rules: extract ONLY what is clearly stated. Omit any field you're unsure of. NEVER invent medication names, doses, numbers, dates or measurements — copy them exactly or leave them out. Use "when" as an ISO date (YYYY-MM-DD) or date-time when a clear date is given; otherwise omit it.
+
+PROFILE — IMPORTANT: emit EXACTLY ONE "profile" action and pack EVERY baby detail that appears anywhere in the text into its "fields" — do not skim or stop early, and do not split profile details across multiple actions. Go field by field and include each one that is stated: name; birth (ISO date-time, e.g. "2026-06-24T22:54"); birthPlace (where the baby was born); parents; hospital; midwife; doctor; nhsNumber; gp; healthVisitor; allergies; birthWeightGrams; birthLengthCm; birthHeadCircCm; birthStory. Measurements MUST be plain numbers in grams/cm (e.g. "birthWeightGrams":2790, "birthLengthCm":46, "birthHeadCircCm":32.5) — never strings or other units. Only the baby's own facts go in profile (ignore a parent's NHS number / date of birth).
+
+Put red-book / health-visitor / check-up notes as type "medical" with medicalKind "note". If nothing is loggable, return {"actions": []}. Keep each "summary" short and human.`;
 
 export const actionSchema = z.object({
   type: z.enum([
@@ -42,25 +46,42 @@ export const actionSchema = z.object({
   /** ISO date / date-time when the thing happened (medical/event). */
   when: z.string().max(40).optional(),
 
-  // profile
+  // profile — every field is independently tolerant: a single bad value is
+  // dropped (→ undefined) rather than failing the whole profile action, and
+  // numeric measurements coerce from strings ("2790" → 2790).
   fields: z
     .object({
-      name: z.string().max(80).optional(),
+      name: z.string().max(80).optional().catch(undefined),
       /** Date & time of birth as an ISO string (YYYY-MM-DD or with time). */
-      birth: z.string().max(40).optional(),
-      birthPlace: z.string().max(120).optional(),
-      parents: z.string().max(160).optional(),
-      hospital: z.string().max(120).optional(),
-      midwife: z.string().max(120).optional(),
-      doctor: z.string().max(120).optional(),
-      nhsNumber: z.string().max(40).optional(),
-      gp: z.string().max(120).optional(),
-      healthVisitor: z.string().max(120).optional(),
-      allergies: z.string().max(1000).optional(),
-      birthStory: z.string().max(3000).optional(),
-      birthWeightGrams: z.number().positive().max(10000).optional(),
-      birthLengthCm: z.number().positive().max(120).optional(),
-      birthHeadCircCm: z.number().positive().max(80).optional(),
+      birth: z.string().max(40).optional().catch(undefined),
+      birthPlace: z.string().max(120).optional().catch(undefined),
+      parents: z.string().max(160).optional().catch(undefined),
+      hospital: z.string().max(120).optional().catch(undefined),
+      midwife: z.string().max(120).optional().catch(undefined),
+      doctor: z.string().max(120).optional().catch(undefined),
+      nhsNumber: z.string().max(40).optional().catch(undefined),
+      gp: z.string().max(120).optional().catch(undefined),
+      healthVisitor: z.string().max(160).optional().catch(undefined),
+      allergies: z.string().max(1000).optional().catch(undefined),
+      birthStory: z.string().max(3000).optional().catch(undefined),
+      birthWeightGrams: z.coerce
+        .number()
+        .positive()
+        .max(10000)
+        .optional()
+        .catch(undefined),
+      birthLengthCm: z.coerce
+        .number()
+        .positive()
+        .max(120)
+        .optional()
+        .catch(undefined),
+      birthHeadCircCm: z.coerce
+        .number()
+        .positive()
+        .max(80)
+        .optional()
+        .catch(undefined),
     })
     .optional(),
 
@@ -242,4 +263,48 @@ export function actionArea(a: ProposedAction): string {
     default:
       return 'Daily log';
   }
+}
+
+/** Human label + display value for each profile field, in a sensible order. */
+const PROFILE_FIELD_LABELS: {
+  key: keyof NonNullable<ProposedAction['fields']>;
+  label: string;
+  unit?: string;
+}[] = [
+  { key: 'name', label: 'Name' },
+  { key: 'birth', label: 'Date of birth' },
+  { key: 'birthPlace', label: 'Place of birth' },
+  { key: 'parents', label: 'Parents' },
+  { key: 'birthWeightGrams', label: 'Birth weight', unit: 'g' },
+  { key: 'birthLengthCm', label: 'Length', unit: 'cm' },
+  { key: 'birthHeadCircCm', label: 'Head', unit: 'cm' },
+  { key: 'hospital', label: 'Hospital' },
+  { key: 'midwife', label: 'Midwife' },
+  { key: 'doctor', label: 'Doctor' },
+  { key: 'nhsNumber', label: 'NHS number' },
+  { key: 'gp', label: 'GP' },
+  { key: 'healthVisitor', label: 'Health visitor' },
+  { key: 'allergies', label: 'Allergies' },
+  { key: 'birthStory', label: 'Birth story' },
+];
+
+/**
+ * The set fields of a profile action as ordered {label, value} pairs, so the
+ * confirm screen can show exactly what will be saved. Long values (birth story)
+ * are trimmed for display.
+ */
+export function profileFieldSummary(
+  fields: ProposedAction['fields'],
+): { label: string; value: string }[] {
+  if (!fields) return [];
+  const out: { label: string; value: string }[] = [];
+  for (const { key, label, unit } of PROFILE_FIELD_LABELS) {
+    const raw = fields[key];
+    if (raw == null || raw === '') continue;
+    let value = typeof raw === 'number' ? String(raw) : String(raw).trim();
+    if (unit) value = `${value} ${unit}`;
+    if (value.length > 80) value = `${value.slice(0, 79)}…`;
+    out.push({ label, value });
+  }
+  return out;
 }

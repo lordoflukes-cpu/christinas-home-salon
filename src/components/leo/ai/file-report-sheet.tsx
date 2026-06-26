@@ -32,6 +32,7 @@ import {
   useSpeechInput,
   extractActions,
   actionArea,
+  profileFieldSummary,
   type ProposedAction,
   type FeedType,
 } from '@/lib/leo';
@@ -383,7 +384,26 @@ export function FileReportSheet({
                     >
                       {r.summary}
                     </span>
-                    <span className="text-[11px] uppercase tracking-wide text-ink-400">
+                    {r.type === 'profile' &&
+                      profileFieldSummary(r.fields).length > 0 && (
+                        <span
+                          className={cn(
+                            'mt-1 block space-y-0.5',
+                            !r.keep && 'opacity-60',
+                          )}
+                        >
+                          {profileFieldSummary(r.fields).map((f) => (
+                            <span
+                              key={f.label}
+                              className="block text-xs text-ink-600"
+                            >
+                              <span className="text-ink-400">{f.label}:</span>{' '}
+                              {f.value}
+                            </span>
+                          ))}
+                        </span>
+                      )}
+                    <span className="mt-0.5 block text-[11px] uppercase tracking-wide text-ink-400">
                       {area}
                     </span>
                   </span>
