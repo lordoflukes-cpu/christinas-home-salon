@@ -5,7 +5,7 @@
  * reimplement these functions against a new backend — the UI never changes.
  */
 import { now } from '@/lib/time/clock';
-import { getDB, DB_VERSION } from './db';
+import { getDB, DB_VERSION, type TtsCacheEntry } from './db';
 import type {
   BabyProfile,
   BreastSide,
@@ -25,6 +25,7 @@ import type {
   NewDiaper,
   NewDocumentMeta,
   NewEvent,
+  NewExperiment,
   NewFeed,
   NewGrowth,
   NewJournal,
@@ -32,13 +33,18 @@ import type {
   NewMilestone,
   NewPhotoMeta,
   NewRoutine,
+  NewRoutineSession,
+  NewSavedRoutine,
   NewSize,
   NewSleep,
   NewVoiceMeta,
+  Experiment,
   PhotoEntry,
   ProfileInput,
   RecapInput,
   RoutineItem,
+  RoutineSession,
+  SavedRoutine,
   SizeEntry,
   SleepEntry,
   VoiceEntry,
@@ -688,6 +694,162 @@ export async function getAllRoutines(): Promise<RoutineItem[]> {
 }
 
 // ---------------------------------------------------------------------------
+// Routine sessions (logged settling / nap / bedtime episodes — the smart log)
+// ---------------------------------------------------------------------------
+
+export async function addRoutineSession(
+  input: NewRoutineSession,
+): Promise<RoutineSession> {
+  const db = await getDB();
+  const time = ts();
+  const entry: RoutineSession = {
+    ...input,
+    id: newId(),
+    createdAt: time,
+    updatedAt: time,
+  };
+  await db.put('routineSessions', entry);
+  return entry;
+}
+
+export async function updateRoutineSession(
+  id: string,
+  patch: Partial<RoutineSession>,
+): Promise<RoutineSession> {
+  const db = await getDB();
+  const existing = await db.get('routineSessions', id);
+  if (!existing) throw new Error(`Routine session ${id} not found`);
+  const updated: RoutineSession = {
+    ...existing,
+    ...patch,
+    id,
+    updatedAt: ts(),
+  };
+  await db.put('routineSessions', updated);
+  return updated;
+}
+
+export async function deleteRoutineSession(id: string): Promise<void> {
+  const db = await getDB();
+  await db.delete('routineSessions', id);
+}
+
+/** All routine sessions, newest-first by start time. */
+export async function getAllRoutineSessions(): Promise<RoutineSession[]> {
+  const db = await getDB();
+  const results: RoutineSession[] = [];
+  let cursor = await db
+    .transaction('routineSessions')
+    .store.index('by-startedAt')
+    .openCursor(null, 'prev');
+  while (cursor) {
+    results.push(cursor.value);
+    cursor = await cursor.continue();
+  }
+  return results;
+}
+
+// ---------------------------------------------------------------------------
+// Saved routines (reusable named routines)
+// ---------------------------------------------------------------------------
+
+export async function addSavedRoutine(
+  input: NewSavedRoutine,
+): Promise<SavedRoutine> {
+  const db = await getDB();
+  const time = ts();
+  const entry: SavedRoutine = {
+    ...input,
+    id: newId(),
+    createdAt: time,
+    updatedAt: time,
+  };
+  await db.put('savedRoutines', entry);
+  return entry;
+}
+
+export async function updateSavedRoutine(
+  id: string,
+  patch: Partial<SavedRoutine>,
+): Promise<SavedRoutine> {
+  const db = await getDB();
+  const existing = await db.get('savedRoutines', id);
+  if (!existing) throw new Error(`Saved routine ${id} not found`);
+  const updated: SavedRoutine = { ...existing, ...patch, id, updatedAt: ts() };
+  await db.put('savedRoutines', updated);
+  return updated;
+}
+
+export async function deleteSavedRoutine(id: string): Promise<void> {
+  const db = await getDB();
+  await db.delete('savedRoutines', id);
+}
+
+/** All saved routines, newest-first by creation. */
+export async function getAllSavedRoutines(): Promise<SavedRoutine[]> {
+  const db = await getDB();
+  const results: SavedRoutine[] = [];
+  let cursor = await db
+    .transaction('savedRoutines')
+    .store.index('by-createdAt')
+    .openCursor(null, 'prev');
+  while (cursor) {
+    results.push(cursor.value);
+    cursor = await cursor.continue();
+  }
+  return results;
+}
+
+// ---------------------------------------------------------------------------
+// Experiments (deliberate "try X for a few days" tracker)
+// ---------------------------------------------------------------------------
+
+export async function addExperiment(input: NewExperiment): Promise<Experiment> {
+  const db = await getDB();
+  const time = ts();
+  const entry: Experiment = {
+    ...input,
+    id: newId(),
+    createdAt: time,
+    updatedAt: time,
+  };
+  await db.put('experiments', entry);
+  return entry;
+}
+
+export async function updateExperiment(
+  id: string,
+  patch: Partial<Experiment>,
+): Promise<Experiment> {
+  const db = await getDB();
+  const existing = await db.get('experiments', id);
+  if (!existing) throw new Error(`Experiment ${id} not found`);
+  const updated: Experiment = { ...existing, ...patch, id, updatedAt: ts() };
+  await db.put('experiments', updated);
+  return updated;
+}
+
+export async function deleteExperiment(id: string): Promise<void> {
+  const db = await getDB();
+  await db.delete('experiments', id);
+}
+
+/** All experiments, newest-first by start. */
+export async function getAllExperiments(): Promise<Experiment[]> {
+  const db = await getDB();
+  const results: Experiment[] = [];
+  let cursor = await db
+    .transaction('experiments')
+    .store.index('by-startedAt')
+    .openCursor(null, 'prev');
+  while (cursor) {
+    results.push(cursor.value);
+    cursor = await cursor.continue();
+  }
+  return results;
+}
+
+// ---------------------------------------------------------------------------
 // Care tasks (recurring household nudges — in-app agenda only)
 // ---------------------------------------------------------------------------
 
@@ -899,6 +1061,9 @@ export type PlainStore =
   | 'events'
   | 'sizes'
   | 'routines'
+  | 'routineSessions'
+  | 'savedRoutines'
+  | 'experiments'
   | 'careTasks'
   | 'recaps';
 
@@ -941,6 +1106,20 @@ export async function putDocumentRaw(entry: DocumentEntry): Promise<void> {
 export async function putVoiceRaw(entry: VoiceEntry): Promise<void> {
   const db = await getDB();
   await db.put('voices', entry);
+}
+
+// --- TTS audio cache (regenerable; not synced, not backed up) --------------
+
+export async function getTtsAudio(
+  key: string,
+): Promise<TtsCacheEntry | undefined> {
+  const db = await getDB();
+  return db.get('ttsCache', key);
+}
+
+export async function putTtsAudio(entry: TtsCacheEntry): Promise<void> {
+  const db = await getDB();
+  await db.put('ttsCache', entry);
 }
 
 /** Every row in a store (for the two-way sync reconcile). */
@@ -998,6 +1177,9 @@ const ALL_STORES = [
   'events',
   'sizes',
   'routines',
+  'routineSessions',
+  'savedRoutines',
+  'experiments',
   'careTasks',
   'recaps',
   'voices',
@@ -1019,6 +1201,9 @@ export async function exportAll(): Promise<LeoBackup> {
     events,
     sizes,
     routines,
+    routineSessions,
+    savedRoutines,
+    experiments,
     careTasks,
     recaps,
     voices,
@@ -1036,6 +1221,9 @@ export async function exportAll(): Promise<LeoBackup> {
     db.getAll('events'),
     db.getAll('sizes'),
     db.getAll('routines'),
+    db.getAll('routineSessions'),
+    db.getAll('savedRoutines'),
+    db.getAll('experiments'),
     db.getAll('careTasks'),
     db.getAll('recaps'),
     db.getAll('voices'),
@@ -1074,6 +1262,9 @@ export async function exportAll(): Promise<LeoBackup> {
     events,
     sizes,
     routines,
+    routineSessions,
+    savedRoutines,
+    experiments,
     careTasks,
     recaps,
     voices: voiceBackups,
@@ -1146,6 +1337,12 @@ export async function importAll(
   for (const s of backup.sizes ?? []) await tx.objectStore('sizes').put(s);
   for (const r of backup.routines ?? [])
     await tx.objectStore('routines').put(r);
+  for (const s of backup.routineSessions ?? [])
+    await tx.objectStore('routineSessions').put(s);
+  for (const r of backup.savedRoutines ?? [])
+    await tx.objectStore('savedRoutines').put(r);
+  for (const e of backup.experiments ?? [])
+    await tx.objectStore('experiments').put(e);
   for (const c of backup.careTasks ?? [])
     await tx.objectStore('careTasks').put(c);
   for (const r of backup.recaps ?? []) await tx.objectStore('recaps').put(r);

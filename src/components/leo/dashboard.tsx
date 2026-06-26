@@ -8,13 +8,17 @@ import {
   Activity,
   Droplets,
   Frown,
+  HeartHandshake,
   Images,
+  Mic,
   Milk,
   Pill,
   Smile,
+  Sparkles,
   Thermometer,
 } from 'lucide-react';
 import type { QuickAddKind } from './quick-add-sheet';
+import { QuickLogSheet } from './ai/quick-log-sheet';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -32,6 +36,7 @@ import { FeedStatusCard } from './cards/feed-status-card';
 import { SleepStatusCard } from './cards/sleep-status-card';
 import { TodayGlance } from './home/today-glance';
 import { AgendaCard } from './home/agenda-card';
+import { DailyBriefingCard } from './home/daily-briefing-card';
 import { PhotoImage } from './photos/photo-image';
 import { VoiceRecordButton } from './voice/voice-record-button';
 import { QuickAddSheet, type QuickAddState } from './quick-add-sheet';
@@ -72,6 +77,7 @@ export function Dashboard() {
   const photos = useLeoStore((s) => s.photos);
   const now = useNow(60_000);
   const [quickAdd, setQuickAdd] = useState<QuickAddState | null>(null);
+  const [quickLog, setQuickLog] = useState(false);
 
   if (!hydrated) {
     return (
@@ -123,6 +129,7 @@ export function Dashboard() {
         ))}
       </div>
 
+      <DailyBriefingCard />
       <AgendaCard />
       <TodayGlance />
 
@@ -197,11 +204,53 @@ export function Dashboard() {
               </button>
             ))}
           </div>
+          <button
+            type="button"
+            onClick={() => setQuickLog(true)}
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-ink-300/60 py-2.5 text-sm font-medium text-ink-600 transition-colors hover:bg-parchment-100"
+          >
+            <Mic className="h-4 w-4 text-gold-600" />
+            Say what happened
+          </button>
         </Card>
+      </motion.div>
+
+      <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.29 }}>
+        <Link href={'/leo/routine?unsettled=1' as Route}>
+          <Card className="flex items-center gap-3 border-rose-200 bg-gradient-to-br from-rose-50 to-parchment-50 p-3 transition-colors hover:from-rose-100">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-rose-100 text-rose-500">
+              <HeartHandshake className="h-5 w-5" />
+            </span>
+            <div className="flex-1">
+              <p className="font-display text-base text-ink-900">
+                Leo is unsettled
+              </p>
+              <p className="text-xs text-ink-500">
+                Start settling · log what you try
+              </p>
+            </div>
+          </Card>
+        </Link>
       </motion.div>
 
       <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.3 }}>
         <VoiceRecordButton />
+      </motion.div>
+
+      <motion.div {...fadeUp} transition={{ duration: 0.4, delay: 0.32 }}>
+        <Link href={'/leo/ask' as Route}>
+          <Card className="flex items-center gap-3 border-gold-300/60 bg-gradient-to-br from-gold-50 to-parchment-50 p-3 transition-colors hover:from-gold-100">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gold-100 text-gold-600">
+              <Sparkles className="h-5 w-5" />
+            </span>
+            <div className="flex-1">
+              <p className="font-display text-base text-ink-900">Ask Leo</p>
+              <p className="text-xs text-ink-500">
+                Make sense of the day · summaries, notes &amp; more
+              </p>
+            </div>
+          </Card>
+        </Link>
       </motion.div>
 
       {photos.length > 0 && (
@@ -230,6 +279,7 @@ export function Dashboard() {
       )}
 
       <QuickAddSheet state={quickAdd} onClose={() => setQuickAdd(null)} />
+      <QuickLogSheet open={quickLog} onClose={() => setQuickLog(false)} />
     </div>
   );
 }

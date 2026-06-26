@@ -17,14 +17,22 @@ const VAPID_PUBLIC = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 const SUBS_TABLE = 'leo_push_subscriptions';
 const SCHED_TABLE = 'leo_scheduled';
 
-/** True when the browser can do Web Push at all. */
-export function isPushSupported(): boolean {
+/**
+ * True when the browser can show notifications at all (service worker +
+ * Notification API). This is enough for on-device reminders; closed-app
+ * delivery additionally needs PushManager + the cloud pipeline.
+ */
+export function areNotificationsSupported(): boolean {
   return (
     typeof window !== 'undefined' &&
     'serviceWorker' in navigator &&
-    'PushManager' in window &&
     'Notification' in window
   );
+}
+
+/** True when the browser can do Web Push (closed-app delivery) at all. */
+export function isPushSupported(): boolean {
+  return areNotificationsSupported() && 'PushManager' in window;
 }
 
 /** True when the app is wired for push (VAPID key + Supabase both present). */
@@ -133,7 +141,9 @@ export async function pushScheduledReminders(
   const owner = userData.user?.id;
   if (!owner) return;
 
-  await sb.from(SCHED_TABLE).delete().eq('owner', owner);
+  // Replace this owner's computed reminders, but never touch a pending 'test'
+  // row — that one is awaiting the next scheduler tick (see sendTestPush).
+  await sb.from(SCHED_TABLE).delete().eq('owner', owner).neq('key', 'test');
   if (!reminders.length) return;
   await sb.from(SCHED_TABLE).insert(
     reminders.map((r) => ({
@@ -146,6 +156,33 @@ export async function pushScheduledReminders(
   );
 }
 
+/**
+ * Send a REAL end-to-end test push to every signed-in device on this account.
+ *
+ * Unlike `showTestNotification` (which only shows a local notification on this
+ * phone), this writes a due row to `leo_scheduled` so the Supabase scheduler
+ * delivers it as an actual Web Push within ~a minute — exercising the whole
+ * chain (stored subscription → cron → Edge Function → VAPID → device). It's the
+ * honest way to confirm reminders will arrive when the app is closed.
+ */
+export async function sendTestPush(): Promise<{ ok: boolean; error?: string }> {
+  const sb = getSupabase();
+  if (!sb) return { ok: false, error: 'Cloud sync is not configured.' };
+  const { data: userData } = await sb.auth.getUser();
+  const owner = userData.user?.id;
+  if (!owner) return { ok: false, error: 'Please sign in first.' };
+
+  const { error } = await sb.from(SCHED_TABLE).upsert({
+    owner,
+    key: 'test',
+    fire_at: Date.now(),
+    title: 'Leo 🦁',
+    body: 'Test notification — reminders will reach you like this.',
+  });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
 /** Show a notification immediately (used to confirm the toggle works). */
 export async function showTestNotification(): Promise<void> {
   const reg = await swRegistration();
@@ -156,4 +193,92 @@ export async function showTestNotification(): Promise<void> {
     badge: '/leo/icon-192.png',
     tag: 'leo-test',
   });
+}
+
+export type NotificationMode = 'push' | 'local';
+
+export interface EnableResult {
+  ok: boolean;
+  /** 'push' = will arrive even when closed; 'local' = only while Leo is open. */
+  mode?: NotificationMode;
+  error?: string;
+}
+
+/**
+ * Turn on notifications on this device. Always works with just permission +
+ * the service worker (local mode: reminders while Leo is open). When the cloud
+ * pipeline is configured it ALSO subscribes for closed-app delivery (push
+ * mode). This is what the toggle calls — it no longer requires Supabase/VAPID
+ * just to switch on.
+ */
+export async function enableNotifications(): Promise<EnableResult> {
+  if (!areNotificationsSupported()) {
+    return {
+      ok: false,
+      error: 'This device can’t show notifications.',
+    };
+  }
+  const permission = await Notification.requestPermission();
+  if (permission !== 'granted') {
+    return { ok: false, error: 'Notifications were not allowed.' };
+  }
+  const reg = await swRegistration();
+  if (!reg) {
+    return {
+      ok: false,
+      error: 'Reopen Leo from your Home Screen, then try again.',
+    };
+  }
+
+  // Layer on closed-app delivery when the cloud pipeline is available.
+  if (isPushConfigured()) {
+    const res = await enablePush();
+    if (res.ok) return { ok: true, mode: 'push' };
+    // Couldn't subscribe — still useful locally, but say why.
+    return { ok: true, mode: 'local', error: res.error };
+  }
+  return { ok: true, mode: 'local' };
+}
+
+/**
+ * Schedule on-device notifications for due reminders that fall within the next
+ * day. These fire only while Leo is open/alive (a PWA can't run timers once
+ * fully closed — that's what push is for). Returns a cancel function.
+ */
+const firedLocal = new Set<string>();
+const DAY_MS = 86_400_000;
+
+export function scheduleLocalNotifications(
+  reminders: ScheduledReminder[],
+  nowMs: number,
+): () => void {
+  if (typeof window === 'undefined') return () => undefined;
+  const timers: ReturnType<typeof setTimeout>[] = [];
+  for (const r of reminders) {
+    const delay = r.fireAt - nowMs;
+    if (delay < 0 || delay > DAY_MS) continue;
+    const dedupe = `${r.key}:${r.fireAt}`;
+    if (firedLocal.has(dedupe)) continue;
+    const id = setTimeout(
+      () => {
+        if (firedLocal.has(dedupe)) return;
+        firedLocal.add(dedupe);
+        void (async () => {
+          const reg = await swRegistration();
+          if (reg && notificationPermission() === 'granted') {
+            await reg.showNotification(r.title, {
+              body: r.body,
+              icon: '/leo/icon-192.png',
+              badge: '/leo/icon-192.png',
+              tag: r.key,
+              data: { url: '/leo' },
+            });
+          }
+        })();
+      },
+      Math.max(0, delay),
+    );
+    timers.push(id);
+  }
+  return () => timers.forEach(clearTimeout);
 }

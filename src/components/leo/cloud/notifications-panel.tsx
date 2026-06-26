@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Bell, BellOff, Smartphone } from 'lucide-react';
+import { Bell, BellOff, Smartphone, Moon, Check, Cloud } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -9,17 +9,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 import { useLeoStore } from '@/lib/leo';
+import { cn } from '@/lib/utils';
 import {
   DEFAULT_REMINDER_PREFS,
   type ReminderPrefs,
 } from '@/lib/leo/reminders';
 import {
-  enablePush,
+  enableNotifications,
   disablePush,
+  areNotificationsSupported,
   isPushConfigured,
-  isPushSupported,
-  isPushEnabled,
   showTestNotification,
+  sendTestPush,
   notificationPermission,
 } from '@/lib/leo/notifications';
 
@@ -29,18 +30,23 @@ export function NotificationsPanel() {
   const { toast } = useToast();
 
   const prefs: ReminderPrefs = profile?.reminders ?? DEFAULT_REMINDER_PREFS;
-  const [enabledHere, setEnabledHere] = useState(false);
+  const [permission, setPermission] = useState<
+    NotificationPermission | 'default'
+  >('default');
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    isPushEnabled().then(setEnabledHere);
+    setPermission(notificationPermission());
   }, []);
 
   if (!profile) return null;
 
-  const configured = isPushConfigured();
-  const supported = isPushSupported();
-  const denied = notificationPermission() === 'denied';
+  const supported = areNotificationsSupported();
+  const pushConfigured = isPushConfigured();
+  const granted = permission === 'granted';
+  const denied = permission === 'denied';
+  // "On" means permission granted AND the master switch is on.
+  const active = granted && prefs.enabled;
 
   async function savePrefs(patch: Partial<ReminderPrefs>) {
     if (!profile) return;
@@ -52,7 +58,8 @@ export function NotificationsPanel() {
   async function turnOn() {
     setBusy(true);
     try {
-      const res = await enablePush();
+      const res = await enableNotifications();
+      setPermission(notificationPermission());
       if (!res.ok) {
         toast({
           title: 'Couldn’t turn on notifications',
@@ -61,12 +68,14 @@ export function NotificationsPanel() {
         });
         return;
       }
-      setEnabledHere(true);
       await savePrefs({ enabled: true });
       await showTestNotification();
       toast({
         title: 'Notifications on 🦁',
-        description: 'You’ll get reminders even when the app is closed.',
+        description:
+          res.mode === 'push'
+            ? 'You’ll get reminders even when Leo is closed.'
+            : 'Reminders will show while Leo is open. Finish cloud setup for closed-app delivery.',
       });
     } finally {
       setBusy(false);
@@ -77,8 +86,34 @@ export function NotificationsPanel() {
     setBusy(true);
     try {
       await disablePush();
-      setEnabledHere(false);
+      await savePrefs({ enabled: false });
       toast({ title: 'Notifications off on this phone' });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function localTest() {
+    await showTestNotification();
+  }
+
+  async function realTest() {
+    setBusy(true);
+    try {
+      const res = await sendTestPush();
+      if (!res.ok) {
+        toast({
+          title: 'Couldn’t send the test',
+          description: res.error,
+          variant: 'destructive',
+        });
+        return;
+      }
+      toast({
+        title: 'Test on its way 🦁',
+        description:
+          'It should arrive on every signed-in phone within a minute — even with the app closed.',
+      });
     } finally {
       setBusy(false);
     }
@@ -87,7 +122,7 @@ export function NotificationsPanel() {
   return (
     <Card className="border-ink-300/40 p-5">
       <h2 className="mb-1 flex items-center gap-2 font-display text-lg font-semibold text-ink-900">
-        {enabledHere ? (
+        {active ? (
           <Bell className="h-5 w-5 text-emerald-600" />
         ) : (
           <BellOff className="h-5 w-5 text-ink-500" />
@@ -95,17 +130,12 @@ export function NotificationsPanel() {
         Reminders &amp; notifications
       </h2>
 
-      {!configured ? (
-        <p className="text-sm text-ink-600">
-          Set up cloud sync first (above) — notifications use the same Supabase
-          project so they can reach your phone when the app is closed.
-        </p>
-      ) : !supported ? (
+      {!supported ? (
         <p className="flex items-start gap-2 text-sm text-ink-600">
           <Smartphone className="mt-0.5 h-4 w-4 shrink-0" />
           On iPhone, open Leo from your <strong>Home Screen</strong> (Share →
-          Add to Home Screen) to allow notifications. This browser tab can’t
-          receive them.
+          Add to Home Screen) and open it from there — a browser tab can’t show
+          notifications.
         </p>
       ) : (
         <>
@@ -115,15 +145,15 @@ export function NotificationsPanel() {
             {denied && (
               <span className="mt-1 block text-rose-600">
                 Notifications are blocked in your phone’s settings — allow them
-                for this app, then try again.
+                for Leo, then try again.
               </span>
             )}
           </p>
 
-          {!enabledHere ? (
+          {!active ? (
             <Button
               onClick={turnOn}
-              disabled={busy}
+              disabled={busy || denied}
               size="lg"
               className="min-h-12 w-full bg-ink-700 hover:bg-ink-800"
             >
@@ -131,6 +161,24 @@ export function NotificationsPanel() {
             </Button>
           ) : (
             <div className="space-y-4">
+              {/* Status: what's actually working */}
+              <div className="space-y-1.5 rounded-xl border border-ink-200/60 bg-parchment-50/60 p-3">
+                <StatusRow
+                  ok
+                  label="On this phone"
+                  hint="Reminders show while Leo is open"
+                />
+                <StatusRow
+                  ok={pushConfigured}
+                  label="When Leo is closed"
+                  hint={
+                    pushConfigured
+                      ? 'Delivered in the background via the cloud'
+                      : 'Needs the one-time cloud setup (see docs/leo-cloud-sync.md)'
+                  }
+                />
+              </div>
+
               <ToggleRow
                 label="Feed reminders"
                 hint={`Nudge ${prefs.feedHours}h after the last feed`}
@@ -194,6 +242,62 @@ export function NotificationsPanel() {
                 />
               </ToggleRow>
 
+              <ToggleRow
+                label="Quiet hours"
+                hint={
+                  prefs.quiet
+                    ? `Hold non-urgent nudges ${prefs.quietStart}–${prefs.quietEnd}`
+                    : 'Hold non-urgent nudges overnight'
+                }
+                checked={prefs.quiet}
+                onChange={(v) => savePrefs({ quiet: v })}
+              >
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Moon className="h-4 w-4 text-aegean-500" />
+                    <Label className="text-xs text-ink-500">From</Label>
+                    <Input
+                      type="time"
+                      defaultValue={prefs.quietStart}
+                      onBlur={(e) => savePrefs({ quietStart: e.target.value })}
+                      className="h-9 w-28"
+                    />
+                    <Label className="text-xs text-ink-500">to</Label>
+                    <Input
+                      type="time"
+                      defaultValue={prefs.quietEnd}
+                      onBlur={(e) => savePrefs({ quietEnd: e.target.value })}
+                      className="h-9 w-28"
+                    />
+                  </div>
+                  <p className="text-xs text-ink-500">
+                    Feed, Vitamin D and nap nudges wait until morning.
+                    Appointment &amp; jab reminders always come through.
+                  </p>
+                </div>
+              </ToggleRow>
+
+              <Button
+                onClick={localTest}
+                disabled={busy}
+                variant="outline"
+                className="min-h-11 w-full border-ink-300 bg-parchment-50 text-ink-700 hover:bg-parchment-100"
+              >
+                <Bell className="mr-2 h-4 w-4" /> Send a test now (this phone)
+              </Button>
+
+              {pushConfigured && (
+                <Button
+                  onClick={realTest}
+                  disabled={busy}
+                  variant="outline"
+                  className="min-h-11 w-full border-ink-300 bg-parchment-50 text-ink-700 hover:bg-parchment-100"
+                >
+                  <Cloud className="mr-2 h-4 w-4" /> Send a closed-app test to
+                  all phones
+                </Button>
+              )}
+
               <Button
                 onClick={turnOff}
                 disabled={busy}
@@ -207,6 +311,35 @@ export function NotificationsPanel() {
         </>
       )}
     </Card>
+  );
+}
+
+function StatusRow({
+  ok,
+  label,
+  hint,
+}: {
+  ok: boolean;
+  label: string;
+  hint: string;
+}) {
+  return (
+    <div className="flex items-start gap-2">
+      <span
+        className={cn(
+          'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full',
+          ok
+            ? 'bg-emerald-100 text-emerald-700'
+            : 'bg-parchment-200 text-ink-400',
+        )}
+      >
+        {ok ? <Check className="h-3 w-3" /> : <Cloud className="h-2.5 w-2.5" />}
+      </span>
+      <span className="flex-1">
+        <span className="block text-sm font-medium text-ink-900">{label}</span>
+        <span className="block text-xs text-ink-500">{hint}</span>
+      </span>
+    </div>
   );
 }
 

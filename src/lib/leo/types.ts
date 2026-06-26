@@ -6,6 +6,7 @@
  */
 
 import type { ReminderPrefs } from './reminders';
+import type { VoicePrefs } from './patwah';
 
 /** Epoch milliseconds (e.g. `Date.now()` / `now().getTime()`). */
 export type Millis = number;
@@ -44,6 +45,8 @@ export interface BabyProfile {
   heroPhotoId?: string;
   /** Notification/reminder preferences (shared across phones). */
   reminders?: ReminderPrefs;
+  /** Jamaican-Patois voice (ElevenLabs) preferences. */
+  voicePrefs?: VoicePrefs;
   updatedAt: Millis;
 }
 
@@ -178,6 +181,137 @@ export interface RoutineItem {
   /** Sort order within its category (lower first). */
   position: number;
   rating?: RoutineRating;
+  createdAt: Millis;
+  updatedAt: Millis;
+}
+
+// ---------------------------------------------------------------------------
+// Routine SESSIONS — a logged settling / nap / bedtime episode (the smart log)
+// ---------------------------------------------------------------------------
+
+export type RoutineSessionType =
+  | 'morning'
+  | 'nap'
+  | 'bedtime'
+  | 'settling'
+  | 'feed_recovery'
+  | 'custom';
+
+/** How a settling method went this time. */
+export type MethodResult =
+  | 'worked'
+  | 'helped'
+  | 'no_effect'
+  | 'made_worse'
+  | 'not_sure';
+
+export type ParentName = 'Luke' | 'Christina' | 'Both';
+
+/** One step of a routine template, ticked off as it happens. */
+export interface RoutineStep {
+  name: string;
+  done: boolean;
+  at?: Millis;
+}
+
+/** A settling method tried during a session, with its outcome. */
+export interface RoutineMethod {
+  method: string;
+  result: MethodResult;
+  at?: Millis;
+  minutesTried?: number;
+}
+
+/** A "put down" attempt and whether Leo stayed asleep. */
+export interface PutDownAttempt {
+  kind: 'awake' | 'drowsy' | 'asleep' | 'transfer';
+  result: 'stayed' | 'woke';
+  afterMinutesAsleep?: number;
+  at?: Millis;
+}
+
+/**
+ * A logged routine session. Nested arrays live inline (cloud sync mirrors the
+ * record as JSON, so nested objects are fine).
+ */
+export interface RoutineSession {
+  id: string;
+  type: RoutineSessionType;
+  startedAt: Millis;
+  endedAt?: Millis;
+  startedBy?: ParentName;
+  location?: string;
+  beforeMood?: string;
+  contextTags?: string[];
+  sleepCues?: string[];
+  hungerCues?: string[];
+  windSigns?: string[];
+  steps?: RoutineStep[];
+  methods?: RoutineMethod[];
+  putDowns?: PutDownAttempt[];
+  settled?: boolean;
+  settleMinutes?: number;
+  sleptMinutes?: number;
+  wokeAfterPutDown?: boolean;
+  wokeMood?: 'calm' | 'fussy' | 'crying';
+  confidence?: 'high' | 'medium' | 'low';
+  note?: string;
+  createdAt: Millis;
+  updatedAt: Millis;
+}
+
+// ---------------------------------------------------------------------------
+// Saved routines — a named, reusable routine the parents can start from
+// ---------------------------------------------------------------------------
+
+/**
+ * A reusable routine the parents have saved (often distilled from a session
+ * that worked well). Starting one pre-fills a new session's steps + suggested
+ * methods, so a good bedtime/nap flow is one tap away.
+ */
+export interface SavedRoutine {
+  id: string;
+  name: string;
+  type: RoutineSessionType;
+  /** Ordered step names to tick off. */
+  steps: string[];
+  /** Settling methods worth trying for this routine. */
+  methods?: string[];
+  note?: string;
+  /** The session it was created from, if any. */
+  fromSessionId?: string;
+  createdAt: Millis;
+  updatedAt: Millis;
+}
+
+// ---------------------------------------------------------------------------
+// Experiments — a deliberate "let's try X for a few days and see" tracker
+// ---------------------------------------------------------------------------
+
+export type ExperimentStatus =
+  | 'running'
+  | 'worked'
+  | 'didnt'
+  | 'mixed'
+  | 'abandoned';
+
+/**
+ * A small, deliberate experiment ("dream feed at 10pm for 5 nights"). Parents
+ * note what they're trying and why, then record how it went — turning guesswork
+ * into something they can look back on. Never medical guidance.
+ */
+export interface Experiment {
+  id: string;
+  title: string;
+  /** What they hope it does, e.g. "might help him sleep longer". */
+  hypothesis?: string;
+  startedAt: Millis;
+  /** Planned length in days (optional). */
+  days?: number;
+  status: ExperimentStatus;
+  /** Free-text reflection once concluded. */
+  outcome?: string;
+  endedAt?: Millis;
   createdAt: Millis;
   updatedAt: Millis;
 }
@@ -484,6 +618,15 @@ export type NewJournal = Omit<JournalEntry, 'id' | 'createdAt' | 'updatedAt'>;
 export type NewEvent = Omit<LeoEvent, 'id' | 'createdAt' | 'updatedAt'>;
 export type NewSize = Omit<SizeEntry, 'id' | 'createdAt' | 'updatedAt'>;
 export type NewRoutine = Omit<RoutineItem, 'id' | 'createdAt' | 'updatedAt'>;
+export type NewSavedRoutine = Omit<
+  SavedRoutine,
+  'id' | 'createdAt' | 'updatedAt'
+>;
+export type NewExperiment = Omit<Experiment, 'id' | 'createdAt' | 'updatedAt'>;
+export type NewRoutineSession = Omit<
+  RoutineSession,
+  'id' | 'createdAt' | 'updatedAt'
+>;
 export type NewCareTask = Omit<CareTask, 'id' | 'createdAt' | 'updatedAt'>;
 /** Editable fields of a monthly recap (id/monthIndex/timestamps are managed). */
 export type RecapInput = Partial<
@@ -519,6 +662,9 @@ export interface LeoBackup {
   events?: LeoEvent[];
   sizes?: SizeEntry[];
   routines?: RoutineItem[];
+  routineSessions?: RoutineSession[];
+  savedRoutines?: SavedRoutine[];
+  experiments?: Experiment[];
   careTasks?: CareTask[];
   recaps?: MonthlyRecap[];
   voices?: VoiceBackup[];

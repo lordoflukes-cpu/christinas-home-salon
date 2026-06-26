@@ -10,6 +10,7 @@ import type {
   CareTask,
   DiaperEntry,
   DocumentEntry,
+  Experiment,
   FeedEntry,
   GrowthEntry,
   JournalEntry,
@@ -19,13 +20,23 @@ import type {
   MonthlyRecap,
   PhotoEntry,
   RoutineItem,
+  RoutineSession,
+  SavedRoutine,
   SizeEntry,
   SleepEntry,
   VoiceEntry,
 } from './types';
 
 export const DB_NAME = 'leo-tracker';
-export const DB_VERSION = 9;
+export const DB_VERSION = 12;
+
+/** Cached TTS audio (regenerable — never synced or backed up). */
+export interface TtsCacheEntry {
+  key: string;
+  bytes: ArrayBuffer;
+  type: string;
+  createdAt: number;
+}
 
 export interface LeoDB extends DBSchema {
   profile: { key: string; value: BabyProfile };
@@ -89,6 +100,21 @@ export interface LeoDB extends DBSchema {
     value: RoutineItem;
     indexes: { 'by-position': number };
   };
+  routineSessions: {
+    key: string;
+    value: RoutineSession;
+    indexes: { 'by-startedAt': number };
+  };
+  savedRoutines: {
+    key: string;
+    value: SavedRoutine;
+    indexes: { 'by-createdAt': number };
+  };
+  experiments: {
+    key: string;
+    value: Experiment;
+    indexes: { 'by-startedAt': number };
+  };
   voices: {
     key: string;
     value: VoiceEntry;
@@ -103,6 +129,10 @@ export interface LeoDB extends DBSchema {
     key: string;
     value: MonthlyRecap;
     indexes: { 'by-monthIndex': number };
+  };
+  ttsCache: {
+    key: string;
+    value: TtsCacheEntry;
   };
 }
 
@@ -198,6 +228,30 @@ export function getDB(): Promise<IDBPDatabase<LeoDB>> {
         if (!db.objectStoreNames.contains('recaps')) {
           const recaps = db.createObjectStore('recaps', { keyPath: 'id' });
           recaps.createIndex('by-monthIndex', 'monthIndex');
+        }
+        // v10 store (additive)
+        if (!db.objectStoreNames.contains('routineSessions')) {
+          const sessions = db.createObjectStore('routineSessions', {
+            keyPath: 'id',
+          });
+          sessions.createIndex('by-startedAt', 'startedAt');
+        }
+        // v11 store (additive) — regenerable TTS audio cache
+        if (!db.objectStoreNames.contains('ttsCache')) {
+          db.createObjectStore('ttsCache', { keyPath: 'key' });
+        }
+        // v12 stores (additive) — saved routines + experiments
+        if (!db.objectStoreNames.contains('savedRoutines')) {
+          const saved = db.createObjectStore('savedRoutines', {
+            keyPath: 'id',
+          });
+          saved.createIndex('by-createdAt', 'createdAt');
+        }
+        if (!db.objectStoreNames.contains('experiments')) {
+          const experiments = db.createObjectStore('experiments', {
+            keyPath: 'id',
+          });
+          experiments.createIndex('by-startedAt', 'startedAt');
         }
       },
     });

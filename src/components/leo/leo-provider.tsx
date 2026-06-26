@@ -6,6 +6,8 @@ import { computeReminders, DEFAULT_REMINDER_PREFS } from '@/lib/leo/reminders';
 import {
   isPushConfigured,
   pushScheduledReminders,
+  scheduleLocalNotifications,
+  notificationPermission,
 } from '@/lib/leo/notifications';
 
 /**
@@ -61,6 +63,41 @@ export function LeoProvider({ children }: { children: React.ReactNode }) {
     return () => {
       if (timer) clearTimeout(timer);
       unsub();
+    };
+  }, []);
+
+  // On-device (foreground) reminders when the cloud pipeline isn't configured.
+  // These fire while Leo is open; closed-app delivery is the push path above.
+  useEffect(() => {
+    if (isPushConfigured()) return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let cancel: (() => void) | null = null;
+    const recompute = () => {
+      const s = useLeoStore.getState();
+      if (!s.hydrated) return;
+      const prefs = s.profile?.reminders ?? DEFAULT_REMINDER_PREFS;
+      cancel?.();
+      cancel = null;
+      if (!prefs.enabled || notificationPermission() !== 'granted') return;
+      const reminders = computeReminders({
+        prefs,
+        feeds: s.feeds,
+        medical: s.medical,
+        activeSleep: s.activeSleep,
+        now: Date.now(),
+      });
+      cancel = scheduleLocalNotifications(reminders, Date.now());
+    };
+    const schedule = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(recompute, 2000);
+    };
+    const unsub = useLeoStore.subscribe(schedule);
+    schedule();
+    return () => {
+      if (timer) clearTimeout(timer);
+      unsub();
+      cancel?.();
     };
   }, []);
 

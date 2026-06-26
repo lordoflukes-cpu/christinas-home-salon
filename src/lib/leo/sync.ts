@@ -46,6 +46,9 @@ const PLAIN_STORES = [
   'events',
   'sizes',
   'routines',
+  'routineSessions',
+  'savedRoutines',
+  'experiments',
   'careTasks',
   'recaps',
 ] as const;

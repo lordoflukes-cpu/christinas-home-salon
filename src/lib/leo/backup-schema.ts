@@ -15,6 +15,22 @@ const reminderPrefsSchema = z.object({
   vitdTime: z.string(),
   sleep: z.boolean(),
   sleepMaxHours: z.number().positive(),
+  // Quiet hours — defaulted so older backups (which predate these) still parse.
+  quiet: z.boolean().default(false),
+  quietStart: z.string().default('22:00'),
+  quietEnd: z.string().default('07:00'),
+});
+
+const voicePrefsSchema = z.object({
+  enabled: z.boolean(),
+  patwahStrength: z.enum(['light', 'medium', 'heavy']),
+  speakReminders: z.boolean(),
+  speakAi: z.boolean(),
+  speakRecaps: z.boolean(),
+  speakBriefing: z.boolean().optional(),
+  autoSpeakAnswers: z.boolean().optional(),
+  rate: z.number().min(0.5).max(2).optional(),
+  medicalClearEnglish: z.boolean(),
 });
 
 const babyProfileSchema = z.object({
@@ -36,6 +52,7 @@ const babyProfileSchema = z.object({
   birthStory: z.string().optional(),
   heroPhotoId: z.string().optional(),
   reminders: reminderPrefsSchema.optional(),
+  voicePrefs: voicePrefsSchema.optional(),
   updatedAt: millis,
 });
 
@@ -224,6 +241,71 @@ const routineSchema = z.object({
   updatedAt: millis,
 });
 
+const routineSessionSchema = z.object({
+  id: z.string(),
+  type: z.enum([
+    'morning',
+    'nap',
+    'bedtime',
+    'settling',
+    'feed_recovery',
+    'custom',
+  ]),
+  startedAt: millis,
+  endedAt: millis.optional(),
+  startedBy: z.enum(['Luke', 'Christina', 'Both']).optional(),
+  location: z.string().optional(),
+  beforeMood: z.string().optional(),
+  contextTags: z.array(z.string()).optional(),
+  sleepCues: z.array(z.string()).optional(),
+  hungerCues: z.array(z.string()).optional(),
+  windSigns: z.array(z.string()).optional(),
+  steps: z
+    .array(
+      z.object({
+        name: z.string(),
+        done: z.boolean(),
+        at: millis.optional(),
+      }),
+    )
+    .optional(),
+  methods: z
+    .array(
+      z.object({
+        method: z.string(),
+        result: z.enum([
+          'worked',
+          'helped',
+          'no_effect',
+          'made_worse',
+          'not_sure',
+        ]),
+        at: millis.optional(),
+        minutesTried: z.number().nonnegative().optional(),
+      }),
+    )
+    .optional(),
+  putDowns: z
+    .array(
+      z.object({
+        kind: z.enum(['awake', 'drowsy', 'asleep', 'transfer']),
+        result: z.enum(['stayed', 'woke']),
+        afterMinutesAsleep: z.number().nonnegative().optional(),
+        at: millis.optional(),
+      }),
+    )
+    .optional(),
+  settled: z.boolean().optional(),
+  settleMinutes: z.number().nonnegative().optional(),
+  sleptMinutes: z.number().nonnegative().optional(),
+  wokeAfterPutDown: z.boolean().optional(),
+  wokeMood: z.enum(['calm', 'fussy', 'crying']).optional(),
+  confidence: z.enum(['high', 'medium', 'low']).optional(),
+  note: z.string().optional(),
+  createdAt: millis,
+  updatedAt: millis,
+});
+
 const careTaskSchema = z.object({
   id: z.string(),
   kind: z.enum([
@@ -264,6 +346,38 @@ const recapSchema = z.object({
   updatedAt: millis,
 });
 
+const savedRoutineSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  type: z.enum([
+    'morning',
+    'nap',
+    'bedtime',
+    'settling',
+    'feed_recovery',
+    'custom',
+  ]),
+  steps: z.array(z.string()),
+  methods: z.array(z.string()).optional(),
+  note: z.string().optional(),
+  fromSessionId: z.string().optional(),
+  createdAt: millis,
+  updatedAt: millis,
+});
+
+const experimentSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  hypothesis: z.string().optional(),
+  startedAt: millis,
+  days: z.number().positive().optional(),
+  status: z.enum(['running', 'worked', 'didnt', 'mixed', 'abandoned']),
+  outcome: z.string().optional(),
+  endedAt: millis.optional(),
+  createdAt: millis,
+  updatedAt: millis,
+});
+
 export const leoBackupSchema = z.object({
   schemaVersion: z.number().int().positive(),
   exportedAt: millis,
@@ -278,6 +392,9 @@ export const leoBackupSchema = z.object({
   events: z.array(eventSchema).optional(),
   sizes: z.array(sizeSchema).optional(),
   routines: z.array(routineSchema).optional(),
+  routineSessions: z.array(routineSessionSchema).optional(),
+  savedRoutines: z.array(savedRoutineSchema).optional(),
+  experiments: z.array(experimentSchema).optional(),
   careTasks: z.array(careTaskSchema).optional(),
   recaps: z.array(recapSchema).optional(),
   voices: z.array(voiceBackupSchema).optional(),

@@ -266,3 +266,96 @@ export function useVoiceRecorder(): VoiceRecorder {
     reset,
   };
 }
+
+// ---------------------------------------------------------------------------
+// One-shot speech input — for "talk to Leo" voice questions (no recording)
+// ---------------------------------------------------------------------------
+
+export interface SpeechInput {
+  supported: boolean;
+  listening: boolean;
+  /** Live transcript (interim + final) while listening. */
+  transcript: string;
+  error: string | null;
+  start: () => void;
+  stop: () => void;
+}
+
+/**
+ * Lightweight on-device speech-to-text for a single spoken question/command.
+ * Calls `onFinal` with the final transcript when the user stops speaking.
+ * Unlike `useVoiceRecorder` this keeps no audio — just the text.
+ */
+export function useSpeechInput(
+  onFinal?: (text: string) => void,
+  lang = 'en-GB',
+): SpeechInput {
+  const [listening, setListening] = useState(false);
+  const [transcript, setTranscript] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const recRef = useRef<SpeechRecognitionLike | null>(null);
+  const finalRef = useRef('');
+  const onFinalRef = useRef(onFinal);
+  onFinalRef.current = onFinal;
+
+  const stop = useCallback(() => {
+    try {
+      recRef.current?.stop();
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const start = useCallback(() => {
+    const Ctor = getRecognitionCtor();
+    if (!Ctor) {
+      setError('Voice input isn’t supported on this device.');
+      return;
+    }
+    finalRef.current = '';
+    setTranscript('');
+    setError(null);
+    const rec = new Ctor();
+    recRef.current = rec;
+    rec.lang = lang;
+    rec.continuous = false;
+    rec.interimResults = true;
+    rec.onresult = (e) => {
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const r = e.results[i];
+        if (r.isFinal) finalRef.current += r[0].transcript;
+        else interim += r[0].transcript;
+      }
+      setTranscript((finalRef.current + interim).trim());
+    };
+    rec.onerror = () => setError('Didn’t catch that — try again.');
+    rec.onend = () => {
+      setListening(false);
+      const text = finalRef.current.trim();
+      if (text) onFinalRef.current?.(text);
+    };
+    setListening(true);
+    rec.start();
+  }, [lang]);
+
+  useEffect(
+    () => () => {
+      try {
+        recRef.current?.stop();
+      } catch {
+        /* ignore */
+      }
+    },
+    [],
+  );
+
+  return {
+    supported: isSpeechRecognitionSupported(),
+    listening,
+    transcript,
+    error,
+    start,
+    stop,
+  };
+}

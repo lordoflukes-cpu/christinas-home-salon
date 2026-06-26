@@ -9,10 +9,18 @@ export * from './journal-prompts';
 export * from './photo-albums';
 export * from './sizes';
 export * from './routine-config';
+export * from './routine-templates';
+export * from './routine-session';
+export * from './routine-insights';
+export * from './routine-review';
 export * from './care-tasks';
 export * from './agenda';
 export * from './recap';
 export * from './timeline';
+export * from './ai';
+export * from './patwah';
+export * from './briefing';
+export { useSpeaker, ttsCacheKey, type SpeakStatus } from './tts';
 export * from './growth-insights';
 export * from './units';
 export * from './growth';
@@ -24,12 +32,14 @@ export {
   formatAudioDuration,
   useVoiceUrl,
   useVoiceRecorder,
+  useSpeechInput,
   isSpeechRecognitionSupported,
 } from './voice';
 export type {
   VoiceCategoryConfig,
   VoiceRecorder,
   RecorderState,
+  SpeechInput,
 } from './voice';
 export { leoBackupSchema } from './backup-schema';
 export { DB_VERSION, isStorageAvailable } from './db';

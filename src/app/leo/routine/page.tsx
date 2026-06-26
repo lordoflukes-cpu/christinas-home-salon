@@ -1,15 +1,18 @@
+import { Suspense } from 'react';
 import { SectionBanner } from '@/components/leo';
-import { RoutineBuilder } from '@/components/leo/routine/routine-builder';
+import { RoutineHome } from '@/components/leo/routine/routine-home';
 
 export default function LeoRoutinePage() {
   return (
     <div className="space-y-4">
       <SectionBanner
         title="Routine"
-        subtitle="Leo's rhythm, cues & what works"
+        subtitle="Log what works, settle Leo faster"
         index={2}
       />
-      <RoutineBuilder />
+      <Suspense fallback={null}>
+        <RoutineHome />
+      </Suspense>
     </div>
   );
 }
