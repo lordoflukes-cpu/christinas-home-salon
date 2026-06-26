@@ -201,7 +201,7 @@ const SIZE_EMOJI: Record<SizeEntry['kind'], string> = {
   shoe: '👟',
 };
 
-function truncate(s: string | undefined, n = 120): string | undefined {
+function truncate(s: string | undefined, n = 80): string | undefined {
   if (!s) return undefined;
   const t = s.trim();
   return t.length > n ? `${t.slice(0, n - 1)}…` : t;
