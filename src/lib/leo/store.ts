@@ -17,6 +17,7 @@ import type {
   LeoEvent,
   MedicalEntry,
   MilestoneEntry,
+  MonthlyRecap,
   NewDiaper,
   NewDocumentMeta,
   NewEvent,
@@ -32,6 +33,7 @@ import type {
   NewVoiceMeta,
   PhotoEntry,
   ProfileInput,
+  RecapInput,
   RoutineItem,
   SizeEntry,
   SleepEntry,
@@ -56,6 +58,7 @@ interface LeoState {
   sizes: SizeEntry[];
   routines: RoutineItem[];
   careTasks: CareTask[];
+  recaps: MonthlyRecap[];
   voices: VoiceEntry[];
   photos: PhotoEntry[];
   documents: DocumentEntry[];
@@ -108,6 +111,8 @@ interface LeoState {
   removeCareTask: (id: string) => Promise<void>;
   markCareDone: (id: string) => Promise<void>;
 
+  saveRecap: (monthIndex: number, patch: RecapInput) => Promise<void>;
+
   createEvent: (input: NewEvent) => Promise<void>;
   editEvent: (id: string, patch: Partial<LeoEvent>) => Promise<void>;
   removeEvent: (id: string) => Promise<void>;
@@ -144,6 +149,7 @@ async function refresh() {
     sizes,
     routines,
     careTasks,
+    recaps,
     voices,
     photos,
     documents,
@@ -162,6 +168,7 @@ async function refresh() {
     repo.getAllSizes(),
     repo.getAllRoutines(),
     repo.getAllCareTasks(),
+    repo.getAllRecaps(),
     repo.getAllVoices(),
     repo.getAllPhotos(),
     repo.getAllDocuments(),
@@ -181,6 +188,7 @@ async function refresh() {
     sizes,
     routines,
     careTasks,
+    recaps,
     voices,
     photos,
     documents,
@@ -222,6 +230,7 @@ export const useLeoStore = create<LeoState>((set, get) => ({
   sizes: [],
   routines: [],
   careTasks: [],
+  recaps: [],
   voices: [],
   photos: [],
   documents: [],
@@ -441,6 +450,12 @@ export const useLeoStore = create<LeoState>((set, get) => ({
     const entry = await repo.updateCareTask(id, { lastDoneAt: Date.now() });
     set({ careTasks: await repo.getAllCareTasks() });
     sync.pushEntry('careTasks', entry);
+  },
+
+  saveRecap: async (monthIndex, patch) => {
+    const entry = await repo.saveRecap(monthIndex, patch);
+    set({ recaps: await repo.getAllRecaps() });
+    sync.pushEntry('recaps', entry);
   },
 
   createEvent: async (input) => {

@@ -285,3 +285,31 @@
   background: hsl(var(--primary) / 0.2);
   color: hsl(var(--foreground));
 }
+
+/* Leo monthly-recap print: show only the recap book, on clean white pages. */
+@media print {
+  body {
+    background: #fff !important;
+  }
+  body * {
+    visibility: hidden !important;
+  }
+  .recap-print,
+  .recap-print * {
+    visibility: visible !important;
+  }
+  .recap-print {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  .recap-print-hide {
+    display: none !important;
+  }
+  /* Keep each month on its own page where possible. */
+  .recap-print > * {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

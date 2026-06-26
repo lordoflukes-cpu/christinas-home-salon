@@ -184,6 +184,27 @@ describe('voices', () => {
   });
 });
 
+describe('monthly recaps', () => {
+  it('upserts one record per month and merges edits', async () => {
+    const a = await repo.saveRecap(1, { favouriteThing: 'Bath time' });
+    expect(a.id).toBe('m1');
+    expect(a.monthIndex).toBe(1);
+
+    // Saving again merges rather than duplicating.
+    await repo.saveRecap(1, { neverForget: 'The first cuddle' });
+    const all = await repo.getAllRecaps();
+    expect(all).toHaveLength(1);
+    expect(all[0].favouriteThing).toBe('Bath time');
+    expect(all[0].neverForget).toBe('The first cuddle');
+
+    await repo.saveRecap(2, { favouriteThing: 'Giggles' });
+    expect(await repo.getAllRecaps()).toHaveLength(2);
+
+    await repo.deleteRecap('m1');
+    expect(await repo.getAllRecaps()).toHaveLength(1);
+  });
+});
+
 describe('care tasks', () => {
   it('adds, updates, marks done and deletes', async () => {
     const a = await repo.addCareTask({

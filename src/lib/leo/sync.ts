@@ -47,6 +47,7 @@ const PLAIN_STORES = [
   'sizes',
   'routines',
   'careTasks',
+  'recaps',
 ] as const;
 type PlainStore = (typeof PLAIN_STORES)[number];
 /** Stores holding binary blobs — serialised to base64 data URLs for sync. */

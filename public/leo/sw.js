@@ -2,13 +2,14 @@
  * All user data lives in IndexedDB, so this only caches the static shell
  * (HTML/JS/CSS). Bump CACHE_VERSION to invalidate old caches.
  */
-const CACHE_VERSION = 'leo-v14';
+const CACHE_VERSION = 'leo-v15';
 const SHELL = [
   '/leo',
   '/leo/log',
   '/leo/health',
   '/leo/routine',
   '/leo/memories',
+  '/leo/recap',
   '/leo/settings',
   '/leo/manifest.webmanifest',
   '/leo/art/savanna-night.jpg',

@@ -37,6 +37,10 @@ describe('backup round-trip', () => {
       enabled: true,
       anchorAt: 6600,
     });
+    await repo.saveRecap(1, {
+      favouriteThing: 'Bath time',
+      newSkill: 'Smiled',
+    });
     await repo.addVoice(
       new Blob([new Uint8Array([9, 8, 7, 6])], { type: 'audio/webm' }),
       { recordedAt: 6800, title: 'First coo', category: 'firstSound' },
@@ -55,6 +59,7 @@ describe('backup round-trip', () => {
     expect(backup.sizes).toHaveLength(1);
     expect(backup.routines).toHaveLength(1);
     expect(backup.careTasks).toHaveLength(1);
+    expect(backup.recaps).toHaveLength(1);
     expect(backup.voices).toHaveLength(1);
     expect(backup.documents).toHaveLength(1);
 
@@ -73,6 +78,8 @@ describe('backup round-trip', () => {
     expect(await repo.getAllVoices()).toHaveLength(1);
     expect((await repo.getAllVoices())[0].bytes.byteLength).toBe(4);
     expect((await repo.getAllVoices())[0].category).toBe('firstSound');
+    expect(await repo.getAllRecaps()).toHaveLength(1);
+    expect((await repo.getAllRecaps())[0].favouriteThing).toBe('Bath time');
     expect(await repo.getAllDocuments()).toHaveLength(1);
     expect((await repo.getAllDocuments())[0].bytes.byteLength).toBe(3);
   });
