@@ -427,6 +427,8 @@ export interface MedicalEntry {
   note?: string;
   /** Whether it has been completed/given. */
   done?: boolean;
+  /** Marked as missed (cleared from the agenda but recorded as not done). */
+  missed?: boolean;
   createdAt: Millis;
   updatedAt: Millis;
 }

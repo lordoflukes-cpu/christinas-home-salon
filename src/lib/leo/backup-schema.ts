@@ -148,6 +148,7 @@ const medicalSchema = z.object({
   reaction: z.string().optional(),
   note: z.string().optional(),
   done: z.boolean().optional(),
+  missed: z.boolean().optional(),
   createdAt: millis,
   updatedAt: millis,
 });

@@ -1,22 +1,19 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import type { Route } from 'next';
-import { Check, ListChecks, Volume2 } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronRight, ListChecks } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import {
   useLeoStore,
   useNow,
-  useSpeaker,
   buildAgenda,
   relativeDue,
-  agendaSpeech,
-  DEFAULT_VOICE_PREFS,
   type AgendaItem,
 } from '@/lib/leo';
 import { DEFAULT_REMINDER_PREFS } from '@/lib/leo/reminders';
 import { cn } from '@/lib/utils';
 import { BottlePrepTimer } from '../reminders/bottle-prep-timer';
+import { AgendaItemSheet } from './agenda-item-sheet';
 
 const MAX_SHOWN = 5;
 
@@ -26,13 +23,8 @@ export function AgendaCard() {
   const medical = useLeoStore((s) => s.medical);
   const activeSleep = useLeoStore((s) => s.activeSleep);
   const careTasks = useLeoStore((s) => s.careTasks);
-  const markCareDone = useLeoStore((s) => s.markCareDone);
   const now = useNow(60_000);
-  const router = useRouter();
-  const { speak } = useSpeaker();
-
-  const voicePrefs = profile?.voicePrefs ?? DEFAULT_VOICE_PREFS;
-  const canSpeak = voicePrefs.enabled && voicePrefs.speakReminders;
+  const [selected, setSelected] = useState<AgendaItem | null>(null);
 
   const items = buildAgenda({
     prefs: profile?.reminders ?? DEFAULT_REMINDER_PREFS,
@@ -66,20 +58,7 @@ export function AgendaCard() {
               key={item.key}
               item={item}
               now={now}
-              onTick={
-                item.careTaskId
-                  ? () => void markCareDone(item.careTaskId!)
-                  : undefined
-              }
-              onOpen={
-                item.href ? () => router.push(item.href as Route) : undefined
-              }
-              onSpeak={
-                canSpeak
-                  ? () =>
-                      void speak(agendaSpeech(item, voicePrefs.patwahStrength))
-                  : undefined
-              }
+              onSelect={() => setSelected(item)}
             />
           ))}
         </ul>
@@ -92,6 +71,12 @@ export function AgendaCard() {
       <div className="mt-3 border-t border-ink-300/40 pt-3">
         <BottlePrepTimer />
       </div>
+
+      <AgendaItemSheet
+        item={selected}
+        now={now}
+        onClose={() => setSelected(null)}
+      />
     </Card>
   );
 }
@@ -99,27 +84,19 @@ export function AgendaCard() {
 function AgendaRow({
   item,
   now,
-  onTick,
-  onOpen,
-  onSpeak,
+  onSelect,
 }: {
   item: AgendaItem;
   now: number;
-  onTick?: () => void;
-  onOpen?: () => void;
-  onSpeak?: () => void;
+  onSelect: () => void;
 }) {
   const due = relativeDue(item.dueAt, now);
   return (
-    <li className="flex items-center gap-2.5">
+    <li>
       <button
         type="button"
-        onClick={onOpen}
-        disabled={!onOpen}
-        className={cn(
-          'flex min-w-0 flex-1 items-center gap-2.5 rounded-xl px-2 py-2 text-left transition-colors',
-          onOpen ? 'hover:bg-parchment-100' : 'cursor-default',
-        )}
+        onClick={onSelect}
+        className="flex w-full min-w-0 items-center gap-2.5 rounded-xl px-2 py-2 text-left transition-colors hover:bg-parchment-100 active:scale-[0.99]"
       >
         <span className="text-xl leading-none">{item.emoji}</span>
         <span className="min-w-0 flex-1">
@@ -140,29 +117,8 @@ function AgendaRow({
         >
           {due}
         </span>
+        <ChevronRight className="h-4 w-4 shrink-0 text-ink-300" />
       </button>
-
-      {onSpeak && (
-        <button
-          type="button"
-          onClick={onSpeak}
-          aria-label={`Hear ${item.title}`}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gold-300 text-gold-600 transition-colors hover:bg-gold-50 active:scale-90"
-        >
-          <Volume2 className="h-4 w-4" />
-        </button>
-      )}
-
-      {onTick && (
-        <button
-          type="button"
-          onClick={onTick}
-          aria-label={`Mark ${item.title} done`}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-emerald-300 text-emerald-600 transition-colors hover:bg-emerald-50 active:scale-90"
-        >
-          <Check className="h-4 w-4" />
-        </button>
-      )}
     </li>
   );
 }
