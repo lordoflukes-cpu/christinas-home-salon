@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
+  CalendarClock,
   ChevronLeft,
   ChevronRight,
   Heart,
@@ -11,10 +13,28 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/use-toast';
 import { useLeoStore, formatDateTime, PHOTO_TAGS } from '@/lib/leo';
 import { PhotoImage } from './photo-image';
 import { cn } from '@/lib/utils';
+
+/** Epoch ms → value for an <input type="datetime-local"> (local time). */
+function toLocalInput(ms: number): string {
+  const d = new Date(ms);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
+    d.getHours(),
+  )}:${pad(d.getMinutes())}`;
+}
 
 export function PhotoViewer({
   photoId,
@@ -35,12 +55,13 @@ export function PhotoViewer({
   const index = photos.findIndex((p) => p.id === photoId);
   const photo = index >= 0 ? photos[index] : null;
   const [caption, setCaption] = useState('');
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
     setCaption(photo?.caption ?? '');
   }, [photo?.id, photo?.caption]);
 
-  if (!photo) return null;
+  if (!photo || typeof document === 'undefined') return null;
 
   const prev = index < photos.length - 1 ? photos[index + 1] : null;
   const next = index > 0 ? photos[index - 1] : null;
@@ -65,20 +86,41 @@ export function PhotoViewer({
     await editPhoto(photo.id, { favourite: !photo.favourite });
   }
 
+  async function changeDate(value: string) {
+    if (!photo) return;
+    const ms = new Date(value).getTime();
+    if (!Number.isNaN(ms) && ms !== photo.takenAt) {
+      await editPhoto(photo.id, { takenAt: ms });
+      toast({
+        title: 'Date updated',
+        description: 'Timeline order updated 🦁',
+      });
+    }
+  }
+
   async function toggleTag(tag: string) {
     if (!photo) return;
     const tags = photo.tags ?? [];
-    const next = tags.includes(tag)
+    const nextTags = tags.includes(tag)
       ? tags.filter((t) => t !== tag)
       : [...tags, tag];
-    await editPhoto(photo.id, { tags: next.length ? next : undefined });
+    await editPhoto(photo.id, { tags: nextTags.length ? nextTags : undefined });
+  }
+
+  async function doDelete() {
+    if (!photo) return;
+    await removePhoto(photo.id);
+    setConfirmOpen(false);
+    if (next) onNavigate(next.id);
+    else if (prev) onNavigate(prev.id);
+    else onClose();
   }
 
   const photoTags = photo.tags ?? [];
   const allTags = Array.from(new Set([...PHOTO_TAGS, ...photoTags]));
 
-  return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-night-950/95 backdrop-blur">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex flex-col bg-night-950/95 backdrop-blur [touch-action:manipulation]">
       <div className="flex items-center justify-between p-3">
         <Button
           variant="ghost"
@@ -162,6 +204,19 @@ export function PhotoViewer({
             );
           })}
         </div>
+
+        {/* Date — drives timeline position + slideshow order */}
+        <label className="flex items-center gap-2 rounded-xl border border-night-700 bg-night-900 px-3 py-2">
+          <CalendarClock className="h-4 w-4 shrink-0 text-gold-200" />
+          <span className="shrink-0 text-xs text-night-200">Date</span>
+          <input
+            type="datetime-local"
+            defaultValue={toLocalInput(photo.takenAt)}
+            onChange={(e) => changeDate(e.target.value)}
+            className="ml-auto bg-transparent text-right text-sm text-white [color-scheme:dark]"
+          />
+        </label>
+
         <Input
           value={caption}
           onChange={(e) => setCaption(e.target.value)}
@@ -171,17 +226,33 @@ export function PhotoViewer({
         />
         <Button
           variant="ghost"
-          onClick={async () => {
-            await removePhoto(photo.id);
-            if (next) onNavigate(next.id);
-            else if (prev) onNavigate(prev.id);
-            else onClose();
-          }}
+          onClick={() => setConfirmOpen(true)}
           className="w-full text-rose-300 hover:bg-rose-950/40 hover:text-rose-200"
         >
           <Trash2 className="mr-2 h-4 w-4" /> Delete photo
         </Button>
       </div>
-    </div>
+
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete this photo?</DialogTitle>
+            <DialogDescription>
+              It’ll be removed from the gallery, timeline and slideshow. This
+              can’t be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button variant="destructive" onClick={doDelete}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>,
+    document.body,
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   X,
@@ -13,6 +14,8 @@ import {
   Music,
   VolumeX,
   Check,
+  Star,
+  Shuffle,
 } from 'lucide-react';
 import {
   useLeoStore,
@@ -20,6 +23,7 @@ import {
   formatAge,
   type AiSources,
   type Slide,
+  type SlideshowPrefs,
 } from '@/lib/leo';
 import { cn } from '@/lib/utils';
 import { SlideImage } from './slide-image';
@@ -66,13 +70,22 @@ function longDate(at: number): string {
   });
 }
 
+/** Index of the track for a saved default filename (0 if none/unknown). */
+function trackIndexFor(file: string | undefined): number {
+  const i = file ? TRACKS.findIndex((t) => t.file === file) : -1;
+  return i >= 0 ? i : 0;
+}
+
 /**
  * Full-screen, cinematic slideshow of Leo's photo moments over a living starry
  * sky. Autoplays with gentle crossfades + Ken-Burns; tap/swipe/keys to steer.
- * Rendered as an overlay (above the shell + nav) so it's fully immersive.
+ * Rendered in a portal on `document.body` so it sits above the shell + nav
+ * (otherwise it's trapped inside the scrolling <main> and its controls can't be
+ * tapped on the installed app).
  */
 export function SlideshowPlayer({ onClose }: { onClose: () => void }) {
   const profile = useLeoStore((s) => s.profile);
+  const editProfile = useLeoStore((s) => s.editProfile);
   const milestones = useLeoStore((s) => s.milestones);
   const journal = useLeoStore((s) => s.journal);
   const voices = useLeoStore((s) => s.voices);
@@ -90,11 +103,26 @@ export function SlideshowPlayer({ onClose }: { onClose: () => void }) {
   const [playing, setPlaying] = useState(true);
   const reduceMotion = useMemo(() => prefersReducedMotion(), []);
 
-  // Background music.
+  // Background music — starts on the default song; "mix" blends through all.
   const audioRef = useRef<HTMLAudioElement>(null);
   const [musicOn, setMusicOn] = useState(true);
-  const [trackIndex, setTrackIndex] = useState(0);
+  const [trackIndex, setTrackIndex] = useState(() =>
+    trackIndexFor(profile?.slideshowPrefs?.defaultTrack),
+  );
+  const [mix, setMix] = useState<boolean>(
+    profile?.slideshowPrefs?.mix ?? false,
+  );
   const [showTracks, setShowTracks] = useState(false);
+  const defaultTrack = profile?.slideshowPrefs?.defaultTrack;
+
+  async function savePrefs(patch: Partial<SlideshowPrefs>) {
+    if (!profile) return;
+    const { id: _id, updatedAt: _u, ...rest } = profile;
+    await editProfile({
+      ...rest,
+      slideshowPrefs: { ...(profile.slideshowPrefs ?? {}), ...patch },
+    });
+  }
 
   const photoById = useMemo(() => {
     const m = new Map<string, (typeof photos)[number]>();
@@ -183,11 +211,6 @@ export function SlideshowPlayer({ onClose }: { onClose: () => void }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [go, onClose]);
 
-  // Keep a gentle, fixed volume.
-  useEffect(() => {
-    if (audioRef.current) audioRef.current.volume = MUSIC_VOLUME;
-  }, []);
-
   // Drive music from the slideshow's own play/pause + the music toggle.
   // The overlay opens on a tap, so autoplay is allowed; swallow any rejection.
   useEffect(() => {
@@ -200,21 +223,49 @@ export function SlideshowPlayer({ onClose }: { onClose: () => void }) {
     }
   }, [musicOn, playing, count, trackIndex]);
 
+  // Gently fade each song in (a soft blend when songs change in mix mode);
+  // a hard set otherwise.
+  useEffect(() => {
+    const el = audioRef.current;
+    if (!el) return;
+    if (!mix) {
+      el.volume = MUSIC_VOLUME;
+      return;
+    }
+    el.volume = 0;
+    let v = 0;
+    const step = MUSIC_VOLUME / 18;
+    const id = setInterval(() => {
+      v = Math.min(MUSIC_VOLUME, v + step);
+      if (audioRef.current) audioRef.current.volume = v;
+      if (v >= MUSIC_VOLUME) clearInterval(id);
+    }, 80);
+    return () => clearInterval(id);
+  }, [trackIndex, mix]);
+
+  // In mix mode, advance to the next song when one ends (single loop otherwise).
+  const handleEnded = useCallback(() => {
+    if (mix) setTrackIndex((i) => (i + 1) % TRACKS.length);
+  }, [mix]);
+
   const photo = slide ? photoById.get(slide.photoId) : undefined;
 
-  return (
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <div
       role="dialog"
       aria-label="Leo's story slideshow"
-      className="fixed inset-0 z-[60] select-none overflow-hidden bg-ink-950 text-parchment-50"
+      className="fixed inset-0 z-[100] select-none overflow-hidden bg-ink-950 text-parchment-50 [touch-action:manipulation]"
     >
       <StarryStage />
 
-      {/* Background music (loops a single track; user-picked). */}
+      {/* Background music (loops one song, or blends through all when mixing). */}
       <audio
         ref={audioRef}
         src={`/leo/music/${TRACKS[trackIndex].file}`}
-        loop
+        loop={!mix}
+        onEnded={handleEnded}
         preload="none"
       />
 
@@ -262,11 +313,11 @@ export function SlideshowPlayer({ onClose }: { onClose: () => void }) {
             ))}
           </div>
 
-          {/* Crossfading photo */}
+          {/* Crossfading photo (swipe handled here; controls sit above it) */}
           <AnimatePresence mode="popLayout">
             <motion.div
               key={safeIndex}
-              className="absolute inset-0"
+              className="absolute inset-0 z-0"
               initial={{ opacity: 0, scale: reduceMotion ? 1 : 1.015 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: reduceMotion ? 1 : 0.99 }}
@@ -375,8 +426,8 @@ export function SlideshowPlayer({ onClose }: { onClose: () => void }) {
         </>
       )}
 
-      {/* Top bar: title, favourites toggle, close (always available) */}
-      <div className="absolute inset-x-0 top-0 z-30 flex items-center justify-between p-3 pt-5">
+      {/* Top bar: title, music, favourites toggle, close (always available) */}
+      <div className="absolute inset-x-0 top-0 z-40 flex items-center justify-between p-3 pt-5">
         <span className="rounded-full bg-ink-950/40 px-3 py-1 font-serif text-sm text-parchment-100 backdrop-blur-sm">
           {profile?.name ?? 'Leo'}’s story
         </span>
@@ -401,7 +452,7 @@ export function SlideshowPlayer({ onClose }: { onClose: () => void }) {
             </button>
 
             {showTracks && (
-              <div className="absolute right-0 top-11 z-40 w-60 overflow-hidden rounded-2xl border border-parchment-50/15 bg-ink-950/90 p-1.5 shadow-xl backdrop-blur-md">
+              <div className="absolute right-0 top-11 z-50 w-72 overflow-hidden rounded-2xl border border-parchment-50/15 bg-ink-950/90 p-1.5 shadow-xl backdrop-blur-md">
                 <button
                   type="button"
                   onClick={() => setMusicOn((v) => !v)}
@@ -414,30 +465,101 @@ export function SlideshowPlayer({ onClose }: { onClose: () => void }) {
                   )}
                   {musicOn ? 'Mute music' : 'Play music'}
                 </button>
-                <div className="my-1 h-px bg-parchment-50/10" />
-                {TRACKS.map((t, i) => (
-                  <button
-                    key={t.file}
-                    type="button"
-                    onClick={() => {
-                      setTrackIndex(i);
-                      setMusicOn(true);
-                    }}
+
+                {/* Blend / mix toggle */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !mix;
+                    setMix(next);
+                    void savePrefs({ mix: next });
+                  }}
+                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm active:scale-[0.99]"
+                >
+                  <Shuffle
                     className={cn(
-                      'flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm active:scale-[0.99]',
-                      i === trackIndex
-                        ? 'bg-parchment-50/10 text-gold-200'
-                        : 'text-parchment-100',
+                      'h-4 w-4 shrink-0',
+                      mix ? 'text-gold-300' : 'text-parchment-100/70',
+                    )}
+                  />
+                  <span className="flex-1 text-parchment-100">
+                    Blend all songs
+                  </span>
+                  <span
+                    className={cn(
+                      'rounded-full px-2 py-0.5 text-xs',
+                      mix
+                        ? 'bg-gold-300 text-ink-950'
+                        : 'bg-parchment-50/10 text-parchment-200',
                     )}
                   >
-                    <span className="flex h-4 w-4 shrink-0 items-center justify-center">
-                      {i === trackIndex && musicOn && (
-                        <Check className="h-4 w-4" />
-                      )}
-                    </span>
-                    <span className="truncate">{t.title}</span>
-                  </button>
-                ))}
+                    {mix ? 'On' : 'Off'}
+                  </span>
+                </button>
+
+                <p className="px-3 pb-1 pt-1.5 text-[11px] text-parchment-200/60">
+                  Tap a song to play it · ☆ sets the default
+                </p>
+                <div className="my-1 h-px bg-parchment-50/10" />
+
+                <div className="max-h-64 overflow-y-auto">
+                  {TRACKS.map((t, i) => {
+                    const isDefault = t.file === defaultTrack;
+                    return (
+                      <div
+                        key={t.file}
+                        className={cn(
+                          'flex items-center gap-1 rounded-xl pr-1',
+                          i === trackIndex && 'bg-parchment-50/10',
+                        )}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTrackIndex(i);
+                            setMusicOn(true);
+                          }}
+                          className="flex flex-1 items-center gap-2 px-3 py-2 text-left text-sm active:scale-[0.99]"
+                        >
+                          <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+                            {i === trackIndex && musicOn && (
+                              <Check className="h-4 w-4 text-gold-200" />
+                            )}
+                          </span>
+                          <span
+                            className={cn(
+                              'truncate',
+                              i === trackIndex
+                                ? 'text-gold-200'
+                                : 'text-parchment-100',
+                            )}
+                          >
+                            {t.title}
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={
+                            isDefault ? 'Default song' : 'Set as default'
+                          }
+                          onClick={() =>
+                            void savePrefs({ defaultTrack: t.file })
+                          }
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full active:scale-90"
+                        >
+                          <Star
+                            className={cn(
+                              'h-4 w-4',
+                              isDefault
+                                ? 'fill-gold-300 text-gold-300'
+                                : 'text-parchment-200/50',
+                            )}
+                          />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
@@ -467,6 +589,7 @@ export function SlideshowPlayer({ onClose }: { onClose: () => void }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
