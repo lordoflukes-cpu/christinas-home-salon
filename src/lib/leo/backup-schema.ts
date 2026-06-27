@@ -61,6 +61,12 @@ const babyProfileSchema = z.object({
   heroPhotoId: z.string().optional(),
   reminders: reminderPrefsSchema.optional(),
   voicePrefs: voicePrefsSchema.optional(),
+  slideshowPrefs: z
+    .object({
+      defaultTrack: z.string().optional(),
+      mix: z.boolean().optional(),
+    })
+    .optional(),
   updatedAt: millis,
 });
 
@@ -142,6 +148,7 @@ const medicalSchema = z.object({
   reaction: z.string().optional(),
   note: z.string().optional(),
   done: z.boolean().optional(),
+  missed: z.boolean().optional(),
   createdAt: millis,
   updatedAt: millis,
 });

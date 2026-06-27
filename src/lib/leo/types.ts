@@ -47,7 +47,17 @@ export interface BabyProfile {
   reminders?: ReminderPrefs;
   /** Jamaican-Patois voice (ElevenLabs) preferences. */
   voicePrefs?: VoicePrefs;
+  /** Slideshow music preferences (shared across phones). */
+  slideshowPrefs?: SlideshowPrefs;
   updatedAt: Millis;
+}
+
+/** Slideshow music preferences — which song plays and whether to blend songs. */
+export interface SlideshowPrefs {
+  /** Filename (under /leo/music) of the song that plays by default. */
+  defaultTrack?: string;
+  /** When true, play through all songs with a gentle crossfade instead of looping one. */
+  mix?: boolean;
 }
 
 export interface FeedEntry {
@@ -417,6 +427,8 @@ export interface MedicalEntry {
   note?: string;
   /** Whether it has been completed/given. */
   done?: boolean;
+  /** Marked as missed (cleared from the agenda but recorded as not done). */
+  missed?: boolean;
   createdAt: Millis;
   updatedAt: Millis;
 }
