@@ -13,6 +13,15 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/use-toast';
 import { useLeoStore, formatDateTime, PHOTO_TAGS } from '@/lib/leo';
 import { PhotoImage } from './photo-image';
