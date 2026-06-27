@@ -233,25 +233,37 @@ export function PhotoViewer({
         </Button>
       </div>
 
-      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Delete this photo?</DialogTitle>
-            <DialogDescription>
+      {/* Inline confirm — lives inside the viewer (z-110) so it shows ABOVE the
+          z-100 portal. A shadcn Dialog (z-50) would render behind it. */}
+      {confirmOpen && (
+        <div className="absolute inset-0 z-[110] flex items-center justify-center bg-ink-950/70 p-6 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl border border-night-700 bg-night-900 p-5 text-center shadow-xl">
+            <p className="font-display text-lg text-white">
+              Delete this photo?
+            </p>
+            <p className="mt-1 text-sm text-night-200">
               It’ll be removed from the gallery, timeline and slideshow. This
               can’t be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2">
-            <DialogClose asChild>
-              <Button variant="outline">Cancel</Button>
-            </DialogClose>
-            <Button variant="destructive" onClick={doDelete}>
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </p>
+            <div className="mt-4 flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setConfirmOpen(false)}
+                className="flex-1 border-night-600 bg-transparent text-white hover:bg-night-800 hover:text-white"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={doDelete}
+                className="flex-1"
+              >
+                Delete
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>,
     document.body,
   );
