@@ -123,4 +123,37 @@ describe('buildSlideshow', () => {
   it('is empty when there are no photos', () => {
     expect(buildSlideshow(emptySources({ profile }))).toEqual([]);
   });
+
+  it('manual mode keeps exactly the chosen photos in pick order', () => {
+    const slides = buildSlideshow(
+      emptySources({
+        profile,
+        photos: [photo('a', 1), photo('b', 3), photo('c', 5)],
+      }),
+      { select: { mode: 'manual', photoIds: ['c', 'a'] }, order: 'manual' },
+    );
+    expect(slides.map((s) => s.photoId)).toEqual(['c', 'a']);
+  });
+
+  it('filter mode keeps photos within a date range', () => {
+    const slides = buildSlideshow(
+      emptySources({
+        profile,
+        photos: [photo('a', 1), photo('b', 10), photo('c', 30)],
+      }),
+      {
+        select: { mode: 'filter', from: BIRTH + 5 * DAY, to: BIRTH + 20 * DAY },
+      },
+    );
+    expect(slides.map((s) => s.photoId)).toEqual(['b']);
+  });
+
+  it('filter mode keeps photos carrying a chosen tag', () => {
+    const tagged = { ...photo('a', 2), tags: ['funny'] };
+    const slides = buildSlideshow(
+      emptySources({ profile, photos: [tagged, photo('b', 4)] }),
+      { select: { mode: 'filter', tags: ['funny'] } },
+    );
+    expect(slides.map((s) => s.photoId)).toEqual(['a']);
+  });
 });

@@ -23,37 +23,18 @@ import {
   formatAge,
   type AiSources,
   type Slide,
+  type SlideshowConfig,
   type SlideshowPrefs,
 } from '@/lib/leo';
 import { cn } from '@/lib/utils';
 import { SlideImage } from './slide-image';
 import { StarryStage } from './starry-stage';
-
-const SLIDE_MS = 5200;
-
-/** Suno tracks Luke made for Leo, bundled under public/leo/music. */
-interface Track {
-  title: string;
-  file: string;
-}
-const TRACKS: Track[] = [
-  { title: 'Leo Brings the Light', file: 'leo-brings-the-light.mp3' },
-  { title: 'Leo Came with the Summer', file: 'leo-came-with-the-summer.mp3' },
-  { title: 'Grow With You', file: 'grow-with-you.mp3' },
-  { title: 'Leo, Summer', file: 'leo-summer.mp3' },
-  { title: 'Leo Time', file: 'leo-time.mp3' },
-  { title: 'Little Leo Rise (Liquid DnB)', file: 'little-leo-rise-dnb.mp3' },
-  { title: 'Leo In The Light (DnB Remix)', file: 'leo-in-the-light-dnb.mp3' },
-  {
-    title: 'Christina’s Smile (Jungle Mix)',
-    file: 'christinas-smile-jungle.mp3',
-  },
-  {
-    title: 'Leo Came with the Summer (II)',
-    file: 'leo-came-with-the-summer-2.mp3',
-  },
-];
-const MUSIC_VOLUME = 0.6;
+import {
+  TRACKS,
+  MUSIC_VOLUME,
+  trackIndexFor,
+  DEFAULT_SLIDE_MS,
+} from './tracks';
 
 function prefersReducedMotion(): boolean {
   return (
@@ -70,20 +51,19 @@ function longDate(at: number): string {
   });
 }
 
-/** Index of the track for a saved default filename (0 if none/unknown). */
-function trackIndexFor(file: string | undefined): number {
-  const i = file ? TRACKS.findIndex((t) => t.file === file) : -1;
-  return i >= 0 ? i : 0;
-}
-
 /**
- * Full-screen, cinematic slideshow of Leo's photo moments over a living starry
- * sky. Autoplays with gentle crossfades + Ken-Burns; tap/swipe/keys to steer.
- * Rendered in a portal on `document.body` so it sits above the shell + nav
- * (otherwise it's trapped inside the scrolling <main> and its controls can't be
- * tapped on the installed app).
+ * Full-screen, cinematic slideshow over a living starry sky. Plays either the
+ * default "Leo's story" (all photos, chronological) or a saved custom
+ * `config`. Rendered in a portal on `document.body` so it sits above the shell
+ * + nav (otherwise its controls can't be tapped on the installed app).
  */
-export function SlideshowPlayer({ onClose }: { onClose: () => void }) {
+export function SlideshowPlayer({
+  config,
+  onClose,
+}: {
+  config?: SlideshowConfig;
+  onClose: () => void;
+}) {
   const profile = useLeoStore((s) => s.profile);
   const editProfile = useLeoStore((s) => s.editProfile);
   const milestones = useLeoStore((s) => s.milestones);
@@ -98,25 +78,32 @@ export function SlideshowPlayer({ onClose }: { onClose: () => void }) {
   const diapers = useLeoStore((s) => s.diapers);
   const sleeps = useLeoStore((s) => s.sleeps);
 
+  const custom = Boolean(config);
+  const slideMs = config?.slideMs ?? DEFAULT_SLIDE_MS;
+  const theme = config?.theme ?? 'night';
+  const title = config?.name ?? `${profile?.name ?? 'Leo'}’s story`;
+
   const [favouritesOnly, setFavouritesOnly] = useState(false);
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(true);
   const reduceMotion = useMemo(() => prefersReducedMotion(), []);
 
-  // Background music — starts on the default song; "mix" blends through all.
+  // Background music — default song / blend from the show config or the profile.
   const audioRef = useRef<HTMLAudioElement>(null);
   const [musicOn, setMusicOn] = useState(true);
   const [trackIndex, setTrackIndex] = useState(() =>
-    trackIndexFor(profile?.slideshowPrefs?.defaultTrack),
+    trackIndexFor(config?.track ?? profile?.slideshowPrefs?.defaultTrack),
   );
   const [mix, setMix] = useState<boolean>(
-    profile?.slideshowPrefs?.mix ?? false,
+    config?.mix ?? profile?.slideshowPrefs?.mix ?? false,
   );
   const [showTracks, setShowTracks] = useState(false);
-  const defaultTrack = profile?.slideshowPrefs?.defaultTrack;
+  const defaultTrack = config?.track ?? profile?.slideshowPrefs?.defaultTrack;
 
-  async function savePrefs(patch: Partial<SlideshowPrefs>) {
-    if (!profile) return;
+  // Persisting the default song only applies to the default show (not a saved
+  // custom one — that's edited in the builder).
+  async function saveDefault(patch: Partial<SlideshowPrefs>) {
+    if (custom || !profile) return;
     const { id: _id, updatedAt: _u, ...rest } = profile;
     await editProfile({
       ...rest,
@@ -146,8 +133,15 @@ export function SlideshowPlayer({ onClose }: { onClose: () => void }) {
       sleeps,
       now: Date.now(),
     } as unknown as AiSources;
+    if (config) {
+      return buildSlideshow(sources, {
+        select: config.select,
+        order: config.order,
+      });
+    }
     return buildSlideshow(sources, { favouritesOnly });
   }, [
+    config,
     profile,
     milestones,
     journal,
@@ -183,9 +177,9 @@ export function SlideshowPlayer({ onClose }: { onClose: () => void }) {
   // Autoplay timer.
   useEffect(() => {
     if (!playing || count <= 1) return;
-    const id = setTimeout(() => go(1), SLIDE_MS);
+    const id = setTimeout(() => go(1), slideMs);
     return () => clearTimeout(id);
-  }, [playing, count, safeIndex, go]);
+  }, [playing, count, safeIndex, go, slideMs]);
 
   // Lock body scroll while open.
   useEffect(() => {
@@ -212,7 +206,6 @@ export function SlideshowPlayer({ onClose }: { onClose: () => void }) {
   }, [go, onClose]);
 
   // Drive music from the slideshow's own play/pause + the music toggle.
-  // The overlay opens on a tap, so autoplay is allowed; swallow any rejection.
   useEffect(() => {
     const el = audioRef.current;
     if (!el) return;
@@ -223,8 +216,7 @@ export function SlideshowPlayer({ onClose }: { onClose: () => void }) {
     }
   }, [musicOn, playing, count, trackIndex]);
 
-  // Gently fade each song in (a soft blend when songs change in mix mode);
-  // a hard set otherwise.
+  // Gently fade each song in (a soft blend when songs change in mix mode).
   useEffect(() => {
     const el = audioRef.current;
     if (!el) return;
@@ -255,10 +247,10 @@ export function SlideshowPlayer({ onClose }: { onClose: () => void }) {
   return createPortal(
     <div
       role="dialog"
-      aria-label="Leo's story slideshow"
+      aria-label={`${title} slideshow`}
       className="fixed inset-0 z-[100] select-none overflow-hidden bg-ink-950 text-parchment-50 [touch-action:manipulation]"
     >
-      <StarryStage />
+      <StarryStage theme={theme} />
 
       {/* Background music (loops one song, or blends through all when mixing). */}
       <audio
@@ -275,7 +267,9 @@ export function SlideshowPlayer({ onClose }: { onClose: () => void }) {
           <p className="max-w-xs text-sm text-parchment-200">
             {favouritesOnly
               ? 'No favourite photos yet — tap the heart to show all, or star a few in Memories.'
-              : 'Add a few photos in Memories and Leo’s story will play here. 🦁'}
+              : custom
+                ? 'This slideshow has no photos yet — edit it to add some. 🦁'
+                : 'Add a few photos in Memories and Leo’s story will play here. 🦁'}
           </p>
           <button
             type="button"
@@ -303,10 +297,9 @@ export function SlideshowPlayer({ onClose }: { onClose: () => void }) {
                   }}
                   transition={
                     i === safeIndex && playing
-                      ? { duration: SLIDE_MS / 1000, ease: 'linear' }
+                      ? { duration: slideMs / 1000, ease: 'linear' }
                       : { duration: 0 }
                   }
-                  // Re-key so the fill restarts cleanly each time this slide shows.
                   key={`${i}-${safeIndex}-${playing}`}
                 />
               </span>
@@ -428,8 +421,8 @@ export function SlideshowPlayer({ onClose }: { onClose: () => void }) {
 
       {/* Top bar: title, music, favourites toggle, close (always available) */}
       <div className="absolute inset-x-0 top-0 z-40 flex items-center justify-between p-3 pt-5">
-        <span className="rounded-full bg-ink-950/40 px-3 py-1 font-serif text-sm text-parchment-100 backdrop-blur-sm">
-          {profile?.name ?? 'Leo'}’s story
+        <span className="max-w-[55%] truncate rounded-full bg-ink-950/40 px-3 py-1 font-serif text-sm text-parchment-100 backdrop-blur-sm">
+          {title}
         </span>
         <div className="flex items-center gap-1.5">
           {/* Music: tap to open the track picker / mute */}
@@ -466,13 +459,12 @@ export function SlideshowPlayer({ onClose }: { onClose: () => void }) {
                   {musicOn ? 'Mute music' : 'Play music'}
                 </button>
 
-                {/* Blend / mix toggle */}
                 <button
                   type="button"
                   onClick={() => {
                     const next = !mix;
                     setMix(next);
-                    void savePrefs({ mix: next });
+                    void saveDefault({ mix: next });
                   }}
                   className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm active:scale-[0.99]"
                 >
@@ -498,7 +490,7 @@ export function SlideshowPlayer({ onClose }: { onClose: () => void }) {
                 </button>
 
                 <p className="px-3 pb-1 pt-1.5 text-[11px] text-parchment-200/60">
-                  Tap a song to play it · ☆ sets the default
+                  Tap a song to play it{custom ? '' : ' · ☆ sets the default'}
                 </p>
                 <div className="my-1 h-px bg-parchment-50/10" />
 
@@ -537,25 +529,27 @@ export function SlideshowPlayer({ onClose }: { onClose: () => void }) {
                             {t.title}
                           </span>
                         </button>
-                        <button
-                          type="button"
-                          aria-label={
-                            isDefault ? 'Default song' : 'Set as default'
-                          }
-                          onClick={() =>
-                            void savePrefs({ defaultTrack: t.file })
-                          }
-                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full active:scale-90"
-                        >
-                          <Star
-                            className={cn(
-                              'h-4 w-4',
-                              isDefault
-                                ? 'fill-gold-300 text-gold-300'
-                                : 'text-parchment-200/50',
-                            )}
-                          />
-                        </button>
+                        {!custom && (
+                          <button
+                            type="button"
+                            aria-label={
+                              isDefault ? 'Default song' : 'Set as default'
+                            }
+                            onClick={() =>
+                              void saveDefault({ defaultTrack: t.file })
+                            }
+                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full active:scale-90"
+                          >
+                            <Star
+                              className={cn(
+                                'h-4 w-4',
+                                isDefault
+                                  ? 'fill-gold-300 text-gold-300'
+                                  : 'text-parchment-200/50',
+                              )}
+                            />
+                          </button>
+                        )}
                       </div>
                     );
                   })}
@@ -564,21 +558,24 @@ export function SlideshowPlayer({ onClose }: { onClose: () => void }) {
             )}
           </div>
 
-          <button
-            type="button"
-            aria-label="Favourites only"
-            aria-pressed={favouritesOnly}
-            onClick={() => setFavouritesOnly((v) => !v)}
-            className={cn(
-              'flex h-9 w-9 items-center justify-center rounded-full bg-ink-950/40 backdrop-blur-sm active:scale-90',
-              favouritesOnly ? 'text-rose-400' : 'text-parchment-100',
-            )}
-          >
-            <Heart
-              className="h-5 w-5"
-              fill={favouritesOnly ? 'currentColor' : 'none'}
-            />
-          </button>
+          {/* Favourites toggle only on the default show (custom has fixed photos) */}
+          {!custom && (
+            <button
+              type="button"
+              aria-label="Favourites only"
+              aria-pressed={favouritesOnly}
+              onClick={() => setFavouritesOnly((v) => !v)}
+              className={cn(
+                'flex h-9 w-9 items-center justify-center rounded-full bg-ink-950/40 backdrop-blur-sm active:scale-90',
+                favouritesOnly ? 'text-rose-400' : 'text-parchment-100',
+              )}
+            >
+              <Heart
+                className="h-5 w-5"
+                fill={favouritesOnly ? 'currentColor' : 'none'}
+              />
+            </button>
+          )}
           <button
             type="button"
             aria-label="Close slideshow"

@@ -65,6 +65,28 @@ const babyProfileSchema = z.object({
     .object({
       defaultTrack: z.string().optional(),
       mix: z.boolean().optional(),
+      shows: z
+        .array(
+          z.object({
+            id: z.string(),
+            name: z.string(),
+            coverPhotoId: z.string().optional(),
+            select: z.object({
+              mode: z.enum(['all', 'favourites', 'manual', 'filter']),
+              photoIds: z.array(z.string()).optional(),
+              tags: z.array(z.string()).optional(),
+              from: millis.optional(),
+              to: millis.optional(),
+            }),
+            order: z.enum(['chrono', 'manual']).optional(),
+            track: z.string().optional(),
+            mix: z.boolean().optional(),
+            theme: z.enum(['night', 'dawn', 'gold']).optional(),
+            slideMs: z.number().optional(),
+            createdAt: millis,
+          }),
+        )
+        .optional(),
     })
     .optional(),
   updatedAt: millis,

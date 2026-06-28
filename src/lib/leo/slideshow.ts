@@ -12,6 +12,7 @@ import {
   type TimelineItem,
   type TimelineSources,
 } from './timeline';
+import type { SlideshowSelect } from './types';
 
 export interface Slide {
   photoId: string;
@@ -23,8 +24,12 @@ export interface Slide {
 }
 
 export interface SlideshowOptions {
-  /** Only include photos marked as favourites. */
+  /** Only include photos marked as favourites (back-compat shorthand). */
   favouritesOnly?: boolean;
+  /** Which photos to include. Overrides `favouritesOnly` when given. */
+  select?: SlideshowSelect;
+  /** 'chrono' (default) keeps oldest→newest; 'manual' keeps the pick order. */
+  order?: 'chrono' | 'manual';
 }
 
 /**
@@ -48,9 +53,7 @@ export function buildSlideshow(
   sources: TimelineSources,
   opts: SlideshowOptions = {},
 ): Slide[] {
-  const favourites = new Set(
-    sources.photos.filter((p) => p.favourite).map((p) => p.id),
-  );
+  const photoById = new Map(sources.photos.map((p) => [p.id, p]));
 
   // Best (richest-captioned) timeline item per photo id.
   const best = new Map<string, TimelineItem>();
@@ -62,17 +65,67 @@ export function buildSlideshow(
     }
   }
 
-  let slides: Slide[] = Array.from(best.entries()).map(([photoId, item]) => ({
-    photoId,
-    at: item.at,
-    title: item.title,
-    subtitle: item.subtitle,
-    emoji: item.emoji,
-  }));
+  // A slide from a timeline item (the richest caption), or — for hand-picked
+  // gallery photos with no timeline item — straight from the PhotoEntry.
+  const slideFor = (photoId: string): Slide | null => {
+    const item = best.get(photoId);
+    if (item) {
+      return {
+        photoId,
+        at: item.at,
+        title: item.title,
+        subtitle: item.subtitle,
+        emoji: item.emoji,
+      };
+    }
+    const photo = photoById.get(photoId);
+    if (!photo) return null;
+    return { photoId, at: photo.takenAt, title: 'Photo' };
+  };
 
-  if (opts.favouritesOnly) {
-    slides = slides.filter((s) => favourites.has(s.photoId));
+  const select: SlideshowSelect =
+    opts.select ??
+    (opts.favouritesOnly ? { mode: 'favourites' } : { mode: 'all' });
+
+  let ids: string[];
+  if (select.mode === 'manual') {
+    // Keep any picked photo that's renderable (a timeline item or a gallery photo).
+    ids = (select.photoIds ?? []).filter(
+      (id) => best.has(id) || photoById.has(id),
+    );
+  } else {
+    // All photo-bearing timeline moments (milestones / journal / gallery / hero).
+    ids = Array.from(best.keys());
+    if (select.mode === 'favourites') {
+      ids = ids.filter((id) => photoById.get(id)?.favourite);
+    } else if (select.mode === 'filter') {
+      ids = ids.filter((id) => {
+        const p = photoById.get(id);
+        if (!p) return false;
+        if (
+          select.tags?.length &&
+          !select.tags.some((t) => p.tags?.includes(t))
+        )
+          return false;
+        if (select.from != null && p.takenAt < select.from) return false;
+        if (select.to != null && p.takenAt > select.to) return false;
+        return true;
+      });
+    }
   }
-  slides.sort((a, b) => a.at - b.at);
+
+  const slides = ids.map(slideFor).filter((s): s is Slide => s !== null);
+
+  if (opts.order === 'manual' && select.mode === 'manual') {
+    const orderIndex = new Map(
+      (select.photoIds ?? []).map((id, i) => [id, i] as const),
+    );
+    slides.sort(
+      (a, b) =>
+        (orderIndex.get(a.photoId) ?? 0) - (orderIndex.get(b.photoId) ?? 0),
+    );
+  } else {
+    slides.sort((a, b) => a.at - b.at);
+  }
   return slides;
 }
