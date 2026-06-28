@@ -52,12 +52,44 @@ export interface BabyProfile {
   updatedAt: Millis;
 }
 
-/** Slideshow music preferences — which song plays and whether to blend songs. */
+/** How a slideshow chooses its photos. */
+export interface SlideshowSelect {
+  mode: 'all' | 'favourites' | 'manual' | 'filter';
+  /** For mode 'manual': the chosen photo ids, in pick order. */
+  photoIds?: string[];
+  /** For mode 'filter': only photos carrying one of these tags. */
+  tags?: string[];
+  /** For mode 'filter': inclusive date range (epoch ms). */
+  from?: Millis;
+  to?: Millis;
+}
+
+/** A saved, customisable slideshow the family can build and replay. */
+export interface SlideshowConfig {
+  id: string;
+  name: string;
+  /** Optional cover photo id (defaults to the first slide). */
+  coverPhotoId?: string;
+  select: SlideshowSelect;
+  /** 'chrono' (oldest→newest) or 'manual' (the pick order). */
+  order?: 'chrono' | 'manual';
+  /** Music: a track filename + whether to blend through all songs. */
+  track?: string;
+  mix?: boolean;
+  /** Backdrop theme + per-slide duration (ms). */
+  theme?: 'night' | 'dawn' | 'gold';
+  slideMs?: number;
+  createdAt: Millis;
+}
+
+/** Slideshow preferences — the default song plus any saved custom slideshows. */
 export interface SlideshowPrefs {
   /** Filename (under /leo/music) of the song that plays by default. */
   defaultTrack?: string;
   /** When true, play through all songs with a gentle crossfade instead of looping one. */
   mix?: boolean;
+  /** Saved custom slideshows (synced + backed up with the profile). */
+  shows?: SlideshowConfig[];
 }
 
 export interface FeedEntry {

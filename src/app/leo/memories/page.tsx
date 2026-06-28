@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/card';
 import { SectionBanner } from '@/components/leo';
 import { Segmented } from '@/components/leo/forms/feed-form';
 import { PhotoGallery } from '@/components/leo/photos/photo-gallery';
+import { SlideshowsManager } from '@/components/leo/slideshow/slideshows-manager';
 import { MilestoneList } from '@/components/leo/milestones/milestone-list';
 import { JournalList } from '@/components/leo/journal/journal-list';
 import { VoiceList } from '@/components/leo/voice/voice-list';
@@ -58,7 +59,12 @@ export default function LeoMemoriesPage() {
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.25 }}
         >
-          {tab === 'photos' && <PhotoGallery />}
+          {tab === 'photos' && (
+            <div className="space-y-4">
+              <SlideshowsManager />
+              <PhotoGallery />
+            </div>
+          )}
           {tab === 'milestones' && <MilestoneList />}
           {tab === 'journal' && <JournalList />}
           {tab === 'voice' && <VoiceList />}

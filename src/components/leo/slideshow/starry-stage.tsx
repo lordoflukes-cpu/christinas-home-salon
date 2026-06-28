@@ -18,7 +18,18 @@ interface Star {
  * motes and the odd shooting star. Purely decorative (transform/opacity only,
  * and stilled under prefers-reduced-motion via the CSS guards).
  */
-export function StarryStage() {
+const THEME_BG: Record<string, string> = {
+  night:
+    'radial-gradient(120% 80% at 50% 0%, #11204a 0%, #0a1330 45%, #060a1d 100%)',
+  dawn: 'radial-gradient(120% 80% at 50% 0%, #3b2a4a 0%, #2a2140 45%, #14111f 100%)',
+  gold: 'radial-gradient(120% 80% at 50% 0%, #4a3a16 0%, #2f2410 45%, #15100a 100%)',
+};
+
+export function StarryStage({
+  theme = 'night',
+}: {
+  theme?: 'night' | 'dawn' | 'gold';
+}) {
   const stars = useMemo<Star[]>(() => {
     const out: Star[] = [];
     for (let i = 0; i < 46; i++) {
@@ -37,10 +48,7 @@ export function StarryStage() {
     <div
       aria-hidden
       className="absolute inset-0 overflow-hidden"
-      style={{
-        background:
-          'radial-gradient(120% 80% at 50% 0%, #11204a 0%, #0a1330 45%, #060a1d 100%)',
-      }}
+      style={{ background: THEME_BG[theme] ?? THEME_BG.night }}
     >
       <Starfield className="opacity-70" />
 
