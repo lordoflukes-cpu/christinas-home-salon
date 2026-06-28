@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "trading-execution",
+  "displayName": "Trading Execution",
+  "description": "Venue-abstracted execution across the two tax tracks — PaperVenue (working, no creds) plus VT Markets (MetaApi/MT5) and IG spread-bet real-path stubs — with Telegram control (/halt /flat /status /size), a kill-switch, reconciliation, and UK tax records. A FastAPI execution service the bridge routes to, plus an execution MCP.",
+  "version": "0.1.0",
+  "author": { "name": "lordoflukes-cpu" },
+  "license": "MIT",
+  "keywords": ["execution", "vtmarkets", "metaapi", "ig", "telegram", "kill-switch", "tax"],
+  "skills": "./skills/",
+  "agents": "./agents/",
+  "commands": "./commands/",
+  "mcpServers": "./.mcp.json"
+}

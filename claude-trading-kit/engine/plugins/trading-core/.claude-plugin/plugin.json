@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "trading-core",
+  "displayName": "Trading Core",
+  "description": "Risk-first foundation for manual and automated trading: ATR position sizing, all-in cost model, regime read, journaling and a periodic health review, plus an adversarial risk-manager agent and a non-blocking pre-order safety hook.",
+  "version": "0.1.0",
+  "author": { "name": "lordoflukes-cpu" },
+  "license": "MIT",
+  "keywords": ["trading", "risk", "sizing", "journal", "regime"],
+  "skills": "./skills/",
+  "agents": "./agents/",
+  "hooks": "./hooks/hooks.json",
+  "dependencies": ["trading-research"]
+}

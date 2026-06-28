@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "trading-charting",
+  "displayName": "Trading Charting (TradingView)",
+  "description": "The TradingView signal/charting layer for manual and bot trading: a Pine library that mirrors the gold-bot strategy (parity), the ts.alert.v1 webhook contract with validation + HMAC signing + Pine linting, screeners, chart playbooks, and a Strategy-Tester cross-check — exposed as the charting-tools MCP with a pine-engineer agent.",
+  "version": "0.1.0",
+  "author": { "name": "lordoflukes-cpu" },
+  "license": "MIT",
+  "keywords": ["tradingview", "pine", "charting", "screener", "alerts", "webhook"],
+  "skills": "./skills/",
+  "agents": "./agents/",
+  "mcpServers": "./.mcp.json",
+  "dependencies": ["trading-research"]
+}

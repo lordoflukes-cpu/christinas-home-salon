@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "trading-data",
+  "displayName": "Trading Data",
+  "description": "Market data, FRED macro (real yields/DXY/breakevens), the economic-calendar news-window guard, COT positioning, and the intermarket panel — the trading-data MCP. Sim-first (no keys); FRED has a real path. Includes a poller that auto-sets the bridge news-window.",
+  "version": "0.1.0",
+  "author": { "name": "lordoflukes-cpu" },
+  "license": "MIT",
+  "keywords": ["data", "fred", "calendar", "news-window", "cot", "intermarket"],
+  "skills": "./skills/",
+  "agents": "./agents/",
+  "mcpServers": "./.mcp.json"
+}

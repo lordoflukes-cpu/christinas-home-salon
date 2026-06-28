@@ -1,0 +1,67 @@
+//@version=6
+// ts_trend_strategy — dual-EMA + ATR trend strategy.
+// PARITY: mirrors the gold-bot engine DualEMATrend
+// (vendor/gold-bot/app/strategy/trend.py): direction = sign(EMA(fast) - EMA(slow)),
+// ATR(atr_period) sets the stop distance that drives position sizing. Long/flat/short.
+// Emits the ts.alert.v1 JSON contract via alert() so the trading-bridge can route it.
+//
+// Manual: load on a chart for the signal + ATR stop; the alert pings you.
+// Bot: set the alert webhook to your trading-bridge URL; the same signal becomes an order.
+strategy("TS Trend (parity)", overlay=true, calc_on_every_tick=false,
+         pyramiding=0, default_qty_type=strategy.percent_of_equity, default_qty_value=100)
+
+// ── Inputs (defaults match the engine) ──────────────────────────────────────
+fast        = input.int(20,   "Fast EMA")
+slow        = input.int(50,   "Slow EMA")
+atrPeriod   = input.int(14,   "ATR period")
+stopAtrMult = input.float(2.0, "Stop (x ATR)", step=0.1)
+riskFrac    = input.float(0.005, "Risk per trade (frac)", step=0.001)
+symbolName  = input.string("XAUUSD", "Symbol (for alert)")
+strategyId  = input.string("gold-trend-h4", "Strategy id")
+accountTrack= input.string("spreadbet", "Account track", options=["spreadbet", "cfd"])
+allowShort  = input.bool(true, "Allow shorts")
+alertSecret = input.string("", "Alert secret (HMAC token)")  // keep blank in shared charts
+
+// ── Signal (same logic as the engine) ───────────────────────────────────────
+emaFast = ta.ema(close, fast)
+emaSlow = ta.ema(close, slow)
+atrVal  = ta.atr(atrPeriod)
+warmedUp = bar_index >= math.max(slow, atrPeriod + 1)
+
+longCond  = warmedUp and emaFast > emaSlow
+shortCond = warmedUp and emaFast < emaSlow and allowShort
+
+// ── Orders (execute on confirmed bar close — no repaint) ────────────────────
+if longCond and strategy.position_size <= 0
+    strategy.entry("L", strategy.long)
+if shortCond and strategy.position_size >= 0
+    strategy.entry("S", strategy.short)
+if (not allowShort) and emaFast < emaSlow and strategy.position_size > 0
+    strategy.close("L")
+
+// ── ts.alert.v1 payload (resolved at alert time) ────────────────────────────
+// client_order_id must be unique per intended order → strategy.order.id + time.
+action = longCond ? "buy" : shortCond ? "sell" : "close"
+payload = '{"schema":"ts.alert.v1"' +
+  ',"strategy_id":"' + strategyId + '"' +
+  ',"client_order_id":"' + str.tostring(strategy.opentrades) + '-' + str.tostring(time) + '"' +
+  ',"account_track":"' + accountTrack + '"' +
+  ',"symbol":"' + symbolName + '"' +
+  ',"action":"' + action + '"' +
+  ',"order_type":"market"' +
+  ',"price":' + str.tostring(close) +
+  ',"atr":' + str.tostring(atrVal) +
+  ',"stop_atr_mult":' + str.tostring(stopAtrMult) +
+  ',"risk_frac":' + str.tostring(riskFrac) +
+  ',"tv_time":"' + str.tostring(time) + '"' +
+  (alertSecret == "" ? "" : ',"secret":"' + alertSecret + '"') +
+  '}'
+
+// Fire on entry/flip only (not every bar).
+if (longCond and strategy.position_size <= 0) or (shortCond and strategy.position_size >= 0)
+    alert(payload, alert.freq_once_per_bar_close)
+
+// ── Plots (visual parity for manual reads) ──────────────────────────────────
+plot(emaFast, "EMA fast", color.new(color.aqua, 0))
+plot(emaSlow, "EMA slow", color.new(color.orange, 0))
+bgcolor(longCond ? color.new(color.green, 90) : shortCond ? color.new(color.red, 90) : na)

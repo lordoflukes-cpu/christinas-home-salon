@@ -1,0 +1,4 @@
+# MCP server dependency. Install once: pip install -r requirements.txt
+mcp>=1.2
+# The engine + validation suite are pure-Python (no other runtime deps).
+pytest>=8.0

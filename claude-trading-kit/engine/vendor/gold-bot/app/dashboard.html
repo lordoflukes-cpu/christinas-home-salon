@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Gold &amp; Silver Live Monitor</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+         background: #0d1117; color: #e6edf3; }
+  header { display: flex; align-items: center; gap: 16px; padding: 12px 20px;
+           border-bottom: 1px solid #21262d; }
+  header h1 { font-size: 16px; margin: 0; font-weight: 600; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: #f85149; }
+  .dot.live { background: #3fb950; }
+  .grid { display: grid; gap: 14px; padding: 20px;
+          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .card { background: #161b22; border: 1px solid #21262d; border-radius: 8px; padding: 14px 16px; }
+  .card h2 { margin: 0 0 10px; font-size: 11px; text-transform: uppercase;
+             letter-spacing: .08em; color: #8b949e; font-weight: 600; }
+  .big { font-size: 26px; font-weight: 600; }
+  .row { display: flex; justify-content: space-between; padding: 2px 0; }
+  .muted { color: #8b949e; }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; }
+  .ok { background: #1a3326; color: #3fb950; }
+  .bad { background: #3d1d1d; color: #f85149; }
+  .warnpill { background: #3a2e12; color: #d29922; }
+  button { font: inherit; cursor: pointer; border: 1px solid #f85149; background: #21262d;
+           color: #f85149; padding: 8px 14px; border-radius: 6px; }
+  button.armed { background: #f85149; color: #0d1117; font-weight: 700; }
+  #alerts { max-height: 320px; overflow: auto; }
+  .alert { padding: 6px 8px; border-left: 3px solid #d29922; margin-bottom: 6px;
+           background: #11151c; border-radius: 0 4px 4px 0; }
+  .alert.info { border-color: #388bfd; } .alert.warning { border-color: #d29922; }
+  .alert.critical { border-color: #f85149; }
+  .alert time { color: #8b949e; font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <span id="conn" class="dot"></span>
+  <h1>Gold &amp; Silver Live Monitor</h1>
+  <span id="mode" class="muted"></span>
+  <span style="flex:1"></span>
+  <button id="kill">◉ KILL-SWITCH</button>
+</header>
+
+<div class="grid">
+  <div class="card"><h2>XAU/USD (Gold)</h2><div id="xau" class="big">—</div><div id="xauAge" class="muted"></div></div>
+  <div class="card"><h2>XAG/USD (Silver)</h2><div id="xag" class="big">—</div><div id="xagAge" class="muted"></div></div>
+  <div class="card"><h2>Gold / Silver Ratio</h2><div id="ratio" class="big">—</div></div>
+  <div class="card"><h2>News-Window Guard</h2><div id="guard" class="big">—</div><div id="event" class="muted"></div></div>
+
+  <div class="card">
+    <h2>Macro (Tier 3 · daily)</h2>
+    <div class="row"><span class="muted">10y real yield</span><span id="ry">—</span></div>
+    <div class="row"><span class="muted">10y nominal</span><span id="ny">—</span></div>
+    <div class="row"><span class="muted">10y breakeven</span><span id="be">—</span></div>
+    <div class="row"><span class="muted">Dollar (DXY)</span><span id="dxy">—</span></div>
+  </div>
+
+  <div class="card">
+    <h2>COT (Tier 4 · weekly · lagged)</h2>
+    <div class="row"><span class="muted">Gold MM net</span><span id="gmm">—</span></div>
+    <div class="row"><span class="muted">Silver MM net</span><span id="smm">—</span></div>
+    <div class="row"><span class="muted">As of</span><span id="cotas">—</span></div>
+  </div>
+
+  <div class="card">
+    <h2>Paper Executor</h2>
+    <div class="row"><span class="muted">Equity</span><span id="peq" class="big" style="font-size:18px">—</span></div>
+    <div class="row"><span class="muted">Position</span><span id="ppos">—</span></div>
+    <div class="row"><span class="muted">Avg price</span><span id="pavg">—</span></div>
+    <div class="row"><span class="muted">Realized</span><span id="prl">—</span></div>
+    <div class="row"><span class="muted">Trades</span><span id="ptr">—</span></div>
+  </div>
+
+  <div class="card" style="grid-column: 1 / -1;">
+    <h2>Alerts</h2>
+    <div id="alerts"></div>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const fmt = (v, d = 2) => (v === null || v === undefined) ? "—" : Number(v).toFixed(d);
+
+function render(s) {
+  $("mode").textContent = s.kill_switch ? "" : "";
+  const g = $("xau"), si = $("xag");
+  if (s.prices && s.prices["XAU/USD"]) { $("xau").textContent = fmt(s.prices["XAU/USD"].last, 2);
+    $("xauAge").textContent = "age " + fmt(s.prices["XAU/USD"].age_sec, 1) + "s"; }
+  if (s.prices && s.prices["XAG/USD"]) { $("xag").textContent = fmt(s.prices["XAG/USD"].last, 3);
+    $("xagAge").textContent = "age " + fmt(s.prices["XAG/USD"].age_sec, 1) + "s"; }
+  $("ratio").textContent = fmt(s.gold_silver_ratio, 1);
+
+  $("guard").innerHTML = s.news_guard_active
+    ? '<span class="pill bad">ACTIVE — entries blocked</span>'
+    : '<span class="pill ok">clear</span>';
+  $("event").textContent = s.next_event ? ("next: " + s.next_event.title) : "no event scheduled";
+
+  const m = s.macro || {};
+  $("ry").textContent  = fmt(m.real_yield_10y, 2) + "%";
+  $("ny").textContent  = fmt(m.nominal_10y, 2) + "%";
+  $("be").textContent  = fmt(m.breakeven_10y, 2) + "%";
+  $("dxy").textContent = fmt(m.dxy, 2);
+
+  const c = s.cot || {};
+  $("gmm").textContent  = c.gold_mm_net?.toLocaleString?.() ?? "—";
+  $("smm").textContent  = c.silver_mm_net?.toLocaleString?.() ?? "—";
+  $("cotas").textContent = c.as_of ?? "—";
+
+  const pp = s.paper || {};
+  $("peq").textContent  = pp.equity != null ? Number(pp.equity).toLocaleString() : "—";
+  $("ppos").textContent = pp.position != null ? Number(pp.position).toFixed(3) : "—";
+  $("pavg").textContent = pp.avg_price ? fmt(pp.avg_price, 3) : "—";
+  $("prl").textContent  = pp.realized != null ? fmt(pp.realized, 2) : "—";
+  $("ptr").textContent  = pp.trades ?? "—";
+
+  const kill = $("kill");
+  kill.classList.toggle("armed", !!s.kill_switch);
+  kill.textContent = s.kill_switch ? "◉ HALTED — click to resume" : "◉ KILL-SWITCH";
+
+  if (s.alerts) { $("alerts").innerHTML = s.alerts.slice().reverse().map(renderAlert).join(""); }
+}
+
+function renderAlert(a) {
+  const t = new Date((a.ts || 0) * 1000).toLocaleTimeString();
+  return `<div class="alert ${a.level||''}"><time>${t}</time> &nbsp;${a.message||''}</div>`;
+}
+
+function connect() {
+  const ws = new WebSocket(`ws://${location.host}/ws`);
+  ws.onopen = () => $("conn").classList.add("live");
+  ws.onclose = () => { $("conn").classList.remove("live"); setTimeout(connect, 1500); };
+  ws.onmessage = (ev) => {
+    const msg = JSON.parse(ev.data);
+    if (msg.type === "snapshot") render(msg.data);
+    else if (msg.type === "alert") {
+      const el = document.createElement("div");
+      el.innerHTML = renderAlert(msg.data);
+      $("alerts").prepend(el.firstChild);
+    }
+  };
+}
+
+$("kill").onclick = () => fetch("/api/kill-switch", { method: "POST" });
+connect();
+</script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trading-suite/contract/ts_alert_v1.schema.json",
+  "title": "ts.alert.v1",
+  "description": "Canonical TradingView → bridge alert payload. Authored by trading-charting; verified by trading-bridge (Phase 3). Pine emits this JSON via alert(); the bridge treats client_order_id as the idempotency key and verifies the HMAC signature.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "strategy_id", "client_order_id", "account_track",
+    "symbol", "action", "order_type"
+  ],
+  "properties": {
+    "schema": { "const": "ts.alert.v1" },
+    "strategy_id": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "client_order_id": { "type": "string", "minLength": 1, "maxLength": 128,
+      "description": "Idempotency key — unique per intended order." },
+    "account_track": { "enum": ["cfd", "spreadbet"],
+      "description": "Tax/venue track: cfd (VT Markets) or spreadbet (IG, tax-free)." },
+    "symbol": { "type": "string", "minLength": 1, "maxLength": 32 },
+    "action": { "enum": ["buy", "sell", "close"] },
+    "order_type": { "enum": ["market", "limit"] },
+    "price": { "type": "number" },
+    "limit_price": { "type": "number" },
+    "atr": { "type": "number", "exclusiveMinimum": 0 },
+    "stop_atr_mult": { "type": "number", "exclusiveMinimum": 0, "default": 2.0 },
+    "risk_frac": { "type": "number", "exclusiveMinimum": 0, "maximum": 0.1, "default": 0.005 },
+    "tv_time": { "type": "string", "description": "TradingView timenow, for replay protection." },
+    "secret": { "type": "string", "description": "Shared token (weak). Pair with HMAC signature." },
+    "signature": { "type": "string", "description": "HMAC-SHA256 hex over the canonical body." }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "order_type": { "const": "limit" } } },
+      "then": { "required": ["limit_price"] }
+    },
+    {
+      "if": { "properties": { "action": { "enum": ["buy", "sell"] } } },
+      "then": { "required": ["atr"],
+        "description": "Entries need ATR so the bridge/risk-gate can size the position." }
+    }
+  ]
+}

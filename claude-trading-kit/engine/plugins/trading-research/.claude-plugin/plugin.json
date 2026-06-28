@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "trading-research",
+  "displayName": "Trading Research",
+  "description": "Honest backtesting & the anti-overfitting validation suite (walk-forward, Monte-Carlo, parameter-plateau, deflated Sharpe) wrapping the gold-bot engine, plus a regime classifier — exposed as the backtest-engine MCP server with analyst/skeptic/validator agents.",
+  "version": "0.1.0",
+  "author": { "name": "lordoflukes-cpu" },
+  "license": "MIT",
+  "keywords": ["backtest", "validation", "research", "overfitting", "walk-forward"],
+  "skills": "./skills/",
+  "agents": "./agents/",
+  "mcpServers": "./.mcp.json"
+}

@@ -1,0 +1,3 @@
+📈 trading-core loaded. Discipline > signal. Before any entry: /trading-core:risk-check.
+Skills: risk-check · cost-model · regime · trade-journal · health-review.
+Agent: risk-manager (adversarial veto).  Validation lives in trading-research (backtest, walk-forward, monte-carlo, optimize).

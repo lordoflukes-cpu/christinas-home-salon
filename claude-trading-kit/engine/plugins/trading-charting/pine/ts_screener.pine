@@ -1,0 +1,29 @@
+//@version=6
+// ts_screener — a compact trend flag for scanning a watchlist/screener.
+// Same dual-EMA logic (PARITY). Plots +1 (uptrend), -1 (downtrend), 0 (flat) so you can
+// add it to several symbols and eyeball which are trending, or use it in a Pine-screener
+// style scan. No orders, no alerts by default.
+//
+// Manual: surface candidate setups across many symbols, then open the playbook on the best.
+// Bot: a pre-filter — only arm ts_trend_strategy on symbols the screener flags trending.
+indicator("TS Screener (trend flag)", overlay=false)
+
+fast      = input.int(20, "Fast EMA")
+slow      = input.int(50, "Slow EMA")
+atrPeriod = input.int(14, "ATR period")
+
+emaFast = ta.ema(close, fast)
+emaSlow = ta.ema(close, slow)
+atrVal  = ta.atr(atrPeriod)
+warmedUp = bar_index >= math.max(slow, atrPeriod + 1)
+
+flag = not warmedUp ? 0 : emaFast > emaSlow ? 1 : emaFast < emaSlow ? -1 : 0
+volatile = (atrVal / close) > 0.01
+
+plot(flag, "Trend flag", color = flag > 0 ? color.green : flag < 0 ? color.red : color.gray,
+     style = plot.style_columns)
+hline(0, "flat", color.new(color.gray, 60))
+
+// Optional: only flag "tradeable" trends (directional AND volatile).
+plotchar(flag != 0 and volatile, "tradeable", "•", location.top,
+         color = flag > 0 ? color.green : color.red)

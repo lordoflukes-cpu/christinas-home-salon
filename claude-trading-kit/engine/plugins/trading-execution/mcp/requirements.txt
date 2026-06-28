@@ -1,0 +1,8 @@
+# Install once: pip install -r requirements.txt
+mcp>=1.2
+fastapi>=0.110
+uvicorn[standard]>=0.29
+httpx>=0.27
+pytest>=8.0
+# Real venues additionally need: metaapi-cloud-sdk (MetaApi), MetaTrader5 (Windows MT5),
+# and IG API credentials — see the venue modules' docstrings.

@@ -1,0 +1,23 @@
+{
+  "schema": "ts.alert.v1",
+  "strategy_id": "gold-trend-h4",
+  "client_order_id": "{{strategy.order.id}}-{{timenow}}",
+  "account_track": "spreadbet",
+  "symbol": "XAUUSD",
+  "action": "{{strategy.order.action}}",
+  "order_type": "market",
+  "price": {{close}},
+  "atr": {{plot("ATR")}},
+  "stop_atr_mult": 2.0,
+  "risk_frac": 0.005,
+  "tv_time": "{{timenow}}"
+}
+
+TradingView wiring (paid plan required for webhooks):
+1. Add ts_trend_strategy.pine to the chart (or use this message on a "Once per bar close"
+   strategy alert).
+2. Create an alert → Condition: the strategy → "Order fills only" (or this script's alert()).
+3. Webhook URL: your trading-bridge endpoint (Phase 3). Message: the JSON above.
+4. account_track: "spreadbet" (IG, tax-free) or "cfd" (VT Markets) — pick per strategy.
+5. The bridge adds/verifies the HMAC signature and treats client_order_id as the
+   idempotency key. Do NOT paste a real secret into a shared chart; the bridge holds it.

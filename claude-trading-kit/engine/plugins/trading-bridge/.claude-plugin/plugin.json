@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "trading-bridge",
+  "displayName": "Trading Bridge",
+  "description": "The cloud-hosted TradingView-webhook receiver and manual/bot junction: HMAC verify → idempotency → risk-gate → route (auto-execute or suggest). A FastAPI service plus a bridge-control MCP for dry-runs and operator control. Stub sinks (paper + notify) until execution/Telegram land in Phase 5.",
+  "version": "0.1.0",
+  "author": { "name": "lordoflukes-cpu" },
+  "license": "MIT",
+  "keywords": ["webhook", "tradingview", "bridge", "risk-gate", "hmac"],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "dependencies": ["trading-charting"]
+}

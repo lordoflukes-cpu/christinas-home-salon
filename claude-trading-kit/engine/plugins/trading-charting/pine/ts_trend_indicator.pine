@@ -1,0 +1,38 @@
+//@version=6
+// ts_trend_indicator — the manual-trading companion to ts_trend_strategy.
+// Same dual-EMA + ATR logic (PARITY), drawn for discretionary reads: EMAs, an ATR-based
+// stop guide, regime background shading, and alertcondition() pings (no orders).
+//
+// Manual: your eyes-on chart — shading shows the regime, the dashed line is the ATR stop.
+// Bot: use ts_trend_strategy.pine instead (it emits the ts.alert.v1 order payload).
+indicator("TS Trend (manual)", overlay=true)
+
+fast        = input.int(20,   "Fast EMA")
+slow        = input.int(50,   "Slow EMA")
+atrPeriod   = input.int(14,   "ATR period")
+stopAtrMult = input.float(2.0, "Stop (x ATR)", step=0.1)
+
+emaFast = ta.ema(close, fast)
+emaSlow = ta.ema(close, slow)
+atrVal  = ta.atr(atrPeriod)
+warmedUp = bar_index >= math.max(slow, atrPeriod + 1)
+
+up   = warmedUp and emaFast > emaSlow
+down = warmedUp and emaFast < emaSlow
+
+// Volatility state (rough): ATR relative to price.
+volatile = (atrVal / close) > 0.01
+
+plot(emaFast, "EMA fast", color.new(color.aqua, 0))
+plot(emaSlow, "EMA slow", color.new(color.orange, 0))
+
+// ATR stop guide for the current direction.
+stopLine = up ? close - stopAtrMult * atrVal : down ? close + stopAtrMult * atrVal : na
+plot(stopLine, "ATR stop", color.new(color.red, 0), style=plot.style_cross)
+
+// Regime shading: green=up, red=down; brighter when volatile (press), dim when quiet.
+bgcolor(up   ? color.new(color.green, volatile ? 80 : 92)
+      : down ? color.new(color.red,   volatile ? 80 : 92) : na)
+
+alertcondition(up   and not up[1],   "Trend turned UP",   "TS Trend: UP — review for long")
+alertcondition(down and not down[1], "Trend turned DOWN", "TS Trend: DOWN — review for short")

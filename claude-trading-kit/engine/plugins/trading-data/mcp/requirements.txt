@@ -1,0 +1,4 @@
+# Install once: pip install -r requirements.txt
+mcp>=1.2
+httpx>=0.27
+pytest>=8.0

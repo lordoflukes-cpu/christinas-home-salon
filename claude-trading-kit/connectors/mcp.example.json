@@ -1,0 +1,31 @@
+{
+  "_readme": "Merge the mcpServers below into your project's .mcp.json (or ~/.claude.json). Replace ${KIT} with the absolute path to this claude-trading-kit folder, and `python3` with your venv python if needed. These five are the kit's BUILT, runnable MCP servers (they run on simulated data with no credentials). Environment connectors (github, Supabase, Google, Crypto.com, Bigdata.com, etc.) are configured separately with their own auth — see connectors/README.md. Custom broker/data connectors (OANDA, IBKR, Twelve Data, Telegram, …) are SPECs to implement — see connectors/custom/.",
+  "mcpServers": {
+    "backtest-engine": {
+      "type": "stdio",
+      "command": "python3",
+      "args": ["${KIT}/engine/plugins/trading-research/mcp/backtest_server.py"]
+    },
+    "charting-tools": {
+      "type": "stdio",
+      "command": "python3",
+      "args": ["${KIT}/engine/plugins/trading-charting/mcp/charting_server.py"]
+    },
+    "trading-data": {
+      "type": "stdio",
+      "command": "python3",
+      "args": ["${KIT}/engine/plugins/trading-data/mcp/data_server.py"],
+      "env": { "USE_SIMULATED_DATA": "true" }
+    },
+    "bridge-control": {
+      "type": "stdio",
+      "command": "python3",
+      "args": ["${KIT}/engine/plugins/trading-bridge/mcp/bridge_server.py"]
+    },
+    "execution": {
+      "type": "stdio",
+      "command": "python3",
+      "args": ["${KIT}/engine/plugins/trading-execution/mcp/exec_server.py"]
+    }
+  }
+}
